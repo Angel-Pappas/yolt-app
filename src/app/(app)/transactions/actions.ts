@@ -22,3 +22,34 @@ export async function addTransaction(formData: FormData) {
 
   revalidatePath("/transactions");
 }
+
+export async function updateTransaction(id: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const date = formData.get("date") as string;
+  const amount = formData.get("amount") as string;
+  const description = formData.get("description") as string;
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({ date, amount, description })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/transactions");
+}
+
+export async function deleteTransaction(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("transactions").delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/transactions");
+}
