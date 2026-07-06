@@ -12,7 +12,7 @@ export default function AppLayout({
         <nav className="mx-auto flex w-full max-w-2xl items-center justify-between p-4 text-sm">
           <div className="flex gap-4">
             <Link href="/" className="font-semibold">
-              Yolt
+              Home
             </Link>
             <Link href="/transactions">Transactions</Link>
             <Link href="/options">Options</Link>
