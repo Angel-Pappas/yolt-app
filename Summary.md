@@ -28,6 +28,10 @@ Yolt is a personal financial transactions tracker, built for a single user (the 
   - Table `public.transactions`: `id` (uuid pk), `user_id` (uuid, defaults to `auth.uid()`), `date` (date), `amount` (`numeric(12,2)` — exact decimal, not float, so no cents-as-integer conversion needed), `description` (text), `created_at` (timestamptz). RLS enabled, all policies scoped to `auth.uid() = user_id`.
 - **Hosting/deploy**: Vercel, connected to GitHub repo [Angel-Pappas/yolt-app](https://github.com/Angel-Pappas/yolt-app), auto-deploys on push to `main`. Env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) are set directly in the Vercel dashboard (mirrors `.env.local`, which is gitignored; `.env.example` is committed as a template).
 
+## Formatting conventions
+
+Greek-style formatting is used everywhere the app displays dates/numbers: dates as `dd/mm/yyyy`, numbers with `.` as the thousands separator and `,` as the decimal separator, always rounded to exactly 2 decimals. Shared helpers live in `src/lib/format.ts` (`formatDate`, `formatAmount`) — use these instead of ad-hoc formatting whenever displaying a date or amount anywhere in the app. Native HTML form inputs (`<input type="date">`, `<input type="number">` in the add-transaction modal) are exempt — their `value` must stay ISO/period-decimal per the HTML spec, only their on-screen picker rendering is browser/OS-locale-dependent, and that isn't something the app controls.
+
 ## Notes to myself
 
 - This is a single-user app. Don't add roles/teams/sharing/multi-tenant complexity unless explicitly asked — but keep RLS correct regardless, it's good practice regardless of user count.

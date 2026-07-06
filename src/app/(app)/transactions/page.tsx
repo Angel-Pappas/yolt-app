@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatAmount, formatDate } from "@/lib/format";
 import { AddTransactionModal } from "./add-transaction-modal";
 
 type Transaction = {
@@ -35,11 +36,9 @@ export default async function TransactionsPage() {
         <tbody>
           {transactions?.map((t) => (
             <tr key={t.id} className="border-b">
-              <td className="py-2">{t.date}</td>
+              <td className="py-2">{formatDate(t.date)}</td>
               <td className="py-2">{t.description}</td>
-              <td className="py-2 text-right">
-                {Number(t.amount).toFixed(2)}
-              </td>
+              <td className="py-2 text-right">{formatAmount(t.amount)}</td>
             </tr>
           ))}
           {transactions?.length === 0 && (
