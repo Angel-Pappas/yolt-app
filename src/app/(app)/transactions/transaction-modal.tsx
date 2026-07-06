@@ -5,6 +5,7 @@ import { useId, useRef, useTransition } from "react";
 type TransactionModalProps = {
   trigger: React.ReactNode;
   triggerClassName?: string;
+  triggerLabel?: string;
   title: string;
   submitLabel: string;
   defaultValues?: {
@@ -18,6 +19,7 @@ type TransactionModalProps = {
 export function TransactionModal({
   trigger,
   triggerClassName,
+  triggerLabel,
   title,
   submitLabel,
   defaultValues,
@@ -47,6 +49,7 @@ export function TransactionModal({
       <button
         type="button"
         onClick={openModal}
+        aria-label={triggerLabel}
         className={
           triggerClassName ?? "rounded bg-black px-3 py-1.5 text-sm text-white"
         }

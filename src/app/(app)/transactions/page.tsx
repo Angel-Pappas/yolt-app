@@ -3,6 +3,7 @@ import { formatAmount, formatDate } from "@/lib/format";
 import { addTransaction, updateTransaction } from "./actions";
 import { TransactionModal } from "./transaction-modal";
 import { DeleteTransactionButton } from "./delete-transaction-button";
+import { PencilIcon } from "@/components/icons";
 
 type Transaction = {
   id: string;
@@ -50,8 +51,9 @@ export default async function TransactionsPage() {
               <td className="py-2">
                 <div className="flex justify-end gap-3">
                   <TransactionModal
-                    trigger="Edit"
-                    triggerClassName="text-sm underline"
+                    trigger={<PencilIcon className="h-4 w-4" />}
+                    triggerClassName="rounded p-1.5 text-neutral-600 hover:text-black"
+                    triggerLabel="Edit transaction"
                     title="Edit transaction"
                     submitLabel="Save"
                     defaultValues={{
