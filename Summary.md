@@ -9,7 +9,10 @@ Yolt is a personal financial transactions tracker, built for a single user (the 
 ## Main sections of the app
 
 - **Authentication** — Signup, login, and logout. Email/password via Supabase Auth, including the email-confirmation flow. Pages: `/login`, `/signup`, `/auth/confirm` (confirmation link handler), `/auth/auth-code-error` (expired/invalid link fallback).
-- **Transactions** — The `/` (home) page. Lists the logged-in user's transactions and has a form to add a new one (date, amount, description). No edit/delete yet.
+- **Home** (`/`) — Minimal landing page after login. Placeholder content for now.
+- **Transactions** (`/transactions`) — Lists the logged-in user's transactions and has a form to add a new one (date, amount, description). No edit/delete yet.
+- **Options** (`/options`) — Placeholder page reserved for future settings.
+- All three pages above share a common app shell (`src/app/(app)/layout.tsx`, a route group) with a nav bar (Home / Transactions / Options / Log out).
 
 ## Technical sections
 
@@ -20,6 +23,7 @@ Yolt is a personal financial transactions tracker, built for a single user (the 
   - `src/lib/supabase/server.ts` — server client (Server Components/Actions)
   - `src/lib/supabase/proxy.ts` + `src/proxy.ts` — session-refresh and route protection. Next.js 16 renamed "middleware" to "proxy" (file `proxy.ts`, function `proxy`) — this app follows that convention. Auth check uses `supabase.auth.getClaims()` (not `getSession()`/`getUser()`), per current Supabase guidance.
   - Unauthenticated visitors are redirected to `/login` for any route except `/login`, `/signup`, and `/auth/*`.
+- **Page structure**: `src/app/(app)/` is a route group holding the authenticated app shell — `layout.tsx` (nav bar), `page.tsx` (Home, `/`), `transactions/page.tsx` + `transactions/actions.ts` (`/transactions`), `options/page.tsx` (`/options`). Route groups (parens in the folder name) don't add a URL segment. `/login`, `/signup`, and `/auth/*` live outside this group (no nav bar).
 - **Database**: Supabase Postgres. Project `yolt-app`, ref `mzfxfweljbfvyqlhvmzr`, region `eu-west-1`, free tier, org "Angel-Pappas's Org" (`yowsydnsxjwcujsjwtji` — same org as the Exalted-Character-App project).
   - Table `public.transactions`: `id` (uuid pk), `user_id` (uuid, defaults to `auth.uid()`), `date` (date), `amount` (`numeric(12,2)` — exact decimal, not float, so no cents-as-integer conversion needed), `description` (text), `created_at` (timestamptz). RLS enabled, all policies scoped to `auth.uid() = user_id`.
 - **Hosting/deploy**: Vercel, connected to GitHub repo [Angel-Pappas/yolt-app](https://github.com/Angel-Pappas/yolt-app), auto-deploys on push to `main`. Env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) are set directly in the Vercel dashboard (mirrors `.env.local`, which is gitignored; `.env.example` is committed as a template).

@@ -20,5 +20,5 @@ export async function addTransaction(formData: FormData) {
     throw new Error(error.message);
   }
 
-  revalidatePath("/");
+  revalidatePath("/transactions");
 }

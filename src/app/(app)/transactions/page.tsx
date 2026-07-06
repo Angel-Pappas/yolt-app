@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { addTransaction } from "@/app/actions";
-import { logout } from "@/app/auth/actions";
+import { addTransaction } from "./actions";
 
 type Transaction = {
   id: string;
@@ -20,14 +19,7 @@ export default async function TransactionsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Transactions</h1>
-        <form action={logout}>
-          <button type="submit" className="text-sm underline">
-            Log out
-          </button>
-        </form>
-      </div>
+      <h1 className="text-xl font-semibold">Transactions</h1>
 
       <form
         action={addTransaction}
