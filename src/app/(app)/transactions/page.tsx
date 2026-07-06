@@ -1,24 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { addTransaction } from "./actions";
+import { getActiveTransactions } from "./queries";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
-
-type Transaction = {
-  id: string;
-  date: string;
-  amount: string;
-  description: string;
-};
 
 export default async function TransactionsPage() {
   const supabase = await createClient();
 
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select("id, date, amount, description")
-    .eq("is_deleted", false)
-    .order("date", { ascending: false })
-    .returns<Transaction[]>();
+  const { data: transactions } = await getActiveTransactions(supabase);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">

@@ -5,13 +5,7 @@ import { formatAmount, formatDate } from "@/lib/format";
 import { updateTransaction } from "./actions";
 import { TransactionFormDialog } from "./transaction-form-dialog";
 import { DeleteTransactionButton } from "./delete-transaction-button";
-
-type Transaction = {
-  id: string;
-  date: string;
-  amount: string;
-  description: string;
-};
+import type { Transaction } from "./queries";
 
 export function TransactionRow({ transaction }: { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
