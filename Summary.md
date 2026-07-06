@@ -10,7 +10,11 @@ Yolt is a personal financial transactions tracker, built for a single user (the 
 
 - **Authentication** — Signup, login, and logout. Email/password via Supabase Auth, including the email-confirmation flow. Pages: `/login`, `/signup`, `/auth/confirm` (confirmation link handler), `/auth/auth-code-error` (expired/invalid link fallback).
 - **Home** (`/`) — Minimal landing page after login. Placeholder content for now.
-- **Transactions** (`/transactions`) — Full CRUD on transactions (date, amount, description): list with an "Add" button (text) and per-row Edit/Delete as icon-only buttons (pencil/trash, `src/components/icons.tsx`, inline SVG — no icon library dependency), all backed by RLS-scoped Server Actions (`actions.ts`: `addTransaction`, `updateTransaction`, `deleteTransaction`). Add/Edit share one modal component (`transaction-modal.tsx`, native `<dialog>` with unique field ids via `useId` so multiple instances can exist per row); delete has a native `confirm()` prompt (`delete-transaction-button.tsx`). Icon-only buttons carry `aria-label`s for accessibility.
+- **Transactions** (`/transactions`) — Full CRUD on transactions (date, amount, description), all backed by RLS-scoped Server Actions (`actions.ts`: `addTransaction`, `updateTransaction`, `deleteTransaction`).
+  - **Add**: a text "Add" button opens a modal (`transaction-modal.tsx`).
+  - **Edit**: no button — clicking anywhere on a transaction's row (`transaction-row.tsx`, a client component) opens the same edit modal, pre-filled.
+  - **Delete**: a trash-icon button per row (`delete-transaction-button.tsx`, `src/components/icons.tsx` for the icon — inline SVG, no icon library dependency); its click handler (and the dialog's) calls `stopPropagation()` so it doesn't also trigger the row's edit-open behavior.
+  - Both modal contexts share one dialog implementation (`transaction-form-dialog.tsx`, native `<dialog>`, unique field ids via `useId`).
 - **Options** (`/options`) — Account settings: shows the current email and has forms to update email (triggers Supabase's email-change confirmation flow) and password (`src/app/(app)/options/actions.ts`). Status/error messages passed via `?message=` query param, same pattern as login/signup.
 - All three pages above share a common app shell (`src/app/(app)/layout.tsx`, a route group) with a nav bar (Home / Transactions / Options / Log out).
 

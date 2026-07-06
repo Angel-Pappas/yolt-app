@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatAmount, formatDate } from "@/lib/format";
-import { addTransaction, updateTransaction } from "./actions";
+import { addTransaction } from "./actions";
 import { TransactionModal } from "./transaction-modal";
-import { DeleteTransactionButton } from "./delete-transaction-button";
-import { PencilIcon } from "@/components/icons";
+import { TransactionRow } from "./transaction-row";
 
 type Transaction = {
   id: string;
@@ -44,29 +42,7 @@ export default async function TransactionsPage() {
         </thead>
         <tbody>
           {transactions?.map((t) => (
-            <tr key={t.id} className="border-b">
-              <td className="py-2">{formatDate(t.date)}</td>
-              <td className="py-2">{t.description}</td>
-              <td className="py-2 text-right">{formatAmount(t.amount)}</td>
-              <td className="py-2">
-                <div className="flex justify-end gap-3">
-                  <TransactionModal
-                    trigger={<PencilIcon className="h-4 w-4" />}
-                    triggerClassName="rounded p-1.5 text-neutral-600 hover:text-black"
-                    triggerLabel="Edit transaction"
-                    title="Edit transaction"
-                    submitLabel="Save"
-                    defaultValues={{
-                      date: t.date,
-                      amount: t.amount,
-                      description: t.description,
-                    }}
-                    action={updateTransaction.bind(null, t.id)}
-                  />
-                  <DeleteTransactionButton id={t.id} />
-                </div>
-              </td>
-            </tr>
+            <TransactionRow key={t.id} transaction={t} />
           ))}
           {transactions?.length === 0 && (
             <tr>
