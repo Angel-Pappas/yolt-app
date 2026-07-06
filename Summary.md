@@ -10,7 +10,7 @@ Yolt is a personal financial transactions tracker, built for a single user (the 
 
 - **Authentication** — Signup, login, and logout. Email/password via Supabase Auth, including the email-confirmation flow. Pages: `/login`, `/signup`, `/auth/confirm` (confirmation link handler), `/auth/auth-code-error` (expired/invalid link fallback).
 - **Home** (`/`) — Minimal landing page after login. Placeholder content for now.
-- **Transactions** (`/transactions`) — Lists the logged-in user's transactions and has a form to add a new one (date, amount, description). No edit/delete yet.
+- **Transactions** (`/transactions`) — Lists the logged-in user's transactions. Adding one is done via an "Add" button that opens a modal (native `<dialog>`, client component `add-transaction-modal.tsx`) with the date/amount/description form; the list itself has no inline add form anymore. No edit/delete yet.
 - **Options** (`/options`) — Placeholder page reserved for future settings.
 - All three pages above share a common app shell (`src/app/(app)/layout.tsx`, a route group) with a nav bar (Home / Transactions / Options / Log out).
 
