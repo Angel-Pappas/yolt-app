@@ -16,6 +16,7 @@ export default async function TransactionsPage() {
   const { data: transactions } = await supabase
     .from("transactions")
     .select("id, date, amount, description")
+    .eq("is_deleted", false)
     .order("date", { ascending: false })
     .returns<Transaction[]>();
 

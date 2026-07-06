@@ -45,7 +45,11 @@ export async function updateTransaction(id: string, formData: FormData) {
 export async function deleteTransaction(id: string) {
   const supabase = await createClient();
 
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
+  // Soft delete only — nothing is ever permanently removed from the app.
+  const { error } = await supabase
+    .from("transactions")
+    .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+    .eq("id", id);
 
   if (error) {
     throw new Error(error.message);
