@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { computeTotal } from "@/lib/format";
 
 export type TransactionType = "income" | "expense" | "transfer";
 
@@ -9,6 +10,7 @@ export type Transaction = {
   type: TransactionType;
   net: string;
   vat_amount: string;
+  created_at: string;
   entity: { id: string; name: string } | null;
   wallet: { id: string; name: string };
   to_wallet: { id: string; name: string } | null;
@@ -48,6 +50,13 @@ function escapeLikePattern(value: string): string {
  * format) — see transactions/page.tsx's `parseFilters` — since malformed
  * values passed straight to `.eq`/`.or` on a uuid column would error out
  * the whole query rather than just matching nothing.
+ *
+ * No `.order()` here — sorting (including by Entity/Wallet name, which
+ * are joined columns) is done in JS via `sortTransactions()` below,
+ * against the full filtered result, then paginated. Simpler and safer
+ * than relying on PostgREST's embedded-resource ordering, and fine at
+ * this app's scale; revisit if the transaction count ever gets large
+ * enough that fetching the whole filtered set every page load matters.
  */
 export async function getActiveTransactions(
   supabase: SupabaseClient,
@@ -56,7 +65,7 @@ export async function getActiveTransactions(
   let query = supabase
     .from("transactions")
     .select(
-      "id, date, description, type, net, vat_amount, entity:entities(id, name), wallet:wallets!wallet_id(id, name), to_wallet:wallets!to_wallet_id(id, name), vat_rate:vat_rates(id, name, rate)"
+      "id, date, description, type, net, vat_amount, created_at, entity:entities(id, name), wallet:wallets!wallet_id(id, name), to_wallet:wallets!to_wallet_id(id, name), vat_rate:vat_rates(id, name, rate)"
     )
     .eq("is_deleted", false);
 
@@ -84,8 +93,67 @@ export async function getActiveTransactions(
     query = query.lte("date", filters.dateTo);
   }
 
-  return query
-    .order("date", { ascending: true })
-    .order("created_at", { ascending: true })
-    .returns<Transaction[]>();
+  return query.returns<Transaction[]>();
+}
+
+export type SortKey =
+  | "date"
+  | "type"
+  | "entity"
+  | "wallet"
+  | "description"
+  | "net"
+  | "vat"
+  | "vat_amount"
+  | "total";
+export type SortDir = "asc" | "desc";
+
+export const SORT_KEYS: SortKey[] = [
+  "date",
+  "type",
+  "entity",
+  "wallet",
+  "description",
+  "net",
+  "vat",
+  "vat_amount",
+  "total",
+];
+
+const SORT_VALUE: Record<SortKey, (t: Transaction) => string | number> = {
+  date: (t) => t.date,
+  type: (t) => t.type,
+  entity: (t) => t.entity?.name ?? "",
+  wallet: (t) => t.wallet.name,
+  description: (t) => t.description,
+  net: (t) => Number(t.net),
+  vat: (t) => Number(t.vat_rate?.rate ?? -1),
+  vat_amount: (t) => Number(t.vat_amount),
+  total: (t) => computeTotal(t.net, t.vat_amount),
+};
+
+/**
+ * Sorts by the given column, tiebroken by chronological order (date, then
+ * created_at) so results are always in a stable, predictable order even
+ * when many rows share the same sorted value (e.g. same Type or Wallet).
+ */
+export function sortTransactions(
+  transactions: Transaction[],
+  sort: SortKey,
+  dir: SortDir
+): Transaction[] {
+  const getValue = SORT_VALUE[sort];
+  const factor = dir === "asc" ? 1 : -1;
+
+  return [...transactions].sort((a, b) => {
+    const av = getValue(a);
+    const bv = getValue(b);
+    if (av < bv) return -1 * factor;
+    if (av > bv) return 1 * factor;
+
+    if (sort !== "date" && a.date !== b.date) {
+      return a.date < b.date ? -1 : 1;
+    }
+    return a.created_at < b.created_at ? -1 : 1;
+  });
 }

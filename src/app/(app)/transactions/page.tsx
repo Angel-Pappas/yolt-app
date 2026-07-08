@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { computeTotal, formatAmount } from "@/lib/format";
 import { addTransaction } from "./actions";
 import {
   getActiveTransactions,
+  sortTransactions,
+  SORT_KEYS,
+  type SortDir,
+  type SortKey,
   type TransactionFilters,
   type TransactionType,
 } from "./queries";
@@ -12,13 +15,21 @@ import { getActiveVatRates } from "../options/vat-rate-queries";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
 import { TransactionFiltersBar } from "./transaction-filters-bar";
+import { TransactionTableHeader } from "./transaction-table-header";
+import { TransactionPagination } from "./transaction-pagination";
 
 const TRANSACTION_TYPES: TransactionType[] = ["income", "expense", "transfer"];
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const PAGE_SIZE = 25;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
+
+function getParam(searchParams: RawSearchParams, key: string): string | undefined {
+  const value = searchParams[key];
+  return typeof value === "string" ? value : undefined;
+}
 
 /**
  * Validates raw URL search params before they ever reach the Supabase
@@ -28,18 +39,13 @@ type RawSearchParams = Record<string, string | string[] | undefined>;
  * filter"), same spirit as ignoring a malformed query string.
  */
 function parseFilters(searchParams: RawSearchParams): TransactionFilters {
-  const get = (key: string): string | undefined => {
-    const value = searchParams[key];
-    return typeof value === "string" ? value : undefined;
-  };
-
-  const search = get("q")?.trim();
-  const type = get("type");
-  const entity = get("entity");
-  const wallet = get("wallet");
-  const vat = get("vat");
-  const from = get("from");
-  const to = get("to");
+  const search = getParam(searchParams, "q")?.trim();
+  const type = getParam(searchParams, "type");
+  const entity = getParam(searchParams, "entity");
+  const wallet = getParam(searchParams, "wallet");
+  const vat = getParam(searchParams, "vat");
+  const from = getParam(searchParams, "from");
+  const to = getParam(searchParams, "to");
 
   return {
     search: search || undefined,
@@ -55,6 +61,15 @@ function parseFilters(searchParams: RawSearchParams): TransactionFilters {
   };
 }
 
+function parseSort(searchParams: RawSearchParams): { sort: SortKey; dir: SortDir } {
+  const sortParam = getParam(searchParams, "sort");
+  const sort = SORT_KEYS.includes(sortParam as SortKey)
+    ? (sortParam as SortKey)
+    : "date";
+  const dir: SortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
+  return { sort, dir };
+}
+
 export default async function TransactionsPage({
   searchParams,
 }: {
@@ -63,6 +78,7 @@ export default async function TransactionsPage({
   const supabase = await createClient();
   const rawParams = await searchParams;
   const filters = parseFilters(rawParams);
+  const { sort, dir } = parseSort(rawParams);
   const hasActiveFilters = Object.values(filters).some(
     (value) => value !== undefined
   );
@@ -79,16 +95,15 @@ export default async function TransactionsPage({
     getActiveVatRates(supabase),
   ]);
 
-  const totals = (transactions ?? []).reduce(
-    (acc, t) => {
-      acc.net += Number(t.net);
-      acc.vat += Number(t.vat_amount);
-      acc.total += computeTotal(t.net, t.vat_amount);
-      return acc;
-    },
-    { net: 0, vat: 0, total: 0 }
-  );
-  const count = transactions?.length ?? 0;
+  const sorted = sortTransactions(transactions ?? [], sort, dir);
+  const totalCount = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const rawPage = Number(getParam(rawParams, "page"));
+  const page =
+    Number.isInteger(rawPage) && rawPage >= 1
+      ? Math.min(rawPage, totalPages)
+      : 1;
+  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
@@ -105,47 +120,17 @@ export default async function TransactionsPage({
         />
       </div>
 
-      <TransactionFiltersBar
-        entities={entities ?? []}
-        wallets={wallets ?? []}
-        vatRates={vatRates ?? []}
-      />
-
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded border bg-neutral-50 px-4 py-2 text-sm">
-        <span className="text-neutral-500">
-          {count} transaction{count === 1 ? "" : "s"}
-        </span>
-        <div className="flex gap-4">
-          <span className="text-neutral-500">
-            Net: {formatAmount(totals.net)}
-          </span>
-          <span className="text-neutral-500">
-            VAT: {formatAmount(totals.vat)}
-          </span>
-          <span className="font-semibold">
-            Total: {formatAmount(totals.total)}
-          </span>
-        </div>
-      </div>
+      <TransactionFiltersBar />
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left">
-              <th className="py-2">Date</th>
-              <th className="py-2">Type</th>
-              <th className="py-2">Entity</th>
-              <th className="py-2">Wallet</th>
-              <th className="py-2">Description</th>
-              <th className="py-2 text-right">Net</th>
-              <th className="py-2 text-right">VAT</th>
-              <th className="py-2 text-right">VAT Amount</th>
-              <th className="py-2 text-right">Total</th>
-              <th className="py-2 text-right">Actions</th>
-            </tr>
-          </thead>
+          <TransactionTableHeader
+            entities={entities ?? []}
+            wallets={wallets ?? []}
+            vatRates={vatRates ?? []}
+          />
           <tbody>
-            {transactions?.map((t) => (
+            {pageItems.map((t) => (
               <TransactionRow
                 key={t.id}
                 transaction={t}
@@ -154,7 +139,7 @@ export default async function TransactionsPage({
                 vatRates={vatRates ?? []}
               />
             ))}
-            {count === 0 && (
+            {totalCount === 0 && (
               <tr>
                 <td colSpan={10} className="py-4 text-center text-neutral-500">
                   {hasActiveFilters
@@ -166,6 +151,8 @@ export default async function TransactionsPage({
           </tbody>
         </table>
       </div>
+
+      <TransactionPagination page={page} totalPages={totalPages} />
     </div>
   );
 }
