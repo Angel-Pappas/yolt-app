@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/*
+ * Native <dialog> centers itself via `margin: auto` on a
+ * `position: fixed; inset: 0` box — but Tailwind's Preflight resets all
+ * margins to 0, which strands every modal at the top-left instead.
+ * Restore centering explicitly: auto left/right margins center it on the
+ * X axis, a fixed top margin (with bottom left auto) pins it near the
+ * top instead of dead-center vertically.
+ */
+dialog:modal {
+  margin: 1.5rem auto auto;
+}
