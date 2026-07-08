@@ -19,3 +19,11 @@ export function formatAmount(value: number | string): string {
   const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${isNegative ? "-" : ""}${withThousands},${decPart}`;
 }
+
+/**
+ * Total is never stored — it's always net + vat_amount, computed wherever
+ * it's displayed so it can never drift from its inputs.
+ */
+export function computeTotal(net: number | string, vatAmount: number | string): number {
+  return Number(net) + Number(vatAmount);
+}

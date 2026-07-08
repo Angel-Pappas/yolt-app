@@ -15,6 +15,9 @@ export default function AppLayout({
               Home
             </Link>
             <Link href="/transactions">Transactions</Link>
+            <Link href="/entities">Entities</Link>
+            <Link href="/wallets">Wallets</Link>
+            <Link href="/taxes">Taxes</Link>
             <Link href="/options">Options</Link>
           </div>
           <form action={logout}>

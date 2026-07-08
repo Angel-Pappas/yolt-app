@@ -1,43 +1,32 @@
 "use client";
 
 import { useRef } from "react";
-import { TransactionFormDialog } from "./transaction-form-dialog";
-import type { Entity } from "../entities/queries";
-import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../options/vat-rate-queries";
+import { EntityFormDialog } from "./entity-form-dialog";
 
-type TransactionModalProps = {
+type EntityModalProps = {
   trigger: React.ReactNode;
   triggerClassName?: string;
   triggerLabel?: string;
   title: string;
   submitLabel: string;
-  entities: Entity[];
-  wallets: Wallet[];
-  vatRates: VatRate[];
   defaultValues?: {
-    date: string;
-    description: string;
-    net: string;
-    entity: { id: string; name: string } | null;
-    wallet_id: string | null;
-    vat_rate_id: string | null;
+    name: string;
+    vat_number: string | null;
   };
   action: (formData: FormData) => Promise<void>;
+  onDone?: () => void;
 };
 
-export function TransactionModal({
+export function EntityModal({
   trigger,
   triggerClassName,
   triggerLabel,
   title,
   submitLabel,
-  entities,
-  wallets,
-  vatRates,
   defaultValues,
   action,
-}: TransactionModalProps) {
+  onDone,
+}: EntityModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   function openModal() {
@@ -46,6 +35,7 @@ export function TransactionModal({
 
   function closeModal() {
     dialogRef.current?.close();
+    onDone?.();
   }
 
   return (
@@ -61,13 +51,10 @@ export function TransactionModal({
         {trigger}
       </button>
 
-      <TransactionFormDialog
+      <EntityFormDialog
         dialogRef={dialogRef}
         title={title}
         submitLabel={submitLabel}
-        entities={entities}
-        wallets={wallets}
-        vatRates={vatRates}
         defaultValues={defaultValues}
         action={action}
         onDone={closeModal}

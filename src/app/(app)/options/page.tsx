@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { updateEmail, updatePassword } from "./actions";
+import { addVatRate } from "./vat-rate-actions";
+import { getActiveVatRates } from "./vat-rate-queries";
+import { VatRateModal } from "./vat-rate-modal";
+import { VatRateRow } from "./vat-rate-row";
 
 export default async function OptionsPage({
   searchParams,
@@ -10,6 +14,7 @@ export default async function OptionsPage({
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const email = (data?.claims?.email as string | undefined) ?? "";
+  const { data: vatRates } = await getActiveVatRates(supabase);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
@@ -85,6 +90,40 @@ export default async function OptionsPage({
             Update password
           </button>
         </form>
+      </section>
+
+      <section className="space-y-3 rounded border p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">VAT rates</h2>
+          <VatRateModal
+            trigger="Add"
+            title="Add VAT rate"
+            submitLabel="Add"
+            action={addVatRate}
+          />
+        </div>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left">
+              <th className="py-2">Name</th>
+              <th className="py-2 text-right">Rate</th>
+              <th className="py-2 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {vatRates?.map((v) => (
+              <VatRateRow key={v.id} vatRate={v} />
+            ))}
+            {vatRates?.length === 0 && (
+              <tr>
+                <td colSpan={3} className="py-4 text-center text-neutral-500">
+                  No VAT rates yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </section>
     </div>
   );
