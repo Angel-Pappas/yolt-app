@@ -33,7 +33,7 @@ export async function getActiveTransactions(supabase: SupabaseClient) {
       "id, date, description, type, net, vat_amount, entity:entities(id, name), wallet:wallets!wallet_id(id, name), to_wallet:wallets!to_wallet_id(id, name), vat_rate:vat_rates(id, name, rate)"
     )
     .eq("is_deleted", false)
-    .order("date", { ascending: false })
-    .order("created_at", { ascending: false })
+    .order("date", { ascending: true })
+    .order("created_at", { ascending: true })
     .returns<Transaction[]>();
 }

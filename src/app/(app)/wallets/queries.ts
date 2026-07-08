@@ -102,7 +102,7 @@ type WalletLedgerRow = {
 /**
  * A wallet's transactions with a running balance attached to each one,
  * computed by walking the ledger in chronological order. Returned
- * newest-first to match the rest of the app's display convention.
+ * oldest-first to match the rest of the app's display convention.
  *
  * Fetches all active transactions (like getWalletBalances) and filters
  * in JS rather than filtering server-side on wallet_id/to_wallet_id —
@@ -160,5 +160,5 @@ export async function getWalletLedger(
     };
   });
 
-  return entries.reverse();
+  return entries;
 }

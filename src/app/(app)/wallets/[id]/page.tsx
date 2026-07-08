@@ -30,7 +30,7 @@ export default async function WalletLedgerPage({
   }
 
   const entries = await getWalletLedger(supabase, id);
-  const currentBalance = entries[0]?.runningBalance ?? 0;
+  const currentBalance = entries.at(-1)?.runningBalance ?? 0;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
