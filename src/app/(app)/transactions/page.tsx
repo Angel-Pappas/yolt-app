@@ -42,6 +42,7 @@ export default async function TransactionsPage() {
           <thead>
             <tr className="border-b text-left">
               <th className="py-2">Date</th>
+              <th className="py-2">Type</th>
               <th className="py-2">Entity</th>
               <th className="py-2">Wallet</th>
               <th className="py-2">Description</th>
@@ -64,7 +65,7 @@ export default async function TransactionsPage() {
             ))}
             {transactions?.length === 0 && (
               <tr>
-                <td colSpan={9} className="py-4 text-center text-neutral-500">
+                <td colSpan={10} className="py-4 text-center text-neutral-500">
                   No transactions yet.
                 </td>
               </tr>

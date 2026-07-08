@@ -5,6 +5,7 @@ import { TransactionFormDialog } from "./transaction-form-dialog";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
 import type { VatRate } from "../options/vat-rate-queries";
+import type { TransactionType } from "./queries";
 
 type TransactionModalProps = {
   trigger: React.ReactNode;
@@ -18,9 +19,11 @@ type TransactionModalProps = {
   defaultValues?: {
     date: string;
     description: string;
+    type: TransactionType;
     net: string;
     entity: { id: string; name: string } | null;
-    wallet_id: string | null;
+    wallet_id: string;
+    to_wallet_id: string | null;
     vat_rate_id: string | null;
   };
   action: (formData: FormData) => Promise<void>;

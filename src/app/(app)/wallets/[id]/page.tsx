@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { computeTotal, formatAmount, formatDate } from "@/lib/format";
-import { getWalletLedger } from "../queries";
+import { formatAmount, formatDate } from "@/lib/format";
+import { getWalletLedger, type WalletLedgerEntry } from "../queries";
+
+function typeLabel(entry: WalletLedgerEntry): string {
+  if (entry.type === "income") return "Income";
+  if (entry.type === "expense") return "Expense";
+  const arrow = entry.amount < 0 ? "→" : "←";
+  return `Transfer ${arrow} ${entry.counterpartyWalletName ?? "—"}`;
+}
 
 export default async function WalletLedgerPage({
   params,
@@ -43,6 +50,7 @@ export default async function WalletLedgerPage({
           <tr className="border-b text-left">
             <th className="py-2">Date</th>
             <th className="py-2">Description</th>
+            <th className="py-2">Type</th>
             <th className="py-2 text-right">Amount</th>
             <th className="py-2 text-right">Balance</th>
           </tr>
@@ -52,9 +60,8 @@ export default async function WalletLedgerPage({
             <tr key={e.id} className="border-b">
               <td className="py-2">{formatDate(e.date)}</td>
               <td className="py-2">{e.description}</td>
-              <td className="py-2 text-right">
-                {formatAmount(computeTotal(e.net, e.vat_amount))}
-              </td>
+              <td className="py-2">{typeLabel(e)}</td>
+              <td className="py-2 text-right">{formatAmount(e.amount)}</td>
               <td className="py-2 text-right">
                 {formatAmount(e.runningBalance)}
               </td>
@@ -62,7 +69,7 @@ export default async function WalletLedgerPage({
           ))}
           {entries.length === 0 && (
             <tr>
-              <td colSpan={4} className="py-4 text-center text-neutral-500">
+              <td colSpan={5} className="py-4 text-center text-neutral-500">
                 No transactions for this wallet yet.
               </td>
             </tr>
