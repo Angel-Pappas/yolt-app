@@ -32,14 +32,25 @@ export function EntityFormDialog({
     });
   }
 
+  // A click that lands exactly on the <dialog> element itself (not a
+  // descendant) is a click on the backdrop — close on that, same as Esc.
+  function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
+    if (e.target === e.currentTarget) {
+      onDone();
+    }
+  }
+
   return (
     <dialog
       ref={dialogRef}
-      onClick={(e) => e.stopPropagation()}
+      onClick={handleBackdropClick}
       onCancel={onDone}
-      className="w-full max-w-sm rounded border p-6 [&::backdrop]:bg-black/40"
+      className="w-full max-w-sm bg-transparent [&::backdrop]:bg-black/40"
     >
-      <form action={handleSubmit} className="space-y-3">
+      <form
+        action={handleSubmit}
+        className="space-y-3 rounded border bg-white p-6"
+      >
         <h2 className="text-lg font-semibold">{title}</h2>
 
         <div>
