@@ -80,8 +80,9 @@ export type WalletLedgerEntry = {
   type: TransactionType;
   /** Signed from this specific wallet's point of view. */
   amount: number;
-  /** For transfers, the name of the other wallet involved. */
-  counterpartyWalletName: string | null;
+  /** For transfers, the "from" and "to" wallet names (same order as the Transactions page's X → Y). */
+  fromWalletName: string | null;
+  toWalletName: string | null;
   runningBalance: number;
 };
 
@@ -133,14 +134,14 @@ export async function getWalletLedger(
   let running = 0;
   const entries = relevant.map((row) => {
     let amount: number;
-    let counterpartyWalletName: string | null = null;
+    let fromWalletName: string | null = null;
+    let toWalletName: string | null = null;
 
     if (row.type === "transfer") {
       const isFromSide = row.wallet_id === walletId;
       amount = isFromSide ? -Number(row.net) : Number(row.net);
-      counterpartyWalletName = isFromSide
-        ? (row.to_wallet?.name ?? null)
-        : (row.wallet?.name ?? null);
+      fromWalletName = row.wallet?.name ?? null;
+      toWalletName = row.to_wallet?.name ?? null;
     } else {
       const total = computeTotal(row.net, row.vat_amount);
       amount = row.type === "income" ? total : -total;
@@ -153,7 +154,8 @@ export async function getWalletLedger(
       description: row.description,
       type: row.type,
       amount,
-      counterpartyWalletName,
+      fromWalletName,
+      toWalletName,
       runningBalance: running,
     };
   });

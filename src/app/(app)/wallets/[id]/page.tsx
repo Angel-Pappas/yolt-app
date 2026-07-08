@@ -7,8 +7,7 @@ import { getWalletLedger, type WalletLedgerEntry } from "../queries";
 function typeLabel(entry: WalletLedgerEntry): string {
   if (entry.type === "income") return "Income";
   if (entry.type === "expense") return "Expense";
-  const arrow = entry.amount < 0 ? "→" : "←";
-  return `Transfer ${arrow} ${entry.counterpartyWalletName ?? "—"}`;
+  return `${entry.fromWalletName ?? "—"} → ${entry.toWalletName ?? "—"}`;
 }
 
 export default async function WalletLedgerPage({

@@ -34,5 +34,6 @@ export async function getActiveTransactions(supabase: SupabaseClient) {
     )
     .eq("is_deleted", false)
     .order("date", { ascending: false })
+    .order("created_at", { ascending: false })
     .returns<Transaction[]>();
 }
