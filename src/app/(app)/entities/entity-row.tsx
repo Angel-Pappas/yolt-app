@@ -21,11 +21,13 @@ export function EntityRow({ entity }: { entity: Entity }) {
   return (
     <tr
       onClick={openEdit}
-      className="cursor-pointer border-b hover:bg-neutral-50"
+      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 hover:bg-canvas"
     >
-      <td className="py-2">{entity.name}</td>
-      <td className="py-2">{entity.vat_number ?? "—"}</td>
-      <td className="py-2 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-4 py-3 text-sm text-ink">{entity.name}</td>
+      <td className="px-4 py-3 text-sm text-ink-muted">
+        {entity.vat_number ?? "—"}
+      </td>
+      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <DeleteEntityButton id={entity.id} />
 
         <EntityFormDialog

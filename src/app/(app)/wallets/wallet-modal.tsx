@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { PlusIcon } from "@/components/icons";
 import { WalletFormDialog } from "./wallet-form-dialog";
 
 type WalletModalProps = {
@@ -41,9 +42,11 @@ export function WalletModal({
         onClick={openModal}
         aria-label={triggerLabel}
         className={
-          triggerClassName ?? "rounded bg-black px-3 py-1.5 text-sm text-white"
+          triggerClassName ??
+          "inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:translate-y-px"
         }
       >
+        <PlusIcon className="h-3.5 w-3.5" />
         {trigger}
       </button>
 

@@ -1,28 +1,145 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Light values live on the bare :root (the default);
+ * dark values apply in two ways:
+ *   1. @media (prefers-color-scheme: dark), scoped to :root:not([data-theme])
+ *      — i.e. only when the user's preference is "system" and their OS
+ *      prefers dark. No JS involved.
+ *   2. :root[data-theme="dark"] — an explicit user choice (see Options
+ *      > Appearance), which wins regardless of OS preference.
+ * :root[data-theme="light"] is the explicit-light mirror of the default,
+ * for the case where the OS prefers dark but the user picked Light anyway.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --ground: #fafbfc;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --ink: #232a3a;
+  --ink-muted: #6b7280;
+  --ink-faint: #98a2b3;
+  --border: #e9ecef;
+  --border-strong: #d7dce1;
+  --accent: #2e7d8c;
+  --accent-ink: #ffffff;
+  --accent-soft: #e5f2f4;
+  --income: #2f9e6b;
+  --income-soft: #e4f5ec;
+  --expense: #d64f3e;
+  --expense-soft: #fbeae7;
+  --transfer: #7c6ac7;
+  --transfer-soft: #f0edfb;
+  --focus-ring: #2e7d8c;
+  --shadow-card: 0 1px 2px rgba(35, 42, 58, 0.04), 0 1px 1px rgba(35, 42, 58, 0.03);
+  --shadow-pop: 0 8px 24px rgba(35, 42, 58, 0.14), 0 2px 6px rgba(35, 42, 58, 0.07);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display-family: Cambria, Georgia, "Times New Roman", serif;
+  --font-body-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme]) {
+    --ground: #12161c;
+    --surface: #1a2028;
+    --surface-raised: #1f2630;
+    --ink: #e7eaef;
+    --ink-muted: #8b94a3;
+    --ink-faint: #626b7a;
+    --border: #2a3340;
+    --border-strong: #37424f;
+    --accent: #7fb4c0;
+    --accent-ink: #0d1418;
+    --accent-soft: #1e2d31;
+    --income: #7fbe9b;
+    --income-soft: #1c2c24;
+    --expense: #e08672;
+    --expense-soft: #2f211f;
+    --transfer: #a79bd1;
+    --transfer-soft: #262138;
+    --focus-ring: #7fb4c0;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-pop: 0 12px 28px rgba(0, 0, 0, 0.45);
   }
 }
 
+:root[data-theme="dark"] {
+  --ground: #12161c;
+  --surface: #1a2028;
+  --surface-raised: #1f2630;
+  --ink: #e7eaef;
+  --ink-muted: #8b94a3;
+  --ink-faint: #626b7a;
+  --border: #2a3340;
+  --border-strong: #37424f;
+  --accent: #7fb4c0;
+  --accent-ink: #0d1418;
+  --accent-soft: #1e2d31;
+  --income: #7fbe9b;
+  --income-soft: #1c2c24;
+  --expense: #e08672;
+  --expense-soft: #2f211f;
+  --transfer: #a79bd1;
+  --transfer-soft: #262138;
+  --focus-ring: #7fb4c0;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] {
+  --ground: #fafbfc;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --ink: #232a3a;
+  --ink-muted: #6b7280;
+  --ink-faint: #98a2b3;
+  --border: #e9ecef;
+  --border-strong: #d7dce1;
+  --accent: #2e7d8c;
+  --accent-ink: #ffffff;
+  --accent-soft: #e5f2f4;
+  --income: #2f9e6b;
+  --income-soft: #e4f5ec;
+  --expense: #d64f3e;
+  --expense-soft: #fbeae7;
+  --transfer: #7c6ac7;
+  --transfer-soft: #f0edfb;
+  --focus-ring: #2e7d8c;
+  --shadow-card: 0 1px 2px rgba(35, 42, 58, 0.04), 0 1px 1px rgba(35, 42, 58, 0.03);
+  --shadow-pop: 0 8px 24px rgba(35, 42, 58, 0.14), 0 2px 6px rgba(35, 42, 58, 0.07);
+}
+
+/* Exposes the tokens above as Tailwind utilities: bg-canvas, bg-surface,
+   text-ink, text-ink-muted, border-edge, bg-accent, text-income, etc. */
+@theme inline {
+  --color-canvas: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-edge: var(--border);
+  --color-edge-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-income: var(--income);
+  --color-income-soft: var(--income-soft);
+  --color-expense: var(--expense);
+  --color-expense-soft: var(--expense-soft);
+  --color-transfer: var(--transfer);
+  --color-transfer-soft: var(--transfer-soft);
+  --font-sans: var(--font-body-family);
+  --font-display: var(--font-display-family);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-body-family);
+}
+
+::selection {
+  background: var(--accent-soft);
 }
 
 /*

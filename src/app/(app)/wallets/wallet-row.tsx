@@ -28,19 +28,28 @@ export function WalletRow({
   }
 
   return (
-    <tr className="border-b hover:bg-neutral-50">
-      <td className="py-2">
-        <Link href={`/wallets/${wallet.id}`} className="underline">
+    <tr className="group border-b border-edge transition-colors last:border-b-0 hover:bg-canvas">
+      <td className="px-4 py-3 text-sm">
+        <Link
+          href={`/wallets/${wallet.id}`}
+          className="font-medium text-ink underline decoration-edge-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+        >
           {wallet.name}
         </Link>
       </td>
-      <td className="py-2 text-right">{formatAmount(balance)}</td>
-      <td className="py-2 text-right">
+      <td
+        className={`px-4 py-3 text-right text-sm font-semibold tabular-nums ${
+          balance < 0 ? "text-expense" : "text-ink"
+        }`}
+      >
+        {formatAmount(balance)}
+      </td>
+      <td className="px-4 py-3 text-right">
         <button
           type="button"
           onClick={openEdit}
           aria-label="Edit wallet"
-          className="rounded p-1.5 text-neutral-600 hover:text-black"
+          className="rounded-md p-1.5 text-ink-faint opacity-0 transition group-hover:opacity-100 hover:bg-canvas hover:text-ink"
         >
           <PencilIcon className="h-4 w-4" />
         </button>

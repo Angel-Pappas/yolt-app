@@ -15,7 +15,7 @@ export function TransactionPagination({
 
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-neutral-500">
+      <span className="text-ink-faint">
         Page {page} of {totalPages}
       </span>
       <div className="flex gap-2">
@@ -23,7 +23,7 @@ export function TransactionPagination({
           type="button"
           disabled={page <= 1}
           onClick={() => setPage(page - 1)}
-          className="rounded border px-2 py-1 disabled:opacity-40"
+          className="rounded-lg border border-edge px-3 py-1.5 text-sm font-medium text-ink-muted transition hover:border-edge-strong hover:text-ink disabled:opacity-40 disabled:hover:border-edge disabled:hover:text-ink-muted"
         >
           Previous
         </button>
@@ -31,7 +31,7 @@ export function TransactionPagination({
           type="button"
           disabled={page >= totalPages}
           onClick={() => setPage(page + 1)}
-          className="rounded border px-2 py-1 disabled:opacity-40"
+          className="rounded-lg border border-edge px-3 py-1.5 text-sm font-medium text-ink-muted transition hover:border-edge-strong hover:text-ink disabled:opacity-40 disabled:hover:border-edge disabled:hover:text-ink-muted"
         >
           Next
         </button>

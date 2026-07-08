@@ -10,6 +10,16 @@ import type { VatRate } from "../options/vat-rate-queries";
 import type { TransactionType } from "./queries";
 import { EntityCombobox } from "./entity-combobox";
 
+const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
+  { value: "income", label: "Income" },
+  { value: "expense", label: "Expense" },
+  { value: "transfer", label: "Transfer" },
+];
+
+const inputClass =
+  "w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
+const labelClass = "mb-1 block text-sm text-ink-muted";
+
 type TransactionFormDialogProps = {
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   title: string;
@@ -104,33 +114,43 @@ export function TransactionFormDialog({
       ref={dialogRef}
       onClick={handleBackdropClick}
       onCancel={onDone}
-      className="w-full max-w-sm bg-transparent [&::backdrop]:bg-black/40"
+      className="w-full max-w-sm bg-transparent [&::backdrop]:bg-ink/40 [&::backdrop]:backdrop-blur-[2px]"
     >
       <form
         action={handleSubmit}
-        className="space-y-3 rounded border bg-white p-6"
+        className="space-y-4 rounded-xl border border-edge bg-surface p-6 shadow-[var(--shadow-pop)]"
       >
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
 
         <div>
-          <label htmlFor={`${uid}-type`} className="block text-sm">
-            Type
-          </label>
-          <select
-            id={`${uid}-type`}
-            name="type"
-            value={type}
-            onChange={(e) => setType(e.target.value as TransactionType)}
-            className="w-full rounded border px-2 py-1"
+          <label className={labelClass}>Type</label>
+          <div
+            role="radiogroup"
+            aria-label="Type"
+            className="inline-flex w-full gap-1 rounded-lg border border-edge bg-canvas p-1"
           >
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
-            <option value="transfer">Transfer</option>
-          </select>
+            {TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={type === opt.value}
+                onClick={() => setType(opt.value)}
+                className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  type === opt.value
+                    ? "bg-surface-raised text-ink shadow-sm"
+                    : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <input type="hidden" name="type" value={type} />
         </div>
 
         <div>
-          <label htmlFor={`${uid}-date`} className="block text-sm">
+          <label htmlFor={`${uid}-date`} className={labelClass}>
             Date
           </label>
           <input
@@ -141,7 +161,7 @@ export function TransactionFormDialog({
             defaultValue={
               defaultValues?.date ?? new Date().toISOString().slice(0, 10)
             }
-            className="w-full rounded border px-2 py-1"
+            className={`${inputClass} [color-scheme:light]`}
           />
         </div>
 
@@ -156,7 +176,7 @@ export function TransactionFormDialog({
         {isTransfer ? (
           <>
             <div>
-              <label htmlFor={`${uid}-from-wallet`} className="block text-sm">
+              <label htmlFor={`${uid}-from-wallet`} className={labelClass}>
                 From wallet
               </label>
               <select
@@ -165,7 +185,7 @@ export function TransactionFormDialog({
                 required
                 value={walletId}
                 onChange={(e) => setWalletId(e.target.value)}
-                className="w-full rounded border px-2 py-1"
+                className={inputClass}
               >
                 {wallets.length === 0 && <option value="">No wallets</option>}
                 {wallets.map((w) => (
@@ -177,7 +197,7 @@ export function TransactionFormDialog({
             </div>
 
             <div>
-              <label htmlFor={`${uid}-to-wallet`} className="block text-sm">
+              <label htmlFor={`${uid}-to-wallet`} className={labelClass}>
                 To wallet
               </label>
               <select
@@ -186,7 +206,7 @@ export function TransactionFormDialog({
                 required
                 value={toWalletId}
                 onChange={(e) => setToWalletId(e.target.value)}
-                className="w-full rounded border px-2 py-1"
+                className={inputClass}
               >
                 <option value="">—</option>
                 {wallets.map((w) => (
@@ -196,7 +216,7 @@ export function TransactionFormDialog({
                 ))}
               </select>
               {sameWalletError && (
-                <p className="mt-1 text-xs text-red-600">
+                <p className="mt-1 text-xs text-expense">
                   From and to wallet must be different.
                 </p>
               )}
@@ -204,7 +224,7 @@ export function TransactionFormDialog({
           </>
         ) : (
           <div>
-            <label htmlFor={`${uid}-wallet`} className="block text-sm">
+            <label htmlFor={`${uid}-wallet`} className={labelClass}>
               Wallet
             </label>
             <select
@@ -213,7 +233,7 @@ export function TransactionFormDialog({
               required
               value={walletId}
               onChange={(e) => setWalletId(e.target.value)}
-              className="w-full rounded border px-2 py-1"
+              className={inputClass}
             >
               {wallets.length === 0 && <option value="">No wallets</option>}
               {wallets.map((w) => (
@@ -226,7 +246,7 @@ export function TransactionFormDialog({
         )}
 
         <div>
-          <label htmlFor={`${uid}-description`} className="block text-sm">
+          <label htmlFor={`${uid}-description`} className={labelClass}>
             Description
           </label>
           <input
@@ -235,12 +255,12 @@ export function TransactionFormDialog({
             type="text"
             required
             defaultValue={defaultValues?.description}
-            className="w-full rounded border px-2 py-1"
+            className={inputClass}
           />
         </div>
 
         <div>
-          <label htmlFor={`${uid}-net`} className="block text-sm">
+          <label htmlFor={`${uid}-net`} className={labelClass}>
             {isTransfer ? "Amount" : "Net"}
           </label>
           <input
@@ -252,13 +272,13 @@ export function TransactionFormDialog({
             required
             value={net}
             onChange={(e) => setNet(e.target.value)}
-            className="w-full rounded border px-2 py-1"
+            className={inputClass}
           />
         </div>
 
         {!isTransfer && (
           <div>
-            <label htmlFor={`${uid}-vat`} className="block text-sm">
+            <label htmlFor={`${uid}-vat`} className={labelClass}>
               VAT
             </label>
             <select
@@ -267,7 +287,7 @@ export function TransactionFormDialog({
               required
               value={vatRateId}
               onChange={(e) => setVatRateId(e.target.value)}
-              className="w-full rounded border px-2 py-1"
+              className={inputClass}
             >
               {vatRates.length === 0 && (
                 <option value="">No VAT rates configured</option>
@@ -279,36 +299,37 @@ export function TransactionFormDialog({
               ))}
             </select>
             {vatRates.length === 0 && (
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-ink-faint">
                 Add a VAT rate in Options before creating a transaction.
               </p>
             )}
           </div>
         )}
 
-        {!isTransfer && (
-          <div className="flex justify-between text-sm">
-            <span className="text-neutral-500">VAT amount</span>
-            <span>{formatAmount(vatAmount)}</span>
+        <div className="space-y-1.5 rounded-lg bg-canvas p-3">
+          {!isTransfer && (
+            <div className="flex justify-between text-sm">
+              <span className="text-ink-muted">VAT amount</span>
+              <span className="tabular-nums text-ink">{formatAmount(vatAmount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-sm font-semibold">
+            <span className="text-ink">Total</span>
+            <span className="tabular-nums text-ink">{formatAmount(total)}</span>
           </div>
-        )}
-
-        <div className="flex justify-between text-sm font-semibold">
-          <span>Total</span>
-          <span>{formatAmount(total)}</span>
         </div>
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="rounded-lg bg-expense-soft px-3 py-2 text-sm text-expense" role="alert">
             {error}
           </p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-4 pt-1">
           <button
             type="button"
             onClick={onDone}
-            className="rounded px-3 py-1.5 text-sm underline"
+            className="text-sm text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-ink"
           >
             Cancel
           </button>
@@ -320,9 +341,9 @@ export function TransactionFormDialog({
               Boolean(sameWalletError) ||
               (!isTransfer && vatRates.length === 0)
             }
-            className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:translate-y-px disabled:opacity-50"
           >
-            {isPending ? "Saving..." : submitLabel}
+            {isPending ? "Saving…" : submitLabel}
           </button>
         </div>
       </form>

@@ -51,16 +51,16 @@ export function EntityFormDialog({
       ref={dialogRef}
       onClick={handleBackdropClick}
       onCancel={onDone}
-      className="w-full max-w-sm bg-transparent [&::backdrop]:bg-black/40"
+      className="w-full max-w-sm bg-transparent [&::backdrop]:bg-ink/40 [&::backdrop]:backdrop-blur-[2px]"
     >
       <form
         action={handleSubmit}
-        className="space-y-3 rounded border bg-white p-6"
+        className="space-y-4 rounded-xl border border-edge bg-surface p-6 shadow-[var(--shadow-pop)]"
       >
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
 
         <div>
-          <label htmlFor={`${uid}-name`} className="block text-sm">
+          <label htmlFor={`${uid}-name`} className="mb-1 block text-sm text-ink-muted">
             Name
           </label>
           <input
@@ -69,12 +69,12 @@ export function EntityFormDialog({
             type="text"
             required
             defaultValue={defaultValues?.name}
-            className="w-full rounded border px-2 py-1"
+            className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
           />
         </div>
 
         <div>
-          <label htmlFor={`${uid}-vat_number`} className="block text-sm">
+          <label htmlFor={`${uid}-vat_number`} className="mb-1 block text-sm text-ink-muted">
             VAT number
           </label>
           <input
@@ -82,30 +82,30 @@ export function EntityFormDialog({
             name="vat_number"
             type="text"
             defaultValue={defaultValues?.vat_number ?? ""}
-            className="w-full rounded border px-2 py-1"
+            className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
           />
         </div>
 
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="rounded-lg bg-expense-soft px-3 py-2 text-sm text-expense" role="alert">
             {error}
           </p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-4 pt-1">
           <button
             type="button"
             onClick={onDone}
-            className="rounded px-3 py-1.5 text-sm underline"
+            className="text-sm text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-ink"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:translate-y-px disabled:opacity-50"
           >
-            {isPending ? "Saving..." : submitLabel}
+            {isPending ? "Saving…" : submitLabel}
           </button>
         </div>
       </form>

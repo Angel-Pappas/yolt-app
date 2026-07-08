@@ -7,13 +7,17 @@ export default async function TaxesPage() {
   const totalVat = await getTotalVat(supabase);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
-      <h1 className="text-xl font-semibold">Taxes</h1>
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
+      <h1 className="font-display text-3xl font-bold text-ink">Taxes</h1>
 
-      <section className="space-y-1 rounded border p-4">
-        <h2 className="text-lg font-semibold">VAT</h2>
-        <p className="text-2xl font-semibold">{formatAmount(totalVat)}</p>
-        <p className="text-sm text-neutral-500">
+      <section className="max-w-sm space-y-1.5 rounded-xl border border-edge bg-surface p-5 shadow-[var(--shadow-card)]">
+        <h2 className="text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+          VAT
+        </h2>
+        <p className="text-3xl font-semibold tabular-nums text-ink">
+          {formatAmount(totalVat)}
+        </p>
+        <p className="text-sm text-ink-muted">
           Total VAT across all transactions.
         </p>
       </section>

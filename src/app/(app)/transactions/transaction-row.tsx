@@ -16,11 +16,25 @@ const TYPE_LABEL: Record<TransactionType, string> = {
   transfer: "Transfer",
 };
 
-const TYPE_COLOR: Record<TransactionType, string> = {
-  income: "text-green-700",
-  expense: "text-red-700",
-  transfer: "text-blue-700",
+const TYPE_PILL: Record<TransactionType, string> = {
+  income: "bg-income-soft text-income",
+  expense: "bg-expense-soft text-expense",
+  transfer: "bg-transfer-soft text-transfer",
 };
+
+function TypePill({ type }: { type: TransactionType }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${TYPE_PILL[type]}`}
+    >
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ backgroundColor: "currentColor" }}
+      />
+      {TYPE_LABEL[type]}
+    </span>
+  );
+}
 
 export function TransactionRow({
   transaction,
@@ -48,30 +62,42 @@ export function TransactionRow({
   return (
     <tr
       onClick={openEdit}
-      className="cursor-pointer border-b hover:bg-neutral-50"
+      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 hover:bg-canvas"
     >
-      <td className="py-2">{formatDate(transaction.date)}</td>
-      <td className={`py-2 ${TYPE_COLOR[transaction.type]}`}>
-        {TYPE_LABEL[transaction.type]}
+      <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
+        {formatDate(transaction.date)}
       </td>
-      <td className="py-2">{transaction.entity?.name ?? "—"}</td>
-      <td className="py-2">
-        {isTransfer
-          ? `${transaction.wallet.name} → ${transaction.to_wallet?.name ?? "—"}`
-          : transaction.wallet.name}
+      <td className="px-4 py-3">
+        <TypePill type={transaction.type} />
       </td>
-      <td className="py-2">{transaction.description}</td>
-      <td className="py-2 text-right">{formatAmount(transaction.net)}</td>
-      <td className="py-2 text-right">
+      <td className="px-4 py-3 text-sm text-ink-muted">
+        {transaction.entity?.name ?? "—"}
+      </td>
+      <td className="px-4 py-3 text-sm whitespace-nowrap text-ink">
+        {isTransfer ? (
+          <span className="inline-flex items-center gap-1.5">
+            {transaction.wallet.name}
+            <span className="text-ink-faint">→</span>
+            {transaction.to_wallet?.name ?? "—"}
+          </span>
+        ) : (
+          transaction.wallet.name
+        )}
+      </td>
+      <td className="px-4 py-3 text-sm text-ink">{transaction.description}</td>
+      <td className="px-4 py-3 text-right text-sm tabular-nums text-ink">
+        {formatAmount(transaction.net)}
+      </td>
+      <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
         {isTransfer ? "—" : `${transaction.vat_rate?.rate ?? "—"}%`}
       </td>
-      <td className="py-2 text-right">
+      <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
         {isTransfer ? "—" : formatAmount(transaction.vat_amount)}
       </td>
-      <td className="py-2 text-right">
+      <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
         {formatAmount(computeTotal(transaction.net, transaction.vat_amount))}
       </td>
-      <td className="py-2 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <DeleteTransactionButton id={transaction.id} />
 
         <TransactionFormDialog

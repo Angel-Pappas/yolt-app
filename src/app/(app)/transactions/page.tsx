@@ -121,10 +121,17 @@ export default async function TransactionsPage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Transactions</h1>
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-ink">
+            Transactions
+          </h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {totalCount} transaction{totalCount === 1 ? "" : "s"}
+          </p>
+        </div>
         <TransactionModal
-          trigger="Add"
+          trigger="Add transaction"
           title="Add transaction"
           submitLabel="Add"
           entities={entities ?? []}
@@ -134,36 +141,38 @@ export default async function TransactionsPage({
         />
       </div>
 
-      <TransactionFiltersBar />
+      <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
+        <TransactionFiltersBar />
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <TransactionTableHeader
-            entities={entities ?? []}
-            wallets={wallets ?? []}
-            vatRates={vatRates ?? []}
-          />
-          <tbody>
-            {transactions.map((t) => (
-              <TransactionRow
-                key={t.id}
-                transaction={t}
-                entities={entities ?? []}
-                wallets={wallets ?? []}
-                vatRates={vatRates ?? []}
-              />
-            ))}
-            {totalCount === 0 && (
-              <tr>
-                <td colSpan={10} className="py-4 text-center text-neutral-500">
-                  {hasActiveFilters
-                    ? "No transactions match these filters."
-                    : "No transactions yet."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <TransactionTableHeader
+              entities={entities ?? []}
+              wallets={wallets ?? []}
+              vatRates={vatRates ?? []}
+            />
+            <tbody>
+              {transactions.map((t) => (
+                <TransactionRow
+                  key={t.id}
+                  transaction={t}
+                  entities={entities ?? []}
+                  wallets={wallets ?? []}
+                  vatRates={vatRates ?? []}
+                />
+              ))}
+              {totalCount === 0 && (
+                <tr>
+                  <td colSpan={10} className="px-4 py-10 text-center text-sm text-ink-faint">
+                    {hasActiveFilters
+                      ? "No transactions match these filters."
+                      : "No transactions yet."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <TransactionPagination page={page} totalPages={totalPages} />

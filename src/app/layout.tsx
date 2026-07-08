@@ -1,32 +1,36 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { getThemePreference } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Yolt",
   description: "Personal finance transaction tracker",
 };
 
-export default function RootLayout({
+/**
+ * Reads the theme cookie and sets data-theme on <html> during SSR — this
+ * is what avoids a flash of the wrong theme on load. When the preference
+ * is "system", the attribute is omitted entirely so the CSS
+ * `@media (prefers-color-scheme: dark)` rule (scoped to :root:not([data-theme]))
+ * is what decides, purely from the OS setting, with no JS involved.
+ *
+ * Reading cookies() here opts the whole app out of static rendering
+ * (a few routes — /, /auth/auth-code-error — were previously static);
+ * an accepted, deliberate tradeoff for correct SSR theming.
+ */
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const theme = await getThemePreference();
+
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-theme={theme === "system" ? undefined : theme}
+      className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>

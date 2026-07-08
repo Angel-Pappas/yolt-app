@@ -41,7 +41,7 @@ export function EntityCombobox({
 
   return (
     <div className="relative">
-      <label htmlFor={`${uid}-entity`} className="block text-sm">
+      <label htmlFor={`${uid}-entity`} className="mb-1 block text-sm text-ink-muted">
         Entity
       </label>
       <div className="flex gap-2">
@@ -57,13 +57,13 @@ export function EntityCombobox({
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 150)}
           autoComplete="off"
-          placeholder="Search entities..."
-          className="w-full rounded border px-2 py-1"
+          placeholder="Search entities…"
+          className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
         />
         <button
           type="button"
           onClick={onAddNew}
-          className="whitespace-nowrap rounded border px-2 py-1 text-sm"
+          className="inline-flex items-center whitespace-nowrap rounded-lg border border-edge px-3 py-2 text-sm font-medium text-ink-muted transition hover:border-edge-strong hover:text-ink"
         >
           + Add
         </button>
@@ -71,14 +71,14 @@ export function EntityCombobox({
       <input type="hidden" name="entity_id" value={selectedId} />
 
       {isOpen && matches.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded border bg-white text-sm shadow">
+        <ul className="absolute z-10 mt-1.5 max-h-48 w-full overflow-auto rounded-lg border border-edge bg-surface-raised p-1 text-sm shadow-[var(--shadow-pop)]">
           {matches.map((entity) => (
             <li key={entity.id}>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => selectEntity(entity)}
-                className="block w-full px-2 py-1 text-left hover:bg-neutral-100"
+                className="block w-full rounded-md px-2.5 py-1.5 text-left text-ink hover:bg-canvas"
               >
                 {entity.name}
               </button>

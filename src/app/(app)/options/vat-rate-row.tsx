@@ -21,11 +21,13 @@ export function VatRateRow({ vatRate }: { vatRate: VatRate }) {
   return (
     <tr
       onClick={openEdit}
-      className="cursor-pointer border-b hover:bg-neutral-50"
+      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 hover:bg-canvas"
     >
-      <td className="py-2">{vatRate.name}</td>
-      <td className="py-2 text-right">{vatRate.rate}%</td>
-      <td className="py-2 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-3 py-3 text-sm text-ink">{vatRate.name}</td>
+      <td className="px-3 py-3 text-right text-sm tabular-nums text-ink">
+        {vatRate.rate}%
+      </td>
+      <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <DeleteVatRateButton id={vatRate.id} />
 
         <VatRateFormDialog

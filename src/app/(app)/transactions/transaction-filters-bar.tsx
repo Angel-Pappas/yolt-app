@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { SearchIcon } from "@/components/icons";
 import { useTransactionParams } from "./use-transaction-params";
 
 function isoDate(d: Date): string {
@@ -16,6 +17,29 @@ function endOfMonth(d: Date): Date {
 }
 
 type DatePreset = "this-month" | "last-month" | "this-year" | "all-time";
+
+const PRESETS: { key: DatePreset; label: string }[] = [
+  { key: "this-month", label: "This month" },
+  { key: "last-month", label: "Last month" },
+  { key: "this-year", label: "This year" },
+  { key: "all-time", label: "All time" },
+];
+
+function presetRange(preset: DatePreset): { from: string | null; to: string | null } {
+  if (preset === "all-time") return { from: null, to: null };
+  const now = new Date();
+  if (preset === "this-month") {
+    return { from: isoDate(startOfMonth(now)), to: isoDate(endOfMonth(now)) };
+  }
+  if (preset === "last-month") {
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return {
+      from: isoDate(startOfMonth(lastMonth)),
+      to: isoDate(endOfMonth(lastMonth)),
+    };
+  }
+  return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-12-31` };
+}
 
 /**
  * Search box and date range only — Type/Entity/Wallet/VAT are filtered
@@ -49,94 +73,70 @@ export function TransactionFiltersBar() {
     );
   }
 
+  const currentFrom = searchParams.get("from") ?? "";
+  const currentTo = searchParams.get("to") ?? "";
+  const activePreset = PRESETS.find((p) => {
+    const range = presetRange(p.key);
+    return (range.from ?? "") === currentFrom && (range.to ?? "") === currentTo;
+  })?.key;
+
   function applyPreset(preset: DatePreset) {
-    if (preset === "all-time") {
-      setFilterParams({ from: null, to: null });
-      return;
-    }
-    const now = new Date();
-    if (preset === "this-month") {
-      setFilterParams({
-        from: isoDate(startOfMonth(now)),
-        to: isoDate(endOfMonth(now)),
-      });
-    } else if (preset === "last-month") {
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      setFilterParams({
-        from: isoDate(startOfMonth(lastMonth)),
-        to: isoDate(endOfMonth(lastMonth)),
-      });
-    } else if (preset === "this-year") {
-      setFilterParams({
-        from: `${now.getFullYear()}-01-01`,
-        to: `${now.getFullYear()}-12-31`,
-      });
-    }
+    setFilterParams(presetRange(preset));
   }
 
   const hasFilters = searchParams.toString().length > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded border p-3">
-      <input
-        type="text"
-        placeholder="Search description..."
-        value={searchInput}
-        onChange={(e) => handleSearchChange(e.target.value)}
-        className="min-w-40 flex-1 rounded border px-2 py-1 text-sm"
-      />
+    <div className="flex flex-wrap items-center gap-2.5 border-b border-edge p-4">
+      <div className="relative min-w-[180px] flex-1 basis-56">
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
+        <input
+          type="text"
+          placeholder="Search description…"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="w-full rounded-lg border border-edge bg-surface py-2 pr-3 pl-9 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+        />
+      </div>
 
-      <label className="text-sm text-neutral-500">From</label>
-      <input
-        type="date"
-        value={searchParams.get("from") ?? ""}
-        onChange={(e) => setFilterParams({ from: e.target.value || null })}
-        className="rounded border px-2 py-1 text-sm"
-      />
-      <label className="text-sm text-neutral-500">To</label>
-      <input
-        type="date"
-        value={searchParams.get("to") ?? ""}
-        onChange={(e) => setFilterParams({ to: e.target.value || null })}
-        className="rounded border px-2 py-1 text-sm"
-      />
+      <div className="flex items-center gap-1.5 rounded-lg border border-edge bg-canvas p-0.5">
+        <input
+          type="date"
+          value={currentFrom}
+          onChange={(e) => setFilterParams({ from: e.target.value || null })}
+          className="rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink [color-scheme:light]"
+        />
+        <span className="text-xs text-ink-faint">–</span>
+        <input
+          type="date"
+          value={currentTo}
+          onChange={(e) => setFilterParams({ to: e.target.value || null })}
+          className="rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink [color-scheme:light]"
+        />
+      </div>
 
-      <div className="flex flex-wrap gap-1">
-        <button
-          type="button"
-          onClick={() => applyPreset("this-month")}
-          className="rounded border px-2 py-1 text-xs"
-        >
-          This month
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset("last-month")}
-          className="rounded border px-2 py-1 text-xs"
-        >
-          Last month
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset("this-year")}
-          className="rounded border px-2 py-1 text-xs"
-        >
-          This year
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset("all-time")}
-          className="rounded border px-2 py-1 text-xs"
-        >
-          All time
-        </button>
+      <div className="flex gap-0.5 rounded-lg border border-edge bg-canvas p-0.5">
+        {PRESETS.map((preset) => (
+          <button
+            key={preset.key}
+            type="button"
+            onClick={() => applyPreset(preset.key)}
+            className={`rounded-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+              activePreset === preset.key
+                ? "bg-surface-raised text-ink shadow-sm"
+                : "text-ink-muted hover:text-ink"
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
       </div>
 
       {hasFilters && (
         <button
           type="button"
           onClick={clearAll}
-          className="ml-auto rounded px-2 py-1 text-xs underline"
+          className="ml-auto text-xs text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-expense"
         >
           Clear filters
         </button>

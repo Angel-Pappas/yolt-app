@@ -10,6 +10,12 @@ function typeLabel(entry: WalletLedgerEntry): string {
   return `${entry.fromWalletName ?? "—"} → ${entry.toWalletName ?? "—"}`;
 }
 
+const TYPE_COLOR: Record<string, string> = {
+  income: "bg-income-soft text-income",
+  expense: "bg-expense-soft text-expense",
+  transfer: "bg-transfer-soft text-transfer",
+};
+
 export default async function WalletLedgerPage({
   params,
 }: {
@@ -33,48 +39,88 @@ export default async function WalletLedgerPage({
   const currentBalance = entries.at(-1)?.runningBalance ?? 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
-      <div className="space-y-1">
-        <Link href="/wallets" className="text-sm underline">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
+      <div className="space-y-3">
+        <Link
+          href="/wallets"
+          className="text-sm text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-ink"
+        >
           ← Wallets
         </Link>
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">{wallet.name}</h1>
-          <p className="text-lg font-semibold">{formatAmount(currentBalance)}</p>
+        <div className="flex items-end justify-between">
+          <h1 className="font-display text-3xl font-bold text-ink">
+            {wallet.name}
+          </h1>
+          <p
+            className={`text-2xl font-semibold tabular-nums ${
+              currentBalance < 0 ? "text-expense" : "text-ink"
+            }`}
+          >
+            {formatAmount(currentBalance)}
+          </p>
         </div>
       </div>
 
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left">
-            <th className="py-2">Date</th>
-            <th className="py-2">Description</th>
-            <th className="py-2">Type</th>
-            <th className="py-2 text-right">Amount</th>
-            <th className="py-2 text-right">Balance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e) => (
-            <tr key={e.id} className="border-b">
-              <td className="py-2">{formatDate(e.date)}</td>
-              <td className="py-2">{e.description}</td>
-              <td className="py-2">{typeLabel(e)}</td>
-              <td className="py-2 text-right">{formatAmount(e.amount)}</td>
-              <td className="py-2 text-right">
-                {formatAmount(e.runningBalance)}
-              </td>
+      <div className="overflow-x-auto rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-edge">
+              <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+                Date
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+                Description
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+                Type
+              </th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+                Amount
+              </th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+                Balance
+              </th>
             </tr>
-          ))}
-          {entries.length === 0 && (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-neutral-500">
-                No transactions for this wallet yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {entries.map((e) => (
+              <tr
+                key={e.id}
+                className="border-b border-edge last:border-b-0 hover:bg-canvas"
+              >
+                <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
+                  {formatDate(e.date)}
+                </td>
+                <td className="px-4 py-3 text-sm text-ink">{e.description}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${TYPE_COLOR[e.type]}`}
+                  >
+                    {typeLabel(e)}
+                  </span>
+                </td>
+                <td
+                  className={`px-4 py-3 text-right text-sm tabular-nums ${
+                    e.amount < 0 ? "text-expense" : "text-ink"
+                  }`}
+                >
+                  {formatAmount(e.amount)}
+                </td>
+                <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
+                  {formatAmount(e.runningBalance)}
+                </td>
+              </tr>
+            ))}
+            {entries.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  No transactions for this wallet yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
