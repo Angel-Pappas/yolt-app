@@ -10,7 +10,11 @@ export function DeleteEntityButton({ id }: { id: string }) {
   function handleDelete() {
     if (!confirm("Delete this entity?")) return;
     startTransition(async () => {
-      await deleteEntity(id);
+      try {
+        await deleteEntity(id);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to delete");
+      }
     });
   }
 

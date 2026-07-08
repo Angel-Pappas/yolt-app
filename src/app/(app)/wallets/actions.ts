@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { formDataToRecord } from "@/lib/form-data";
+import { parseOrThrow } from "@/lib/validation";
+import { walletSchema } from "./schema";
 
 export async function addWallet(formData: FormData) {
   const supabase = await createClient();
-
-  const name = formData.get("name") as string;
+  const { name } = parseOrThrow(walletSchema, formDataToRecord(formData));
 
   const { error } = await supabase.from("wallets").insert({ name });
 
@@ -20,8 +22,7 @@ export async function addWallet(formData: FormData) {
 
 export async function updateWallet(id: string, formData: FormData) {
   const supabase = await createClient();
-
-  const name = formData.get("name") as string;
+  const { name } = parseOrThrow(walletSchema, formDataToRecord(formData));
 
   const { error } = await supabase
     .from("wallets")

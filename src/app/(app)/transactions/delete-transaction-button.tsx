@@ -10,7 +10,11 @@ export function DeleteTransactionButton({ id }: { id: string }) {
   function handleDelete() {
     if (!confirm("Delete this transaction?")) return;
     startTransition(async () => {
-      await deleteTransaction(id);
+      try {
+        await deleteTransaction(id);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to delete");
+      }
     });
   }
 

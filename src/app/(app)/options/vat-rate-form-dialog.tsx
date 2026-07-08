@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 
 type VatRateFormDialogProps = {
   dialogRef: React.RefObject<HTMLDialogElement | null>;
@@ -24,11 +24,17 @@ export function VatRateFormDialog({
 }: VatRateFormDialogProps) {
   const uid = useId();
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      await action(formData);
-      onDone();
+      try {
+        setError(null);
+        await action(formData);
+        onDone();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     });
   }
 
@@ -82,6 +88,12 @@ export function VatRateFormDialog({
             className="w-full rounded border px-2 py-1"
           />
         </div>
+
+        {error && (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <button

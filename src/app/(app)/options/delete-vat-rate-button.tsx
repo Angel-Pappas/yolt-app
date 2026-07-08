@@ -10,7 +10,11 @@ export function DeleteVatRateButton({ id }: { id: string }) {
   function handleDelete() {
     if (!confirm("Delete this VAT rate?")) return;
     startTransition(async () => {
-      await deleteVatRate(id);
+      try {
+        await deleteVatRate(id);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to delete");
+      }
     });
   }
 

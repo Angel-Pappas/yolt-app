@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { formDataToRecord } from "@/lib/form-data";
+import { parseOrThrow } from "@/lib/validation";
+import { vatRateSchema } from "./vat-rate-schema";
 
 export async function addVatRate(formData: FormData) {
   const supabase = await createClient();
-
-  const name = formData.get("name") as string;
-  const rate = formData.get("rate") as string;
+  const { name, rate } = parseOrThrow(vatRateSchema, formDataToRecord(formData));
 
   const { error } = await supabase.from("vat_rates").insert({ name, rate });
 
@@ -21,9 +22,7 @@ export async function addVatRate(formData: FormData) {
 
 export async function updateVatRate(id: string, formData: FormData) {
   const supabase = await createClient();
-
-  const name = formData.get("name") as string;
-  const rate = formData.get("rate") as string;
+  const { name, rate } = parseOrThrow(vatRateSchema, formDataToRecord(formData));
 
   const { error } = await supabase
     .from("vat_rates")

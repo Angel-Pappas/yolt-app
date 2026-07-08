@@ -44,6 +44,7 @@ export function TransactionFormDialog({
 }: TransactionFormDialogProps) {
   const uid = useId();
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   // Rendered as a sibling of the main <form> below (not nested inside it) —
   // a <form> can't validly contain another <form>, and the add-entity
   // dialog has its own.
@@ -80,8 +81,13 @@ export function TransactionFormDialog({
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      await action(formData);
-      onDone();
+      try {
+        setError(null);
+        await action(formData);
+        onDone();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     });
   }
 
@@ -291,6 +297,12 @@ export function TransactionFormDialog({
           <span>Total</span>
           <span>{formatAmount(total)}</span>
         </div>
+
+        {error && (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <button

@@ -10,7 +10,11 @@ export function DeleteWalletButton({ id }: { id: string }) {
   function handleDelete() {
     if (!confirm("Delete this wallet?")) return;
     startTransition(async () => {
-      await deleteWallet(id);
+      try {
+        await deleteWallet(id);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to delete");
+      }
     });
   }
 

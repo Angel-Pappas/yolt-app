@@ -2,12 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { formDataToRecord } from "@/lib/form-data";
+import { parseOrThrow } from "@/lib/validation";
+import { entitySchema } from "./schema";
 
 export async function addEntity(formData: FormData) {
   const supabase = await createClient();
-
-  const name = formData.get("name") as string;
-  const vat_number = (formData.get("vat_number") as string) || null;
+  const { name, vat_number } = parseOrThrow(
+    entitySchema,
+    formDataToRecord(formData)
+  );
 
   const { error } = await supabase.from("entities").insert({
     name,
@@ -24,9 +28,10 @@ export async function addEntity(formData: FormData) {
 
 export async function updateEntity(id: string, formData: FormData) {
   const supabase = await createClient();
-
-  const name = formData.get("name") as string;
-  const vat_number = (formData.get("vat_number") as string) || null;
+  const { name, vat_number } = parseOrThrow(
+    entitySchema,
+    formDataToRecord(formData)
+  );
 
   const { error } = await supabase
     .from("entities")

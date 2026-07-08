@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { addTransaction } from "./actions";
 import {
   getActiveTransactions,
-  sortTransactions,
   SORT_KEYS,
   type SortDir,
   type SortKey,
@@ -83,27 +82,42 @@ export default async function TransactionsPage({
     (value) => value !== undefined
   );
 
-  const [
-    { data: transactions },
-    { data: entities },
-    { data: wallets },
-    { data: vatRates },
-  ] = await Promise.all([
-    getActiveTransactions(supabase, filters),
-    getActiveEntities(supabase),
-    getActiveWallets(supabase),
-    getActiveVatRates(supabase),
-  ]);
-
-  const sorted = sortTransactions(transactions ?? [], sort, dir);
-  const totalCount = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const rawPage = Number(getParam(rawParams, "page"));
-  const page =
-    Number.isInteger(rawPage) && rawPage >= 1
-      ? Math.min(rawPage, totalPages)
-      : 1;
-  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+
+  const [transactionsResult, { data: entities }, { data: wallets }, { data: vatRates }] =
+    await Promise.all([
+      getActiveTransactions(supabase, {
+        filters,
+        sort,
+        dir,
+        page: requestedPage,
+        pageSize: PAGE_SIZE,
+      }),
+      getActiveEntities(supabase),
+      getActiveWallets(supabase),
+      getActiveVatRates(supabase),
+    ]);
+
+  let { transactions, totalCount } = transactionsResult;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  let page = requestedPage;
+
+  // Filters can shrink the result set out from under whatever page the
+  // URL asked for (e.g. narrowing a filter while on page 3) — .range()
+  // just returns an empty array rather than erroring, so re-fetch
+  // clamped to the last valid page instead of showing a confusing blank
+  // page with "Page 3 of 1".
+  if (requestedPage > totalPages) {
+    page = totalPages;
+    ({ transactions, totalCount } = await getActiveTransactions(supabase, {
+      filters,
+      sort,
+      dir,
+      page,
+      pageSize: PAGE_SIZE,
+    }));
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
@@ -130,7 +144,7 @@ export default async function TransactionsPage({
             vatRates={vatRates ?? []}
           />
           <tbody>
-            {pageItems.map((t) => (
+            {transactions.map((t) => (
               <TransactionRow
                 key={t.id}
                 transaction={t}

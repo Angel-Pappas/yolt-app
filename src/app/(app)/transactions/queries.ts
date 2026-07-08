@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { computeTotal } from "@/lib/format";
 
 export type TransactionType = "income" | "expense" | "transfer";
 
@@ -30,9 +29,105 @@ export type TransactionFilters = {
   dateTo?: string;
 };
 
+export type SortKey =
+  | "date"
+  | "type"
+  | "entity"
+  | "wallet"
+  | "description"
+  | "net"
+  | "vat"
+  | "vat_amount"
+  | "total";
+export type SortDir = "asc" | "desc";
+
+export const SORT_KEYS: SortKey[] = [
+  "date",
+  "type",
+  "entity",
+  "wallet",
+  "description",
+  "net",
+  "vat",
+  "vat_amount",
+  "total",
+];
+
+/** Maps a sort key to its column on the transactions_expanded view. */
+const SORT_COLUMN: Record<SortKey, string> = {
+  date: "date",
+  type: "type",
+  entity: "entity_name",
+  wallet: "wallet_name",
+  description: "description",
+  net: "net",
+  vat: "vat_rate",
+  vat_amount: "vat_amount",
+  total: "total",
+};
+
+export type TransactionListParams = {
+  filters?: TransactionFilters;
+  sort?: SortKey;
+  dir?: SortDir;
+  page?: number;
+  pageSize?: number;
+};
+
+export type TransactionListResult = {
+  transactions: Transaction[];
+  totalCount: number;
+};
+
 /** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
 function escapeLikePattern(value: string): string {
   return value.replace(/[%_]/g, (match) => `\\${match}`);
+}
+
+/** Row shape of the transactions_expanded view (see migration create_transactions_expanded_view_and_indexes). */
+type TransactionsExpandedRow = {
+  id: string;
+  date: string;
+  description: string;
+  type: TransactionType;
+  net: string;
+  vat_amount: string;
+  created_at: string;
+  entity_id: string | null;
+  entity_name: string | null;
+  wallet_id: string;
+  wallet_name: string | null;
+  to_wallet_id: string | null;
+  to_wallet_name: string | null;
+  vat_rate_id: string | null;
+  vat_rate_name: string | null;
+  vat_rate: string | null;
+};
+
+function toTransaction(row: TransactionsExpandedRow): Transaction {
+  return {
+    id: row.id,
+    date: row.date,
+    description: row.description,
+    type: row.type,
+    net: row.net,
+    vat_amount: row.vat_amount,
+    created_at: row.created_at,
+    entity: row.entity_id
+      ? { id: row.entity_id, name: row.entity_name ?? "" }
+      : null,
+    wallet: { id: row.wallet_id, name: row.wallet_name ?? "" },
+    to_wallet: row.to_wallet_id
+      ? { id: row.to_wallet_id, name: row.to_wallet_name ?? "" }
+      : null,
+    vat_rate: row.vat_rate_id
+      ? {
+          id: row.vat_rate_id,
+          name: row.vat_rate_name ?? "",
+          rate: row.vat_rate ?? "0",
+        }
+      : null,
+  };
 }
 
 /**
@@ -42,31 +137,34 @@ function escapeLikePattern(value: string): string {
  * is_deleted filter can't be forgotten in a new code path (it isn't
  * enforced at the RLS level — see Summary.md for why).
  *
- * `wallet` and `to_wallet` both reference `wallets`, so the FK column is
- * spelled out (`!wallet_id` / `!to_wallet_id`) to disambiguate which
- * relationship each embed follows.
+ * Queries `transactions_expanded` (a view flattening entity/wallet/
+ * to_wallet/vat_rate names + a computed total onto each row) rather than
+ * the raw table, so sorting/filtering/pagination can all happen at the
+ * database level via plain PostgREST query params — including sorting by
+ * Entity/Wallet, which are joined columns PostgREST can't order a
+ * top-level query by directly without this flattening. The view is
+ * `security_invoker`, so it's exactly as RLS-safe as querying the base
+ * tables directly (see the migration for why that matters).
  *
- * Callers are expected to have already validated `filters` (enum/UUID/date
- * format) — see transactions/page.tsx's `parseFilters` — since malformed
- * values passed straight to `.eq`/`.or` on a uuid column would error out
- * the whole query rather than just matching nothing.
- *
- * No `.order()` here — sorting (including by Entity/Wallet name, which
- * are joined columns) is done in JS via `sortTransactions()` below,
- * against the full filtered result, then paginated. Simpler and safer
- * than relying on PostgREST's embedded-resource ordering, and fine at
- * this app's scale; revisit if the transaction count ever gets large
- * enough that fetching the whole filtered set every page load matters.
+ * Callers are expected to have already validated `filters`/`sort`
+ * (enum/UUID/date format) — see transactions/page.tsx's `parseFilters`/
+ * `parseSort` — since malformed values passed straight to `.eq`/`.or` on
+ * a uuid column would error out the whole query rather than just
+ * matching nothing.
  */
 export async function getActiveTransactions(
   supabase: SupabaseClient,
-  filters: TransactionFilters = {}
-) {
+  params: TransactionListParams = {}
+): Promise<TransactionListResult> {
+  const filters = params.filters ?? {};
+  const sort = params.sort ?? "date";
+  const dir = params.dir ?? "asc";
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 25;
+
   let query = supabase
-    .from("transactions")
-    .select(
-      "id, date, description, type, net, vat_amount, created_at, entity:entities(id, name), wallet:wallets!wallet_id(id, name), to_wallet:wallets!to_wallet_id(id, name), vat_rate:vat_rates(id, name, rate)"
-    )
+    .from("transactions_expanded")
+    .select("*", { count: "exact" })
     .eq("is_deleted", false);
 
   if (filters.search) {
@@ -93,67 +191,24 @@ export async function getActiveTransactions(
     query = query.lte("date", filters.dateTo);
   }
 
-  return query.returns<Transaction[]>();
-}
+  query = query.order(SORT_COLUMN[sort], { ascending: dir === "asc" });
+  if (sort !== "date") {
+    query = query.order("date", { ascending: true });
+  }
+  query = query.order("created_at", { ascending: true });
 
-export type SortKey =
-  | "date"
-  | "type"
-  | "entity"
-  | "wallet"
-  | "description"
-  | "net"
-  | "vat"
-  | "vat_amount"
-  | "total";
-export type SortDir = "asc" | "desc";
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  query = query.range(from, to);
 
-export const SORT_KEYS: SortKey[] = [
-  "date",
-  "type",
-  "entity",
-  "wallet",
-  "description",
-  "net",
-  "vat",
-  "vat_amount",
-  "total",
-];
+  const { data, error, count } = await query.returns<TransactionsExpandedRow[]>();
 
-const SORT_VALUE: Record<SortKey, (t: Transaction) => string | number> = {
-  date: (t) => t.date,
-  type: (t) => t.type,
-  entity: (t) => t.entity?.name ?? "",
-  wallet: (t) => t.wallet.name,
-  description: (t) => t.description,
-  net: (t) => Number(t.net),
-  vat: (t) => Number(t.vat_rate?.rate ?? -1),
-  vat_amount: (t) => Number(t.vat_amount),
-  total: (t) => computeTotal(t.net, t.vat_amount),
-};
+  if (error) {
+    throw new Error(error.message);
+  }
 
-/**
- * Sorts by the given column, tiebroken by chronological order (date, then
- * created_at) so results are always in a stable, predictable order even
- * when many rows share the same sorted value (e.g. same Type or Wallet).
- */
-export function sortTransactions(
-  transactions: Transaction[],
-  sort: SortKey,
-  dir: SortDir
-): Transaction[] {
-  const getValue = SORT_VALUE[sort];
-  const factor = dir === "asc" ? 1 : -1;
-
-  return [...transactions].sort((a, b) => {
-    const av = getValue(a);
-    const bv = getValue(b);
-    if (av < bv) return -1 * factor;
-    if (av > bv) return 1 * factor;
-
-    if (sort !== "date" && a.date !== b.date) {
-      return a.date < b.date ? -1 : 1;
-    }
-    return a.created_at < b.created_at ? -1 : 1;
-  });
+  return {
+    transactions: (data ?? []).map(toTransaction),
+    totalCount: count ?? 0,
+  };
 }
