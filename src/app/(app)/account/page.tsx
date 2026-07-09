@@ -20,7 +20,7 @@ export default async function AccountPage({
   const { name, email } = await getCurrentUser(supabase);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
+    <div className="flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
       <h1 className="font-display text-3xl font-bold text-ink">Account</h1>
 
       {message && (

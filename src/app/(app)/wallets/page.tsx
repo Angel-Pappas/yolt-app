@@ -60,7 +60,7 @@ export default async function WalletsPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
+    <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
       <ListPageHeader
         title="Wallets"
         searchPlaceholder="Search wallets…"

@@ -7,7 +7,7 @@ export default async function TaxesPage() {
   const totalVat = await getTotalVat(supabase);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
+    <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
       <h1 className="font-display text-3xl font-bold text-ink">Taxes</h1>
 
       <section className="max-w-sm space-y-1.5 rounded-xl border border-edge bg-surface p-5 shadow-[var(--shadow-card)]">
