@@ -34,17 +34,7 @@ export function ReconcileModal({
       onDone={onDone}
       submitLabel="Reconcile"
       submitDisabled={Boolean(sameWalletError)}
-      title={
-        <div>
-          <h2 className="font-display text-lg font-semibold text-ink">
-            Reconcile transaction
-          </h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Correct the real date, amount, or wallet once this actually
-            happens, then mark it reconciled — even if nothing changed.
-          </p>
-        </div>
-      }
+      title="Reconcile transaction"
     >
       <input type="hidden" name="type" value={transaction.type} />
 

@@ -25,17 +25,7 @@ export function InvoiceModal({
       onDone={onDone}
       submitLabel="Save"
       maxWidth="max-w-xs"
-      title={
-        <div>
-          <h2 className="font-display text-lg font-semibold text-ink">
-            Invoice month
-          </h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Which month&apos;s invoice folder is this filed under? Leave
-            blank to clear.
-          </p>
-        </div>
-      }
+      title="Invoice month"
     >
       <div>
         <label htmlFor={`${uid}-invoice-month`} className="sr-only">
