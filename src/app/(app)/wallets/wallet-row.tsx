@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef } from "react";
 import Link from "next/link";
+import { useDialog } from "@/components/dialog/use-dialog";
+import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
 import { formatAmount } from "@/lib/format";
-import { updateWallet } from "./actions";
+import { deleteWallet, updateWallet } from "./actions";
 import { WalletFormDialog } from "./wallet-form-dialog";
-import { DeleteWalletButton } from "./delete-wallet-button";
 import { PencilIcon } from "@/components/icons";
 import type { Wallet } from "./queries";
 
@@ -17,16 +17,7 @@ export function WalletRow({
   wallet: Wallet;
   balance: number;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  function openEdit() {
-    if (dialogRef.current?.open) return;
-    dialogRef.current?.showModal();
-  }
-
-  function closeEdit() {
-    dialogRef.current?.close();
-  }
+  const { dialogRef, open, close } = useDialog();
 
   return (
     <tr className={tableRowClass({ interactive: false })}>
@@ -48,13 +39,17 @@ export function WalletRow({
       <td className="px-4 py-3 text-right">
         <button
           type="button"
-          onClick={openEdit}
+          onClick={open}
           aria-label="Edit wallet"
           className="rounded-md p-1.5 text-ink-faint opacity-0 transition group-hover:opacity-100 hover:bg-canvas hover:text-ink"
         >
           <PencilIcon className="h-4 w-4" />
         </button>
-        <DeleteWalletButton id={wallet.id} />
+        <DeleteButton
+          action={() => deleteWallet(wallet.id)}
+          confirmMessage="Delete this wallet?"
+          label="Delete wallet"
+        />
 
         <WalletFormDialog
           dialogRef={dialogRef}
@@ -62,7 +57,7 @@ export function WalletRow({
           submitLabel="Save"
           defaultValues={{ name: wallet.name }}
           action={updateWallet.bind(null, wallet.id)}
-          onDone={closeEdit}
+          onDone={close}
         />
       </td>
     </tr>

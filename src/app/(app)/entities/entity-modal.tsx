@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
 import { AddButton } from "@/components/table/add-button";
 import { EntityFormDialog } from "./entity-form-dialog";
 
@@ -28,14 +28,10 @@ export function EntityModal({
   action,
   onDone,
 }: EntityModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const { dialogRef, open, close } = useDialog();
 
-  function openModal() {
-    dialogRef.current?.showModal();
-  }
-
-  function closeModal() {
-    dialogRef.current?.close();
+  function handleDone() {
+    close();
     onDone?.();
   }
 
@@ -45,7 +41,7 @@ export function EntityModal({
         trigger={trigger}
         triggerClassName={triggerClassName}
         triggerLabel={triggerLabel}
-        onClick={openModal}
+        onClick={open}
       />
 
       <EntityFormDialog
@@ -54,7 +50,7 @@ export function EntityModal({
         submitLabel={submitLabel}
         defaultValues={defaultValues}
         action={action}
-        onDone={closeModal}
+        onDone={handleDone}
       />
     </>
   );

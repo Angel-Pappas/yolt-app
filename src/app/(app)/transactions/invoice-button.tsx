@@ -1,23 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
 import { InvoiceIcon } from "@/components/icons";
 import { InvoiceModal } from "./invoice-modal";
 import { setInvoiceMonth } from "./actions";
 import type { Transaction } from "./queries";
 
 export function InvoiceButton({ transaction }: { transaction: Transaction }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const { dialogRef, open, close } = useDialog();
   const hasInvoice = transaction.invoice_month !== null;
-
-  function open() {
-    if (dialogRef.current?.open) return;
-    dialogRef.current?.showModal();
-  }
-
-  function close() {
-    dialogRef.current?.close();
-  }
 
   return (
     <>

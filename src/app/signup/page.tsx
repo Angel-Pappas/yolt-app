@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signup } from "@/app/auth/actions";
+import { formInputClass, formLabelClass } from "@/components/form-styles";
 
 export default async function SignupPage({
   searchParams,
@@ -16,8 +17,8 @@ export default async function SignupPage({
         </span>
         <form className="space-y-4 rounded-xl border border-edge bg-surface p-6 shadow-[var(--shadow-card)]">
           <h1 className="font-display text-lg font-semibold text-ink">Sign up</h1>
-          <div className="space-y-1">
-            <label htmlFor="email" className="block text-sm text-ink-muted">
+          <div>
+            <label htmlFor="email" className={formLabelClass}>
               Email
             </label>
             <input
@@ -25,11 +26,11 @@ export default async function SignupPage({
               name="email"
               type="email"
               required
-              className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              className={formInputClass}
             />
           </div>
-          <div className="space-y-1">
-            <label htmlFor="password" className="block text-sm text-ink-muted">
+          <div>
+            <label htmlFor="password" className={formLabelClass}>
               Password
             </label>
             <input
@@ -38,7 +39,7 @@ export default async function SignupPage({
               type="password"
               required
               minLength={6}
-              className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              className={formInputClass}
             />
           </div>
           {message && (

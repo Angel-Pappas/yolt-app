@@ -1,35 +1,27 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
+import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
-import { updateEntity } from "./actions";
+import { deleteEntity, updateEntity } from "./actions";
 import { EntityFormDialog } from "./entity-form-dialog";
-import { DeleteEntityButton } from "./delete-entity-button";
 import type { Entity } from "./queries";
 
 export function EntityRow({ entity }: { entity: Entity }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  function openEdit() {
-    if (dialogRef.current?.open) return;
-    dialogRef.current?.showModal();
-  }
-
-  function closeEdit() {
-    dialogRef.current?.close();
-  }
+  const { dialogRef, open, close } = useDialog();
 
   return (
-    <tr
-      onClick={openEdit}
-      className={tableRowClass()}
-    >
+    <tr onClick={open} className={tableRowClass()}>
       <td className="px-4 py-3 text-sm text-ink">{entity.name}</td>
       <td className="px-4 py-3 text-sm text-ink-muted">
         {entity.vat_number ?? "—"}
       </td>
       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-        <DeleteEntityButton id={entity.id} />
+        <DeleteButton
+          action={() => deleteEntity(entity.id)}
+          confirmMessage="Delete this entity?"
+          label="Delete entity"
+        />
 
         <EntityFormDialog
           dialogRef={dialogRef}
@@ -40,7 +32,7 @@ export function EntityRow({ entity }: { entity: Entity }) {
             vat_number: entity.vat_number,
           }}
           action={updateEntity.bind(null, entity.id)}
-          onDone={closeEdit}
+          onDone={close}
         />
       </td>
     </tr>

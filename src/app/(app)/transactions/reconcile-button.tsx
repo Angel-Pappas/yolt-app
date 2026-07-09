@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
 import { ReconcileIcon } from "@/components/icons";
 import { ReconcileModal } from "./reconcile-modal";
 import { reconcileTransaction } from "./actions";
@@ -14,16 +14,7 @@ export function ReconcileButton({
   transaction: Transaction;
   wallets: Wallet[];
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  function open() {
-    if (dialogRef.current?.open) return;
-    dialogRef.current?.showModal();
-  }
-
-  function close() {
-    dialogRef.current?.close();
-  }
+  const { dialogRef, open, close } = useDialog();
 
   return (
     <>

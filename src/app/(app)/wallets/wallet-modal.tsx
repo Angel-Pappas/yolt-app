@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
 import { AddButton } from "@/components/table/add-button";
 import { WalletFormDialog } from "./wallet-form-dialog";
 
@@ -25,15 +25,7 @@ export function WalletModal({
   defaultValues,
   action,
 }: WalletModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  function openModal() {
-    dialogRef.current?.showModal();
-  }
-
-  function closeModal() {
-    dialogRef.current?.close();
-  }
+  const { dialogRef, open, close } = useDialog();
 
   return (
     <>
@@ -41,7 +33,7 @@ export function WalletModal({
         trigger={trigger}
         triggerClassName={triggerClassName}
         triggerLabel={triggerLabel}
-        onClick={openModal}
+        onClick={open}
       />
 
       <WalletFormDialog
@@ -50,7 +42,7 @@ export function WalletModal({
         submitLabel={submitLabel}
         defaultValues={defaultValues}
         action={action}
-        onDone={closeModal}
+        onDone={close}
       />
     </>
   );

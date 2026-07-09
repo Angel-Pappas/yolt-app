@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
+import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
 import { computeTotal, formatAmount, formatDate } from "@/lib/format";
-import { updateTransaction } from "./actions";
+import { deleteTransaction, updateTransaction } from "./actions";
 import { TransactionFormDialog } from "./transaction-form-dialog";
-import { DeleteTransactionButton } from "./delete-transaction-button";
 import { ReconcileButton } from "./reconcile-button";
 import { InvoiceButton } from "./invoice-button";
 import type { Transaction, TransactionType } from "./queries";
@@ -50,23 +50,11 @@ export function TransactionRow({
   wallets: Wallet[];
   vatRates: VatRate[];
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const { dialogRef, open, close } = useDialog();
   const isTransfer = transaction.type === "transfer";
 
-  function openEdit() {
-    if (dialogRef.current?.open) return;
-    dialogRef.current?.showModal();
-  }
-
-  function closeEdit() {
-    dialogRef.current?.close();
-  }
-
   return (
-    <tr
-      onClick={openEdit}
-      className={tableRowClass()}
-    >
+    <tr onClick={open} className={tableRowClass()}>
       <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
         {formatDate(transaction.date)}
       </td>
@@ -106,7 +94,11 @@ export function TransactionRow({
       >
         <ReconcileButton transaction={transaction} wallets={wallets} />
         <InvoiceButton transaction={transaction} />
-        <DeleteTransactionButton id={transaction.id} />
+        <DeleteButton
+          action={() => deleteTransaction(transaction.id)}
+          confirmMessage="Delete this transaction?"
+          label="Delete transaction"
+        />
 
         <TransactionFormDialog
           dialogRef={dialogRef}
@@ -126,7 +118,7 @@ export function TransactionRow({
             vat_rate_id: transaction.vat_rate?.id ?? null,
           }}
           action={updateTransaction.bind(null, transaction.id)}
-          onDone={closeEdit}
+          onDone={close}
         />
       </td>
     </tr>

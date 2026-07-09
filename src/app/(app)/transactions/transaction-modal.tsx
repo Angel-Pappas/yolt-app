@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
 import { AddButton } from "@/components/table/add-button";
 import { TransactionFormDialog } from "./transaction-form-dialog";
 import type { Entity } from "../entities/queries";
@@ -42,15 +42,7 @@ export function TransactionModal({
   defaultValues,
   action,
 }: TransactionModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  function openModal() {
-    dialogRef.current?.showModal();
-  }
-
-  function closeModal() {
-    dialogRef.current?.close();
-  }
+  const { dialogRef, open, close } = useDialog();
 
   return (
     <>
@@ -58,7 +50,7 @@ export function TransactionModal({
         trigger={trigger}
         triggerClassName={triggerClassName}
         triggerLabel={triggerLabel}
-        onClick={openModal}
+        onClick={open}
       />
 
       <TransactionFormDialog
@@ -70,7 +62,7 @@ export function TransactionModal({
         vatRates={vatRates}
         defaultValues={defaultValues}
         action={action}
-        onDone={closeModal}
+        onDone={close}
       />
     </>
   );

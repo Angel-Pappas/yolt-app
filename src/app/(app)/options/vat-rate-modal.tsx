@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useDialog } from "@/components/dialog/use-dialog";
 import { VatRateFormDialog } from "./vat-rate-form-dialog";
 import { AddButton } from "@/components/table/add-button";
 
@@ -26,15 +26,7 @@ export function VatRateModal({
   defaultValues,
   action,
 }: VatRateModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  function openModal() {
-    dialogRef.current?.showModal();
-  }
-
-  function closeModal() {
-    dialogRef.current?.close();
-  }
+  const { dialogRef, open, close } = useDialog();
 
   return (
     <>
@@ -42,7 +34,7 @@ export function VatRateModal({
         trigger={trigger}
         triggerClassName={triggerClassName}
         triggerLabel={triggerLabel}
-        onClick={openModal}
+        onClick={open}
       />
 
       <VatRateFormDialog
@@ -51,7 +43,7 @@ export function VatRateModal({
         submitLabel={submitLabel}
         defaultValues={defaultValues}
         action={action}
-        onDone={closeModal}
+        onDone={close}
       />
     </>
   );

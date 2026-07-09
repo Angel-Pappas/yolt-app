@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/user";
+import {
+  formInputClass,
+  formLabelClass,
+  formPrimaryButtonClass,
+} from "@/components/form-styles";
 import { updateDisplayName, updateEmail, updatePassword } from "./actions";
 
-const inputClass =
-  "w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
-const primaryBtnClass =
-  "inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:translate-y-px";
 const cardClass =
   "space-y-4 rounded-xl border border-edge bg-surface p-5 shadow-[var(--shadow-card)]";
 const sectionTitleClass = "font-display text-lg font-semibold text-ink";
@@ -33,7 +34,7 @@ export default async function AccountPage({
         <h2 className={sectionTitleClass}>Profile</h2>
         <form action={updateDisplayName} className="flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
-            <label htmlFor="name" className="mb-1 block text-sm text-ink-muted">
+            <label htmlFor="name" className={formLabelClass}>
               Display name
             </label>
             <input
@@ -43,10 +44,10 @@ export default async function AccountPage({
               required
               maxLength={80}
               defaultValue={name ?? ""}
-              className={inputClass}
+              className={formInputClass}
             />
           </div>
-          <button type="submit" className={primaryBtnClass}>
+          <button type="submit" className={formPrimaryButtonClass}>
             Save name
           </button>
         </form>
@@ -57,7 +58,7 @@ export default async function AccountPage({
         <p className="text-sm text-ink-muted">Current: {email}</p>
         <form action={updateEmail} className="flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
-            <label htmlFor="email" className="mb-1 block text-sm text-ink-muted">
+            <label htmlFor="email" className={formLabelClass}>
               New email
             </label>
             <input
@@ -66,10 +67,10 @@ export default async function AccountPage({
               type="email"
               required
               defaultValue={email}
-              className={inputClass}
+              className={formInputClass}
             />
           </div>
-          <button type="submit" className={primaryBtnClass}>
+          <button type="submit" className={formPrimaryButtonClass}>
             Update email
           </button>
         </form>
@@ -79,10 +80,7 @@ export default async function AccountPage({
         <h2 className={sectionTitleClass}>Password</h2>
         <form action={updatePassword} className="flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
-            <label
-              htmlFor="password"
-              className="mb-1 block text-sm text-ink-muted"
-            >
+            <label htmlFor="password" className={formLabelClass}>
               New password
             </label>
             <input
@@ -91,14 +89,11 @@ export default async function AccountPage({
               type="password"
               required
               minLength={6}
-              className={inputClass}
+              className={formInputClass}
             />
           </div>
           <div className="min-w-48 flex-1">
-            <label
-              htmlFor="confirmPassword"
-              className="mb-1 block text-sm text-ink-muted"
-            >
+            <label htmlFor="confirmPassword" className={formLabelClass}>
               Confirm password
             </label>
             <input
@@ -107,10 +102,10 @@ export default async function AccountPage({
               type="password"
               required
               minLength={6}
-              className={inputClass}
+              className={formInputClass}
             />
           </div>
-          <button type="submit" className={primaryBtnClass}>
+          <button type="submit" className={formPrimaryButtonClass}>
             Update password
           </button>
         </form>
