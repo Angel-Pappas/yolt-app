@@ -4,8 +4,8 @@ import { addWallet } from "./actions";
 import { WALLET_SORT_KEYS, getWalletsList, type WalletSortDir, type WalletSortKey } from "./queries";
 import { WalletModal } from "./wallet-modal";
 import { WalletRow } from "./wallet-row";
-import { WalletFiltersBar } from "./wallet-filters-bar";
 import { WalletTableHeader } from "./wallet-table-header";
+import { ListPageHeader } from "@/components/table/list-page-header";
 
 const PAGE_SIZE = 25;
 
@@ -61,19 +61,21 @@ export default async function WalletsPage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-bold text-ink">Wallets</h1>
-        <WalletModal
-          trigger="Add wallet"
-          title="Add wallet"
-          submitLabel="Add"
-          action={addWallet}
-        />
-      </div>
+      <ListPageHeader
+        title="Wallets"
+        subtitle={`${totalCount} wallet${totalCount === 1 ? "" : "s"}`}
+        searchPlaceholder="Search wallets…"
+        addButton={
+          <WalletModal
+            trigger="Add wallet"
+            title="Add wallet"
+            submitLabel="Add"
+            action={addWallet}
+          />
+        }
+      />
 
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
-        <WalletFiltersBar />
-
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <WalletTableHeader />

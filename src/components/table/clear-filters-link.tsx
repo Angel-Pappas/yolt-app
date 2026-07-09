@@ -6,7 +6,7 @@ export function ClearFiltersLink({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="ml-auto text-xs text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-expense"
+      className="text-xs whitespace-nowrap text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-expense"
     >
       Clear filters
     </button>

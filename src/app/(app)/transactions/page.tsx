@@ -13,9 +13,9 @@ import { getActiveWallets } from "../wallets/queries";
 import { getActiveVatRates } from "../options/vat-rate-queries";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
-import { TransactionFiltersBar } from "./transaction-filters-bar";
 import { TransactionTableHeader } from "./transaction-table-header";
 import { TablePagination } from "@/components/table/pagination";
+import { ListPageHeader } from "@/components/table/list-page-header";
 
 const TRANSACTION_TYPES: TransactionType[] = ["income", "expense", "transfer"];
 const UUID_RE =
@@ -121,29 +121,25 @@ export default async function TransactionsPage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-ink">
-            Transactions
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {totalCount} transaction{totalCount === 1 ? "" : "s"}
-          </p>
-        </div>
-        <TransactionModal
-          trigger="Add transaction"
-          title="Add transaction"
-          submitLabel="Add"
-          entities={entities ?? []}
-          wallets={wallets ?? []}
-          vatRates={vatRates ?? []}
-          action={addTransaction}
-        />
-      </div>
+      <ListPageHeader
+        title="Transactions"
+        subtitle={`${totalCount} transaction${totalCount === 1 ? "" : "s"}`}
+        searchPlaceholder="Search description…"
+        showDateRange
+        addButton={
+          <TransactionModal
+            trigger="Add transaction"
+            title="Add transaction"
+            submitLabel="Add"
+            entities={entities ?? []}
+            wallets={wallets ?? []}
+            vatRates={vatRates ?? []}
+            action={addTransaction}
+          />
+        }
+      />
 
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
-        <TransactionFiltersBar />
-
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <TransactionTableHeader

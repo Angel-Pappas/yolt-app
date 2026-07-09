@@ -4,8 +4,8 @@ import { addEntity } from "./actions";
 import { ENTITY_SORT_KEYS, getEntitiesList, type EntitySortDir, type EntitySortKey } from "./queries";
 import { EntityModal } from "./entity-modal";
 import { EntityRow } from "./entity-row";
-import { EntityFiltersBar } from "./entity-filters-bar";
 import { EntityTableHeader } from "./entity-table-header";
+import { ListPageHeader } from "@/components/table/list-page-header";
 
 const PAGE_SIZE = 25;
 
@@ -63,19 +63,21 @@ export default async function EntitiesPage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-bold text-ink">Entities</h1>
-        <EntityModal
-          trigger="Add entity"
-          title="Add entity"
-          submitLabel="Add"
-          action={addEntity}
-        />
-      </div>
+      <ListPageHeader
+        title="Entities"
+        subtitle={`${totalCount} entit${totalCount === 1 ? "y" : "ies"}`}
+        searchPlaceholder="Search name or VAT number…"
+        addButton={
+          <EntityModal
+            trigger="Add entity"
+            title="Add entity"
+            submitLabel="Add"
+            action={addEntity}
+          />
+        }
+      />
 
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
-        <EntityFiltersBar />
-
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <EntityTableHeader />

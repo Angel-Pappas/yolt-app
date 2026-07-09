@@ -114,11 +114,10 @@ export default async function WalletLedgerPage({
             {formatAmount(currentBalance)}
           </p>
         </div>
+        <WalletLedgerFiltersBar />
       </div>
 
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
-        <WalletLedgerFiltersBar />
-
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <WalletLedgerTableHeader />
