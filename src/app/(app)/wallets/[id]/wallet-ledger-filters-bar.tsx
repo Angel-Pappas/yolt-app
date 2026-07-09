@@ -10,10 +10,12 @@ export function WalletLedgerFiltersBar() {
   const hasFilters = searchParams.toString().length > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
+    <div className="flex flex-col gap-3">
       <SearchBox placeholder="Search description…" />
-      <DateRangeFilter />
-      {hasFilters && <ClearFiltersLink onClick={clearAll} />}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <DateRangeFilter />
+        {hasFilters && <ClearFiltersLink onClick={clearAll} />}
+      </div>
     </div>
   );
 }
