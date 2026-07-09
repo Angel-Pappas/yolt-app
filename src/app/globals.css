@@ -159,7 +159,22 @@ body {
  * Restore centering explicitly: auto left/right margins center it on the
  * X axis, a fixed top margin (with bottom left auto) pins it near the
  * top instead of dead-center vertically.
+ *
+ * text-align: left resets a different leak. showModal() promotes the
+ * dialog into the browser's top layer, which only changes paint order —
+ * it does NOT detach the dialog from wherever it's actually mounted in
+ * the DOM, so it still inherits CSS from its real ancestors. Several
+ * dialogs (every row's edit dialog, Transactions' Reconcile/Invoice) are
+ * mounted inside a `text-right` actions <td> to sit next to the other
+ * right-aligned columns, so without this, their labels/headings silently
+ * inherit text-align: right (inputs/selects don't, since form controls
+ * get their own default alignment that wins over inheritance — which is
+ * what made this look like only *some* elements were affected). A
+ * dialog's content should never depend on its trigger's ancestor styling
+ * — fixed once here for every current and future dialog, rather than
+ * patched per-component.
  */
 dialog:modal {
   margin: 1.5rem auto auto;
+  text-align: left;
 }
