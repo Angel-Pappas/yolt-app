@@ -1,11 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { getThemePreference } from "@/lib/theme";
+import { TablePagination } from "@/components/table/pagination";
 import { updateEmail, updatePassword } from "./actions";
 import { addVatRate } from "./vat-rate-actions";
-import { getActiveVatRates } from "./vat-rate-queries";
+import {
+  VAT_RATE_SORT_KEYS,
+  getVatRatesList,
+  type VatRateSortDir,
+  type VatRateSortKey,
+} from "./vat-rate-queries";
 import { VatRateModal } from "./vat-rate-modal";
 import { VatRateRow } from "./vat-rate-row";
+import { VatRateTableHeader } from "./vat-rate-table-header";
 import { ThemeSwitcher } from "./theme-switcher";
+
+const PAGE_SIZE = 25;
+
+function parseVatSort(searchParams: Record<string, string | string[] | undefined>): {
+  sort: VatRateSortKey;
+  dir: VatRateSortDir;
+} {
+  const sortParam = searchParams.sort;
+  const sort = VAT_RATE_SORT_KEYS.includes(sortParam as VatRateSortKey)
+    ? (sortParam as VatRateSortKey)
+    : "rate";
+  const dir: VatRateSortDir = searchParams.dir === "desc" ? "desc" : "asc";
+  return { sort, dir };
+}
 
 const inputClass =
   "w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
@@ -18,14 +39,37 @@ const sectionTitleClass = "font-display text-lg font-semibold text-ink";
 export default async function OptionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { message } = await searchParams;
+  const rawParams = await searchParams;
+  const message = typeof rawParams.message === "string" ? rawParams.message : undefined;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const email = (data?.claims?.email as string | undefined) ?? "";
-  const { data: vatRates } = await getActiveVatRates(supabase);
   const theme = await getThemePreference();
+
+  const { sort, dir } = parseVatSort(rawParams);
+  const rawPage = Number(rawParams.page);
+  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+
+  let { vatRates, totalCount } = await getVatRatesList(supabase, {
+    sort,
+    dir,
+    page: requestedPage,
+    pageSize: PAGE_SIZE,
+  });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  let vatPage = requestedPage;
+
+  if (requestedPage > totalPages) {
+    vatPage = totalPages;
+    ({ vatRates, totalCount } = await getVatRatesList(supabase, {
+      sort,
+      dir,
+      page: vatPage,
+      pageSize: PAGE_SIZE,
+    }));
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
@@ -126,28 +170,16 @@ export default async function OptionsPage({
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-edge-strong bg-surface-header">
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
-                  Name
-                </th>
-                <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
-                  Rate
-                </th>
-                <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
-                  Actions
-                </th>
-              </tr>
-            </thead>
+            <VatRateTableHeader />
             <tbody>
-              {vatRates?.map((v) => (
+              {vatRates.map((v) => (
                 <VatRateRow key={v.id} vatRate={v} />
               ))}
-              {vatRates?.length === 0 && (
+              {totalCount === 0 && (
                 <tr>
                   <td
                     colSpan={3}
-                    className="px-3 py-6 text-center text-sm text-ink-faint"
+                    className="px-4 py-6 text-center text-sm text-ink-faint"
                   >
                     No VAT rates yet.
                   </td>
@@ -156,6 +188,8 @@ export default async function OptionsPage({
             </tbody>
           </table>
         </div>
+
+        <TablePagination page={vatPage} totalPages={totalPages} />
       </section>
     </div>
   );

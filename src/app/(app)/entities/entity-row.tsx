@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { tableRowClass } from "@/components/table/table-styles";
 import { updateEntity } from "./actions";
 import { EntityFormDialog } from "./entity-form-dialog";
 import { DeleteEntityButton } from "./delete-entity-button";
@@ -21,7 +22,7 @@ export function EntityRow({ entity }: { entity: Entity }) {
   return (
     <tr
       onClick={openEdit}
-      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 even:bg-surface-alt hover:bg-canvas"
+      className={tableRowClass()}
     >
       <td className="px-4 py-3 text-sm text-ink">{entity.name}</td>
       <td className="px-4 py-3 text-sm text-ink-muted">

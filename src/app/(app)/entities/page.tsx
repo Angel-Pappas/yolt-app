@@ -1,13 +1,65 @@
 import { createClient } from "@/lib/supabase/server";
+import { TablePagination } from "@/components/table/pagination";
 import { addEntity } from "./actions";
-import { getActiveEntities } from "./queries";
+import { ENTITY_SORT_KEYS, getEntitiesList, type EntitySortDir, type EntitySortKey } from "./queries";
 import { EntityModal } from "./entity-modal";
 import { EntityRow } from "./entity-row";
+import { EntityFiltersBar } from "./entity-filters-bar";
+import { EntityTableHeader } from "./entity-table-header";
 
-export default async function EntitiesPage() {
+const PAGE_SIZE = 25;
+
+type RawSearchParams = Record<string, string | string[] | undefined>;
+
+function getParam(searchParams: RawSearchParams, key: string): string | undefined {
+  const value = searchParams[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function parseSort(searchParams: RawSearchParams): { sort: EntitySortKey; dir: EntitySortDir } {
+  const sortParam = getParam(searchParams, "sort");
+  const sort = ENTITY_SORT_KEYS.includes(sortParam as EntitySortKey)
+    ? (sortParam as EntitySortKey)
+    : "name";
+  const dir: EntitySortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
+  return { sort, dir };
+}
+
+export default async function EntitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawSearchParams>;
+}) {
   const supabase = await createClient();
+  const rawParams = await searchParams;
+  const search = getParam(rawParams, "q")?.trim();
+  const { sort, dir } = parseSort(rawParams);
 
-  const { data: entities } = await getActiveEntities(supabase);
+  const rawPage = Number(getParam(rawParams, "page"));
+  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+
+  let { entities, totalCount } = await getEntitiesList(supabase, {
+    search,
+    sort,
+    dir,
+    page: requestedPage,
+    pageSize: PAGE_SIZE,
+  });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  let page = requestedPage;
+
+  // Same "filters shrank the result set out from under the requested
+  // page" clamp as Transactions — see that page for why.
+  if (requestedPage > totalPages) {
+    page = totalPages;
+    ({ entities, totalCount } = await getEntitiesList(supabase, {
+      search,
+      sort,
+      dir,
+      page,
+      pageSize: PAGE_SIZE,
+    }));
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
@@ -21,33 +73,29 @@ export default async function EntitiesPage() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-edge-strong bg-surface-header">
-              <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
-                Name
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
-                VAT number
-              </th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {entities?.map((e) => (
-              <EntityRow key={e.id} entity={e} />
-            ))}
-            {entities?.length === 0 && (
-              <tr>
-                <td colSpan={3} className="px-4 py-10 text-center text-sm text-ink-faint">
-                  No entities yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
+        <EntityFiltersBar />
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <EntityTableHeader />
+            <tbody>
+              {entities.map((e) => (
+                <EntityRow key={e.id} entity={e} />
+              ))}
+              {totalCount === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-10 text-center text-sm text-ink-faint">
+                    {search ? "No entities match this search." : "No entities yet."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <TablePagination page={page} totalPages={totalPages} />
     </div>
   );
 }

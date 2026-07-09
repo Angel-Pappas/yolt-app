@@ -1,15 +1,16 @@
 "use client";
 
-import { useTransactionParams } from "./use-transaction-params";
+import { useListParams } from "./use-list-params";
 
-export function TransactionPagination({
+/** Previous/Next pager shared by every paginated list page. */
+export function TablePagination({
   page,
   totalPages,
 }: {
   page: number;
   totalPages: number;
 }) {
-  const { setPage } = useTransactionParams();
+  const { setPage } = useListParams();
 
   if (totalPages <= 1) return null;
 

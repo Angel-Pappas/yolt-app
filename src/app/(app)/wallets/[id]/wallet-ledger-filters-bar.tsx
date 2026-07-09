@@ -5,12 +5,7 @@ import { DateRangeFilter } from "@/components/table/date-range-filter";
 import { ClearFiltersLink } from "@/components/table/clear-filters-link";
 import { useListParams } from "@/components/table/use-list-params";
 
-/**
- * Search box and date range only — Type/Entity/Wallet/VAT are filtered
- * from their own column headers instead (see transaction-table-header.tsx),
- * keeping this bar for the two things that don't map to a single column.
- */
-export function TransactionFiltersBar() {
+export function WalletLedgerFiltersBar() {
   const { searchParams, clearAll } = useListParams();
   const hasFilters = searchParams.toString().length > 0;
 

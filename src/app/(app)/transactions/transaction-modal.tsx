@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { PlusIcon } from "@/components/icons";
+import { AddButton } from "@/components/table/add-button";
 import { TransactionFormDialog } from "./transaction-form-dialog";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
@@ -54,18 +54,12 @@ export function TransactionModal({
 
   return (
     <>
-      <button
-        type="button"
+      <AddButton
+        trigger={trigger}
+        triggerClassName={triggerClassName}
+        triggerLabel={triggerLabel}
         onClick={openModal}
-        aria-label={triggerLabel}
-        className={
-          triggerClassName ??
-          "inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:translate-y-px"
-        }
-      >
-        <PlusIcon className="h-3.5 w-3.5" />
-        {trigger}
-      </button>
+      />
 
       <TransactionFormDialog
         dialogRef={dialogRef}

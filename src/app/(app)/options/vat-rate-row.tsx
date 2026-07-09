@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { tableRowClass } from "@/components/table/table-styles";
 import { updateVatRate } from "./vat-rate-actions";
 import { VatRateFormDialog } from "./vat-rate-form-dialog";
 import { DeleteVatRateButton } from "./delete-vat-rate-button";
@@ -21,13 +22,13 @@ export function VatRateRow({ vatRate }: { vatRate: VatRate }) {
   return (
     <tr
       onClick={openEdit}
-      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 even:bg-surface-alt hover:bg-canvas"
+      className={tableRowClass()}
     >
-      <td className="px-3 py-3 text-sm text-ink">{vatRate.name}</td>
-      <td className="px-3 py-3 text-right text-sm tabular-nums text-ink">
+      <td className="px-4 py-3 text-sm text-ink">{vatRate.name}</td>
+      <td className="px-4 py-3 text-right text-sm tabular-nums text-ink">
         {vatRate.rate}%
       </td>
-      <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <DeleteVatRateButton id={vatRate.id} />
 
         <VatRateFormDialog

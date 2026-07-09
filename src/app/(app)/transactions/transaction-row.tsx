@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { tableRowClass } from "@/components/table/table-styles";
 import { computeTotal, formatAmount, formatDate } from "@/lib/format";
 import { updateTransaction } from "./actions";
 import { TransactionFormDialog } from "./transaction-form-dialog";
@@ -62,7 +63,7 @@ export function TransactionRow({
   return (
     <tr
       onClick={openEdit}
-      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 even:bg-surface-alt hover:bg-canvas"
+      className={tableRowClass()}
     >
       <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
         {formatDate(transaction.date)}

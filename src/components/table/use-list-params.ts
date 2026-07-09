@@ -3,13 +3,15 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 /**
- * Shared URL-search-params helper for everything on the Transactions page
- * that reads/writes filter, sort, or page state (the filters bar, the
- * sortable/filterable table header, and pagination) — one place for the
- * "merge into the current query string and navigate" logic so all three
- * stay consistent about resetting `page` when a filter or sort changes.
+ * Shared URL-search-params helper for any list page's filter/sort/page
+ * state (the search box, date range, sortable/filterable headers, and
+ * pagination) — one place for the "merge into the current query string and
+ * navigate" logic so all of them stay consistent about resetting `page`
+ * when a filter or sort changes. Used by every table in the app (see
+ * src/components/table/), not just Transactions, which is where this was
+ * originally built.
  */
-export function useTransactionParams() {
+export function useListParams() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

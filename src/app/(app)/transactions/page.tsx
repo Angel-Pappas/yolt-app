@@ -15,7 +15,7 @@ import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
 import { TransactionFiltersBar } from "./transaction-filters-bar";
 import { TransactionTableHeader } from "./transaction-table-header";
-import { TransactionPagination } from "./transaction-pagination";
+import { TablePagination } from "@/components/table/pagination";
 
 const TRANSACTION_TYPES: TransactionType[] = ["income", "expense", "transfer"];
 const UUID_RE =
@@ -175,7 +175,7 @@ export default async function TransactionsPage({
         </div>
       </div>
 
-      <TransactionPagination page={page} totalPages={totalPages} />
+      <TablePagination page={page} totalPages={totalPages} />
     </div>
   );
 }
