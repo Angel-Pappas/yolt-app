@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { formDataToRecord } from "@/lib/form-data";
 import { parseOrThrow } from "@/lib/validation";
-import { transactionSchema } from "./schema";
+import { invoiceMonthSchema, reconcileSchema, transactionSchema } from "./schema";
 import type { TransactionType } from "./queries";
 
 function round2(value: number): number {
@@ -124,6 +124,77 @@ export async function updateTransaction(id: string, formData: FormData) {
   const { error } = await supabase
     .from("transactions")
     .update(fields)
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateAffectedPaths();
+}
+
+/**
+ * The reconcile modal only lets the user correct date/amount/wallet(s) —
+ * see reconcile-modal.tsx — but a changed amount on an income/expense
+ * transaction still has to keep vat_amount consistent with it (same
+ * invariant resolveVatAmount enforces on a normal edit), so this
+ * recomputes it from the transaction's existing vat_rate_id rather than
+ * leaving a stale value. Transfers have no VAT, so that step is skipped
+ * for them. Always marks the row reconciled, even if nothing actually
+ * changed — reconciling is itself the record that the user checked it.
+ */
+export async function reconcileTransaction(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const input = parseOrThrow(reconcileSchema, formDataToRecord(formData));
+
+  let vat_amount: number | undefined;
+  let to_wallet_id: string | undefined;
+
+  if (input.type === "transfer") {
+    to_wallet_id = input.to_wallet_id;
+  } else {
+    const { data: existing, error: fetchError } = await supabase
+      .from("transactions")
+      .select("vat_rate_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !existing?.vat_rate_id) {
+      throw new Error("Could not find this transaction's VAT rate");
+    }
+
+    vat_amount = await resolveVatAmount(supabase, input.net, existing.vat_rate_id);
+  }
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({
+      date: input.date,
+      net: input.net,
+      wallet_id: input.wallet_id,
+      is_reconciled: true,
+      ...(to_wallet_id !== undefined ? { to_wallet_id } : {}),
+      ...(vat_amount !== undefined ? { vat_amount } : {}),
+    })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateAffectedPaths();
+}
+
+export async function setInvoiceMonth(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const { invoice_month } = parseOrThrow(
+    invoiceMonthSchema,
+    formDataToRecord(formData)
+  );
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({ invoice_month })
     .eq("id", id);
 
   if (error) {

@@ -14,6 +14,9 @@ export type Transaction = {
   wallet: { id: string; name: string };
   to_wallet: { id: string; name: string } | null;
   vat_rate: { id: string; name: string; rate: string } | null;
+  is_reconciled: boolean;
+  /** 1-12, or null if no invoice has been logged for this transaction yet. */
+  invoice_month: number | null;
 };
 
 export type TransactionFilters = {
@@ -102,6 +105,8 @@ type TransactionsExpandedRow = {
   vat_rate_id: string | null;
   vat_rate_name: string | null;
   vat_rate: string | null;
+  is_reconciled: boolean;
+  invoice_month: number | null;
 };
 
 function toTransaction(row: TransactionsExpandedRow): Transaction {
@@ -127,6 +132,8 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
           rate: row.vat_rate ?? "0",
         }
       : null,
+    is_reconciled: row.is_reconciled,
+    invoice_month: row.invoice_month,
   };
 }
 

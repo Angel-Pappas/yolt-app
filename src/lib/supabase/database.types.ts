@@ -68,7 +68,9 @@ export type Database = {
           description: string
           entity_id: string | null
           id: string
+          invoice_month: number | null
           is_deleted: boolean
+          is_reconciled: boolean
           net: number
           to_wallet_id: string | null
           type: string
@@ -84,7 +86,9 @@ export type Database = {
           description: string
           entity_id?: string | null
           id?: string
+          invoice_month?: number | null
           is_deleted?: boolean
+          is_reconciled?: boolean
           net: number
           to_wallet_id?: string | null
           type: string
@@ -100,7 +104,9 @@ export type Database = {
           description?: string
           entity_id?: string | null
           id?: string
+          invoice_month?: number | null
           is_deleted?: boolean
+          is_reconciled?: boolean
           net?: number
           to_wallet_id?: string | null
           type?: string
@@ -207,7 +213,9 @@ export type Database = {
           entity_id: string | null
           entity_name: string | null
           id: string | null
+          invoice_month: number | null
           is_deleted: boolean | null
+          is_reconciled: boolean | null
           net: number | null
           to_wallet_id: string | null
           to_wallet_name: string | null

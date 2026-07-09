@@ -24,7 +24,7 @@ export function DeleteTransactionButton({ id }: { id: string }) {
       onClick={handleDelete}
       disabled={isPending}
       aria-label="Delete transaction"
-      className="rounded-md p-1.5 text-ink-faint opacity-0 transition group-hover:opacity-100 hover:bg-expense-soft hover:text-expense disabled:opacity-50"
+      className="rounded-md p-1.5 text-ink-faint transition hover:bg-expense-soft hover:text-expense disabled:opacity-50"
     >
       <TrashIcon className="h-4 w-4" />
     </button>

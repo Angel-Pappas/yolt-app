@@ -6,6 +6,8 @@ import { computeTotal, formatAmount, formatDate } from "@/lib/format";
 import { updateTransaction } from "./actions";
 import { TransactionFormDialog } from "./transaction-form-dialog";
 import { DeleteTransactionButton } from "./delete-transaction-button";
+import { ReconcileButton } from "./reconcile-button";
+import { InvoiceButton } from "./invoice-button";
 import type { Transaction, TransactionType } from "./queries";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
@@ -98,7 +100,12 @@ export function TransactionRow({
       <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
         {formatAmount(computeTotal(transaction.net, transaction.vat_amount))}
       </td>
-      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+      <td
+        className="px-4 py-3 text-right whitespace-nowrap"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ReconcileButton transaction={transaction} wallets={wallets} />
+        <InvoiceButton transaction={transaction} />
         <DeleteTransactionButton id={transaction.id} />
 
         <TransactionFormDialog
