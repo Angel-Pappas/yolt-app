@@ -12,14 +12,16 @@
  * for the case where the OS prefers dark but the user picked Light anyway.
  */
 :root {
-  --ground: #fafbfc;
+  --ground: #eef1f4;
   --surface: #ffffff;
   --surface-raised: #ffffff;
+  --surface-header: #f3f5f7;
+  --surface-alt: #f9fafb;
   --ink: #232a3a;
   --ink-muted: #6b7280;
   --ink-faint: #98a2b3;
-  --border: #e9ecef;
-  --border-strong: #d7dce1;
+  --border: #dfe3e7;
+  --border-strong: #c9d0d8;
   --accent: #2e7d8c;
   --accent-ink: #ffffff;
   --accent-soft: #e5f2f4;
@@ -39,14 +41,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --ground: #12161c;
-    --surface: #1a2028;
-    --surface-raised: #1f2630;
+    --ground: #0a0d12;
+    --surface: #1c2430;
+    --surface-raised: #212a38;
+    --surface-header: #222c38;
+    --surface-alt: #202a35;
     --ink: #e7eaef;
     --ink-muted: #8b94a3;
     --ink-faint: #626b7a;
-    --border: #2a3340;
-    --border-strong: #37424f;
+    --border: #303c4b;
+    --border-strong: #3c4958;
     --accent: #7fb4c0;
     --accent-ink: #0d1418;
     --accent-soft: #1e2d31;
@@ -63,14 +67,16 @@
 }
 
 :root[data-theme="dark"] {
-  --ground: #12161c;
-  --surface: #1a2028;
-  --surface-raised: #1f2630;
+  --ground: #0a0d12;
+  --surface: #1c2430;
+  --surface-raised: #212a38;
+  --surface-header: #222c38;
+  --surface-alt: #202a35;
   --ink: #e7eaef;
   --ink-muted: #8b94a3;
   --ink-faint: #626b7a;
-  --border: #2a3340;
-  --border-strong: #37424f;
+  --border: #303c4b;
+  --border-strong: #3c4958;
   --accent: #7fb4c0;
   --accent-ink: #0d1418;
   --accent-soft: #1e2d31;
@@ -86,14 +92,16 @@
 }
 
 :root[data-theme="light"] {
-  --ground: #fafbfc;
+  --ground: #eef1f4;
   --surface: #ffffff;
   --surface-raised: #ffffff;
+  --surface-header: #f3f5f7;
+  --surface-alt: #f9fafb;
   --ink: #232a3a;
   --ink-muted: #6b7280;
   --ink-faint: #98a2b3;
-  --border: #e9ecef;
-  --border-strong: #d7dce1;
+  --border: #dfe3e7;
+  --border-strong: #c9d0d8;
   --accent: #2e7d8c;
   --accent-ink: #ffffff;
   --accent-soft: #e5f2f4;
@@ -114,6 +122,8 @@
   --color-canvas: var(--ground);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
+  --color-surface-header: var(--surface-header);
+  --color-surface-alt: var(--surface-alt);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);

@@ -64,7 +64,7 @@ export default async function WalletLedgerPage({
       <div className="overflow-x-auto rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-edge">
+            <tr className="border-b border-edge-strong bg-surface-header">
               <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
                 Date
               </th>
@@ -86,7 +86,7 @@ export default async function WalletLedgerPage({
             {entries.map((e) => (
               <tr
                 key={e.id}
-                className="border-b border-edge last:border-b-0 hover:bg-canvas"
+                className="border-b border-edge last:border-b-0 even:bg-surface-alt hover:bg-canvas"
               >
                 <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
                   {formatDate(e.date)}

@@ -21,7 +21,7 @@ export function EntityRow({ entity }: { entity: Entity }) {
   return (
     <tr
       onClick={openEdit}
-      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 hover:bg-canvas"
+      className="group cursor-pointer border-b border-edge transition-colors last:border-b-0 even:bg-surface-alt hover:bg-canvas"
     >
       <td className="px-4 py-3 text-sm text-ink">{entity.name}</td>
       <td className="px-4 py-3 text-sm text-ink-muted">

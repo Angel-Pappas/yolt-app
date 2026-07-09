@@ -28,7 +28,7 @@ export function WalletRow({
   }
 
   return (
-    <tr className="group border-b border-edge transition-colors last:border-b-0 hover:bg-canvas">
+    <tr className="group border-b border-edge transition-colors last:border-b-0 even:bg-surface-alt hover:bg-canvas">
       <td className="px-4 py-3 text-sm">
         <Link
           href={`/wallets/${wallet.id}`}

@@ -157,7 +157,7 @@ export function TransactionTableHeader({
 
   return (
     <thead>
-      <tr className="border-b border-edge">
+      <tr className="border-b border-edge-strong bg-surface-header">
         <th className={thClass}>
           <SortButton
             label="Date"

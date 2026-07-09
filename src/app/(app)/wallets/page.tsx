@@ -27,7 +27,7 @@ export default async function WalletsPage() {
       <div className="overflow-x-auto rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-edge">
+            <tr className="border-b border-edge-strong bg-surface-header">
               <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
                 Name
               </th>

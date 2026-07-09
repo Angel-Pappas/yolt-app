@@ -127,7 +127,7 @@ export default async function OptionsPage({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr>
+              <tr className="border-b border-edge-strong bg-surface-header">
                 <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
                   Name
                 </th>
