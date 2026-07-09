@@ -63,7 +63,6 @@ export default async function WalletsPage({
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
       <ListPageHeader
         title="Wallets"
-        subtitle={`${totalCount} wallet${totalCount === 1 ? "" : "s"}`}
         searchPlaceholder="Search wallets…"
         addButton={
           <WalletModal

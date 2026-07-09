@@ -65,7 +65,6 @@ export default async function EntitiesPage({
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
       <ListPageHeader
         title="Entities"
-        subtitle={`${totalCount} entit${totalCount === 1 ? "y" : "ies"}`}
         searchPlaceholder="Search name or VAT number…"
         addButton={
           <EntityModal

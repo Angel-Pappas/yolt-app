@@ -9,9 +9,9 @@ import { useListParams } from "./use-list-params";
 /**
  * The title/search/date-range/Add-button block shared by every standalone
  * list page (Transactions, Entities, Wallets). Two rows:
- *   1. Title + subtitle on the left; search box (if this page has one) +
- *      Add button on the right — search box sits next to Add, not in its
- *      own row below, per explicit user direction.
+ *   1. Title on the left; search box (if this page has one) + Add button
+ *      on the right — search box sits next to Add, not in its own row
+ *      below, per explicit user direction.
  *   2. Date range (if this page has one), on its own row below — combining
  *      it into row 1 alongside search + Add made that row too wide and
  *      wrapped the Add button onto an orphan third line.
@@ -27,13 +27,11 @@ import { useListParams } from "./use-list-params";
  */
 export function ListPageHeader({
   title,
-  subtitle,
   searchPlaceholder,
   showDateRange = false,
   addButton,
 }: {
   title: string;
-  subtitle?: string;
   searchPlaceholder?: string;
   showDateRange?: boolean;
   addButton?: ReactNode;
@@ -44,10 +42,7 @@ export function ListPageHeader({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-ink">{title}</h1>
-          {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
-        </div>
+        <h1 className="font-display text-3xl font-bold text-ink">{title}</h1>
         <div className="flex flex-wrap items-center gap-2.5">
           {searchPlaceholder && <SearchBox placeholder={searchPlaceholder} />}
           {!showDateRange && hasFilters && <ClearFiltersLink onClick={clearAll} />}

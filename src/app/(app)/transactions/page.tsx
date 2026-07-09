@@ -123,7 +123,6 @@ export default async function TransactionsPage({
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
       <ListPageHeader
         title="Transactions"
-        subtitle={`${totalCount} transaction${totalCount === 1 ? "" : "s"}`}
         searchPlaceholder="Search description…"
         showDateRange
         addButton={
