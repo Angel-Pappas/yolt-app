@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatAmount } from "@/lib/format";
 import { TablePagination } from "@/components/table/pagination";
+import { ListPageHeader } from "@/components/table/list-page-header";
 import {
   WALLET_LEDGER_SORT_KEYS,
   getWalletLedger,
@@ -10,7 +10,6 @@ import {
   type WalletLedgerSortKey,
 } from "../queries";
 import type { TransactionType } from "../../transactions/queries";
-import { WalletLedgerFiltersBar } from "./wallet-ledger-filters-bar";
 import { WalletLedgerTableHeader } from "./wallet-ledger-table-header";
 import { WalletLedgerRow } from "./wallet-ledger-row";
 
@@ -75,17 +74,16 @@ export default async function WalletLedgerPage({
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
 
   const ledgerParams = { search, type, dateFrom, dateTo, sort, dir, pageSize: PAGE_SIZE };
-  let { entries, totalCount, currentBalance } = await getWalletLedger(
-    supabase,
-    id,
-    { ...ledgerParams, page: requestedPage }
-  );
+  let { entries, totalCount } = await getWalletLedger(supabase, id, {
+    ...ledgerParams,
+    page: requestedPage,
+  });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   let page = requestedPage;
 
   if (requestedPage > totalPages) {
     page = totalPages;
-    ({ entries, totalCount, currentBalance } = await getWalletLedger(supabase, id, {
+    ({ entries, totalCount } = await getWalletLedger(supabase, id, {
       ...ledgerParams,
       page,
     }));
@@ -102,19 +100,11 @@ export default async function WalletLedgerPage({
         >
           ← Wallets
         </Link>
-        <div className="flex items-end justify-between">
-          <h1 className="font-display text-3xl font-bold text-ink">
-            {wallet.name}
-          </h1>
-          <p
-            className={`text-2xl font-semibold tabular-nums ${
-              currentBalance < 0 ? "text-expense" : "text-ink"
-            }`}
-          >
-            {formatAmount(currentBalance)}
-          </p>
-        </div>
-        <WalletLedgerFiltersBar />
+        <ListPageHeader
+          title={wallet.name}
+          searchPlaceholder="Search description…"
+          showDateRange
+        />
       </div>
 
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">

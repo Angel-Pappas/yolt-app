@@ -202,13 +202,6 @@ export type WalletLedgerParams = {
 export type WalletLedgerResult = {
   entries: WalletLedgerEntry[];
   totalCount: number;
-  /**
-   * The wallet's true current balance — always computed from the wallet's
-   * complete history, regardless of any search/filter applied below.
-   * Filtering the table never changes this number, same principle as the
-   * Transactions page not having a totals bar that reacts to filters.
-   */
-  currentBalance: number;
 };
 
 /**
@@ -278,8 +271,6 @@ export async function getWalletLedger(
     };
   });
 
-  const currentBalance = allEntries.at(-1)?.runningBalance ?? 0;
-
   let filtered = allEntries;
   const search = params.search?.trim().toLowerCase();
   if (search) {
@@ -326,5 +317,5 @@ export async function getWalletLedger(
   const from = (page - 1) * pageSize;
   const entries = sorted.slice(from, from + pageSize);
 
-  return { entries, totalCount, currentBalance };
+  return { entries, totalCount };
 }

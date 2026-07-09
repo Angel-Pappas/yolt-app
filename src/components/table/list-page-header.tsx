@@ -18,12 +18,12 @@ import { useListParams } from "./use-list-params";
  * Single place that decides this arrangement, so repositioning it again
  * later is a one-file change.
  *
- * Not used by the wallet transaction history page — that page has no Add
- * button (transactions are added from the Transactions page) and has a
- * back link + balance figure instead, structurally different enough that
- * forcing it through this component would be an awkward fit. It composes
- * the same SearchBox/DateRangeFilter/ClearFiltersLink pieces directly
- * instead — see wallets/[id]/page.tsx.
+ * `addButton` is optional — the wallet transaction history page has no
+ * Add button (transactions are added from the Transactions page) and
+ * uses this same component with it omitted, so the search box still ends
+ * up "where the Add button would be." That page renders its own back
+ * link above this component, since that part genuinely doesn't belong
+ * here.
  */
 export function ListPageHeader({
   title,
@@ -36,7 +36,7 @@ export function ListPageHeader({
   subtitle?: string;
   searchPlaceholder?: string;
   showDateRange?: boolean;
-  addButton: ReactNode;
+  addButton?: ReactNode;
 }) {
   const { searchParams, clearAll } = useListParams();
   const hasFilters = searchParams.toString().length > 0;
