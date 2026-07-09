@@ -45,7 +45,7 @@ export function SearchBox({
   }
 
   return (
-    <div className="relative min-w-[180px] flex-1 basis-56">
+    <div className="relative w-72 min-w-[180px]">
       <SearchIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
       <input
         type="text"
