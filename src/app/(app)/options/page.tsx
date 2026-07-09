@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getThemePreference } from "@/lib/theme";
 import { TablePagination } from "@/components/table/pagination";
-import { updateEmail, updatePassword } from "./actions";
 import { addVatRate } from "./vat-rate-actions";
 import {
   VAT_RATE_SORT_KEYS,
@@ -28,10 +27,6 @@ function parseVatSort(searchParams: Record<string, string | string[] | undefined
   return { sort, dir };
 }
 
-const inputClass =
-  "w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
-const primaryBtnClass =
-  "inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:translate-y-px";
 const cardClass =
   "space-y-4 rounded-xl border border-edge bg-surface p-5 shadow-[var(--shadow-card)]";
 const sectionTitleClass = "font-display text-lg font-semibold text-ink";
@@ -44,8 +39,6 @@ export default async function OptionsPage({
   const rawParams = await searchParams;
   const message = typeof rawParams.message === "string" ? rawParams.message : undefined;
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const email = (data?.claims?.email as string | undefined) ?? "";
   const theme = await getThemePreference();
 
   const { sort, dir } = parseVatSort(rawParams);
@@ -87,74 +80,10 @@ export default async function OptionsPage({
         </div>
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-ink-muted">
-            Choose how Yolt looks on this device.
+            Choose how Yolt-App looks on this device.
           </p>
           <ThemeSwitcher current={theme} />
         </div>
-      </section>
-
-      <section className={cardClass}>
-        <h2 className={sectionTitleClass}>Email</h2>
-        <p className="text-sm text-ink-muted">Current: {email}</p>
-        <form action={updateEmail} className="flex flex-wrap items-end gap-3">
-          <div className="min-w-48 flex-1">
-            <label htmlFor="email" className="mb-1 block text-sm text-ink-muted">
-              New email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              defaultValue={email}
-              className={inputClass}
-            />
-          </div>
-          <button type="submit" className={primaryBtnClass}>
-            Update email
-          </button>
-        </form>
-      </section>
-
-      <section className={cardClass}>
-        <h2 className={sectionTitleClass}>Password</h2>
-        <form action={updatePassword} className="flex flex-wrap items-end gap-3">
-          <div className="min-w-48 flex-1">
-            <label
-              htmlFor="password"
-              className="mb-1 block text-sm text-ink-muted"
-            >
-              New password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={6}
-              className={inputClass}
-            />
-          </div>
-          <div className="min-w-48 flex-1">
-            <label
-              htmlFor="confirmPassword"
-              className="mb-1 block text-sm text-ink-muted"
-            >
-              Confirm password
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              required
-              minLength={6}
-              className={inputClass}
-            />
-          </div>
-          <button type="submit" className={primaryBtnClass}>
-            Update password
-          </button>
-        </form>
       </section>
 
       <section className={cardClass}>

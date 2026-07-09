@@ -12,7 +12,7 @@ export default async function SignupPage({
     <div className="flex flex-1 items-center justify-center bg-canvas p-6">
       <div className="w-full max-w-sm space-y-6">
         <span className="block text-center font-display text-2xl font-bold text-ink">
-          Yolt
+          Yolt-App
         </span>
         <form className="space-y-4 rounded-xl border border-edge bg-surface p-6 shadow-[var(--shadow-card)]">
           <h1 className="font-display text-lg font-semibold text-ink">Sign up</h1>

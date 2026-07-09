@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import { getThemePreference } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "Yolt",
+  title: "Yolt-App",
   description: "Personal finance transaction tracker",
 };
 

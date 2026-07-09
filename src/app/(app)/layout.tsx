@@ -1,32 +1,23 @@
-import { logout } from "@/app/auth/actions";
-import { NavLinks } from "./nav-links";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/user";
+import { TopBar } from "./top-bar";
+import { SideNav } from "./side-nav";
 
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const { name, email } = await getCurrentUser(supabase);
+
   return (
-    <div className="flex flex-1 flex-col bg-canvas">
-      <header className="border-b border-edge bg-surface">
-        <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-8">
-            <span className="font-display text-lg font-bold text-ink">
-              Yolt
-            </span>
-            <NavLinks />
-          </div>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="text-sm text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-ink"
-            >
-              Log out
-            </button>
-          </form>
-        </nav>
-      </header>
-      <main className="flex flex-1 flex-col">{children}</main>
+    <div className="flex min-h-screen flex-1 flex-col bg-canvas">
+      <TopBar name={name} email={email} />
+      <div className="flex flex-1">
+        <SideNav />
+        <main className="flex flex-1 flex-col">{children}</main>
+      </div>
     </div>
   );
 }
