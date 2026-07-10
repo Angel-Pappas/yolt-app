@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatAmount, formatMonthYear } from "@/lib/format";
-import { getMonthlyVat, currentPeriod } from "./queries";
+import { getMonthlyVatLedger, currentPeriod } from "./queries";
 import { TAX_TYPES } from "./tax-types";
 
 export default async function TaxesPage() {
   const supabase = await createClient();
-  const months = await getMonthlyVat(supabase);
+  const months = await getMonthlyVatLedger(supabase);
 
   const thisPeriod = currentPeriod();
   const thisMonthRow = months.find((m) => m.period === thisPeriod);

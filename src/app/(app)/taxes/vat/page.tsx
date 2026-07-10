@@ -1,31 +1,99 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatAmount, formatMonthYear } from "@/lib/format";
-import { thClass, tableHeadRowClass, tableRowClass } from "@/components/table/table-styles";
-import { getMonthlyVat } from "../queries";
+import { ListPageHeader } from "@/components/table/list-page-header";
+import { TablePagination } from "@/components/table/pagination";
+import { parseSortParam } from "@/components/table/parse-sort-param";
+import { parseNumberParam } from "@/lib/parse-params";
+import {
+  getMonthlyVatList,
+  MONTHLY_VAT_SORT_KEYS,
+  type MonthlyVatFilters,
+} from "../queries";
+import { VatTableHeader } from "./vat-table-header";
+import { VatRow } from "./vat-row";
 
-/** The first/last calendar day of a "yyyy-mm" period, for the drill-down link into Transactions. */
-function periodBounds(period: string): { from: string; to: string } {
-  const [year, month] = period.split("-").map(Number);
-  const lastDay = new Date(year, month, 0).getDate();
-  return { from: `${period}-01`, to: `${period}-${String(lastDay).padStart(2, "0")}` };
+const PAGE_SIZE = 25;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+type RawSearchParams = Record<string, string | string[] | undefined>;
+
+function getParam(searchParams: RawSearchParams, key: string): string | undefined {
+  const value = searchParams[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function parseFilters(searchParams: RawSearchParams): MonthlyVatFilters {
+  const from = getParam(searchParams, "from");
+  const to = getParam(searchParams, "to");
+
+  return {
+    periodFrom: from && DATE_RE.test(from) ? from : undefined,
+    periodTo: to && DATE_RE.test(to) ? to : undefined,
+    incomeVatMin: parseNumberParam(getParam(searchParams, "income_vat_min")),
+    incomeVatMax: parseNumberParam(getParam(searchParams, "income_vat_max")),
+    expenseVatMin: parseNumberParam(getParam(searchParams, "expense_vat_min")),
+    expenseVatMax: parseNumberParam(getParam(searchParams, "expense_vat_max")),
+    netMin: parseNumberParam(getParam(searchParams, "net_min")),
+    netMax: parseNumberParam(getParam(searchParams, "net_max")),
+    rolloverMin: parseNumberParam(getParam(searchParams, "rollover_min")),
+    rolloverMax: parseNumberParam(getParam(searchParams, "rollover_max")),
+    payableThisMin: parseNumberParam(getParam(searchParams, "payable_this_min")),
+    payableThisMax: parseNumberParam(getParam(searchParams, "payable_this_max")),
+    payableNextMin: parseNumberParam(getParam(searchParams, "payable_next_min")),
+    payableNextMax: parseNumberParam(getParam(searchParams, "payable_next_max")),
+  };
 }
 
 /**
- * A read-only report, not a CRUD list — deliberately doesn't use the
- * shared table template (search/sort/filter/pagination don't apply to a
- * fixed, small set of calendar months). Each month links into Transactions
- * filtered by `invoice_from`/`invoice_to` (not `from`/`to` — those filter
- * by the transaction's own date) so "which transactions make up this
- * month's VAT" reuses the existing table instead of a bespoke breakdown.
- *
- * No `max-w` cap (like Transactions) — seven numeric/month columns need
- * more room than the fixed-width report card layout other single-figure
- * pages use.
+ * Built on the shared table template like every other list in the app
+ * (2026-07, explicit user direction — this page previously hand-rolled a
+ * plain table with no per-column filters, which broke the app's standing
+ * "every table is built the same way" rule). Still deliberately no
+ * search box/Add button (nothing free-text to search, nothing to create —
+ * every row is a computed month, not a record) and no `max-w` cap (seven
+ * columns need the room). Defaults to oldest-first, matching the rest of
+ * the app's display convention, unlike an earlier newest-first version of
+ * this page.
  */
-export default async function VatTaxPage() {
+export default async function VatTaxPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawSearchParams>;
+}) {
   const supabase = await createClient();
-  const months = await getMonthlyVat(supabase);
+  const rawParams = await searchParams;
+
+  const filters = parseFilters(rawParams);
+  const { sort, dir } = parseSortParam(
+    getParam(rawParams, "sort"),
+    getParam(rawParams, "dir"),
+    MONTHLY_VAT_SORT_KEYS
+  );
+  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
+
+  const rawPage = Number(getParam(rawParams, "page"));
+  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+
+  let { months, totalCount } = await getMonthlyVatList(supabase, {
+    filters,
+    sort,
+    dir,
+    page: requestedPage,
+    pageSize: PAGE_SIZE,
+  });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  let page = requestedPage;
+
+  if (requestedPage > totalPages) {
+    page = totalPages;
+    ({ months, totalCount } = await getMonthlyVatList(supabase, {
+      filters,
+      sort,
+      dir,
+      page,
+      pageSize: PAGE_SIZE,
+    }));
+  }
 
   return (
     <div className="flex w-full flex-1 flex-col gap-6 p-6">
@@ -36,61 +104,23 @@ export default async function VatTaxPage() {
         >
           ← Taxes
         </Link>
-        <h1 className="font-display text-3xl font-bold text-ink">VAT</h1>
+        <ListPageHeader title="VAT" />
       </div>
 
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className={tableHeadRowClass}>
-                <th className={thClass}>Month</th>
-                <th className={`${thClass} text-right`}>Income VAT</th>
-                <th className={`${thClass} text-right`}>Expenses VAT</th>
-                <th className={`${thClass} text-right`}>Net VAT</th>
-                <th className={`${thClass} text-right`}>Roll over</th>
-                <th className={`${thClass} text-right`}>Payable this month</th>
-                <th className={`${thClass} text-right`}>Payable next month</th>
-              </tr>
-            </thead>
+            <VatTableHeader />
             <tbody>
-              {months.map((m) => {
-                const { from, to } = periodBounds(m.period);
-                return (
-                  <tr key={m.period} className={tableRowClass({ interactive: false })}>
-                    <td className="px-4 py-3 text-sm whitespace-nowrap text-ink">
-                      <Link
-                        href={`/transactions?invoice_from=${from}&invoice_to=${to}`}
-                        className="underline decoration-edge-strong underline-offset-4 hover:text-accent hover:decoration-accent"
-                      >
-                        {formatMonthYear(m.period)}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink">
-                      {formatAmount(m.outputVat)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
-                      {formatAmount(m.inputVat)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink">
-                      {formatAmount(m.net)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
-                      {formatAmount(m.rolloverIn)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
-                      {formatAmount(m.payableThisMonth)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
-                      {formatAmount(m.payableNextMonth)}
-                    </td>
-                  </tr>
-                );
-              })}
-              {months.length === 0 && (
+              {months.map((m) => (
+                <VatRow key={m.period} month={m} />
+              ))}
+              {totalCount === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-faint">
-                    No VAT-bearing transactions yet.
+                    {hasActiveFilters
+                      ? "No months match these filters."
+                      : "No VAT-bearing transactions yet."}
                   </td>
                 </tr>
               )}
@@ -98,6 +128,8 @@ export default async function VatTaxPage() {
           </table>
         </div>
       </div>
+
+      <TablePagination page={page} totalPages={totalPages} />
     </div>
   );
 }

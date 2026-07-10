@@ -50,8 +50,16 @@ function round2(value: number): number {
  * any zero-activity month in between, since a deferred installment or a
  * carried credit still has to pass *through* a quiet month to reach the
  * next one with activity.
+ *
+ * Always the **full**, unfiltered, chronological (oldest-first) ledger —
+ * later periods depend on every one before them, so this can never be
+ * computed over a filtered subset. `getMonthlyVatList()` below is the
+ * filtered/sorted/paginated view built on top of this for the VAT detail
+ * page; the Taxes card uses this one directly so it can always find the
+ * current period regardless of what page a filtered list would land it
+ * on — same split as `getActiveWallets()` vs `getWalletsList()`.
  */
-export async function getMonthlyVat(supabase: SupabaseClient): Promise<MonthlyVat[]> {
+export async function getMonthlyVatLedger(supabase: SupabaseClient): Promise<MonthlyVat[]> {
   const { data, error } = await supabase
     .from("transactions")
     .select("type, vat_amount, invoice_date")
@@ -124,7 +132,162 @@ export async function getMonthlyVat(supabase: SupabaseClient): Promise<MonthlyVa
     if (period === latest) break;
   }
 
-  return months.reverse();
+  return months;
+}
+
+export type MonthlyVatFilters = {
+  /** Compared against the 1st of each period. Inclusive, ISO "yyyy-mm-dd". */
+  periodFrom?: string;
+  periodTo?: string;
+  incomeVatMin?: number;
+  incomeVatMax?: number;
+  expenseVatMin?: number;
+  expenseVatMax?: number;
+  netMin?: number;
+  netMax?: number;
+  rolloverMin?: number;
+  rolloverMax?: number;
+  payableThisMin?: number;
+  payableThisMax?: number;
+  payableNextMin?: number;
+  payableNextMax?: number;
+};
+
+export type MonthlyVatSortKey =
+  | "period"
+  | "outputVat"
+  | "inputVat"
+  | "net"
+  | "rolloverIn"
+  | "payableThisMonth"
+  | "payableNextMonth";
+export type MonthlyVatSortDir = "asc" | "desc";
+
+export const MONTHLY_VAT_SORT_KEYS: MonthlyVatSortKey[] = [
+  "period",
+  "outputVat",
+  "inputVat",
+  "net",
+  "rolloverIn",
+  "payableThisMonth",
+  "payableNextMonth",
+];
+
+export type MonthlyVatListParams = {
+  filters?: MonthlyVatFilters;
+  sort?: MonthlyVatSortKey;
+  dir?: MonthlyVatSortDir;
+  page?: number;
+  pageSize?: number;
+};
+
+export type MonthlyVatListResult = {
+  months: MonthlyVat[];
+  totalCount: number;
+};
+
+/**
+ * The VAT detail page's own list view: filter/sort/pagination, part of
+ * the shared table template (see src/components/table/). Built on top of
+ * `getMonthlyVatLedger()` — filters/sorts/paginates the *already-computed*
+ * full ledger rather than pushing any of that into the ledger computation
+ * itself, the same "compute complete history first, filter for display
+ * after" split `getWalletTransactionsWithBalance()` already uses and for
+ * the same reason: a filtered subset can't be walked correctly, since
+ * later rows depend on every row before them.
+ *
+ * Sorting by anything other than period will make Roll over/Payable
+ * this-next month stop reading as a coherent chain — same accepted,
+ * documented tradeoff as the old wallet ledger's running-balance column.
+ */
+export async function getMonthlyVatList(
+  supabase: SupabaseClient,
+  params: MonthlyVatListParams = {}
+): Promise<MonthlyVatListResult> {
+  const filters = params.filters ?? {};
+  const sort = params.sort ?? "period";
+  const dir = params.dir ?? "asc";
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 25;
+
+  const all = await getMonthlyVatLedger(supabase);
+
+  let filtered = all;
+  if (filters.periodFrom) {
+    filtered = filtered.filter((m) => `${m.period}-01` >= filters.periodFrom!);
+  }
+  if (filters.periodTo) {
+    filtered = filtered.filter((m) => `${m.period}-01` <= filters.periodTo!);
+  }
+  if (filters.incomeVatMin !== undefined) {
+    filtered = filtered.filter((m) => m.outputVat >= filters.incomeVatMin!);
+  }
+  if (filters.incomeVatMax !== undefined) {
+    filtered = filtered.filter((m) => m.outputVat <= filters.incomeVatMax!);
+  }
+  if (filters.expenseVatMin !== undefined) {
+    filtered = filtered.filter((m) => m.inputVat >= filters.expenseVatMin!);
+  }
+  if (filters.expenseVatMax !== undefined) {
+    filtered = filtered.filter((m) => m.inputVat <= filters.expenseVatMax!);
+  }
+  if (filters.netMin !== undefined) {
+    filtered = filtered.filter((m) => m.net >= filters.netMin!);
+  }
+  if (filters.netMax !== undefined) {
+    filtered = filtered.filter((m) => m.net <= filters.netMax!);
+  }
+  if (filters.rolloverMin !== undefined) {
+    filtered = filtered.filter((m) => m.rolloverIn >= filters.rolloverMin!);
+  }
+  if (filters.rolloverMax !== undefined) {
+    filtered = filtered.filter((m) => m.rolloverIn <= filters.rolloverMax!);
+  }
+  if (filters.payableThisMin !== undefined) {
+    filtered = filtered.filter((m) => m.payableThisMonth >= filters.payableThisMin!);
+  }
+  if (filters.payableThisMax !== undefined) {
+    filtered = filtered.filter((m) => m.payableThisMonth <= filters.payableThisMax!);
+  }
+  if (filters.payableNextMin !== undefined) {
+    filtered = filtered.filter((m) => m.payableNextMonth >= filters.payableNextMin!);
+  }
+  if (filters.payableNextMax !== undefined) {
+    filtered = filtered.filter((m) => m.payableNextMonth <= filters.payableNextMax!);
+  }
+
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp: number;
+    switch (sort) {
+      case "outputVat":
+        cmp = a.outputVat - b.outputVat;
+        break;
+      case "inputVat":
+        cmp = a.inputVat - b.inputVat;
+        break;
+      case "net":
+        cmp = a.net - b.net;
+        break;
+      case "rolloverIn":
+        cmp = a.rolloverIn - b.rolloverIn;
+        break;
+      case "payableThisMonth":
+        cmp = a.payableThisMonth - b.payableThisMonth;
+        break;
+      case "payableNextMonth":
+        cmp = a.payableNextMonth - b.payableNextMonth;
+        break;
+      default:
+        cmp = a.period.localeCompare(b.period);
+    }
+    return dir === "asc" ? cmp : -cmp;
+  });
+
+  const totalCount = sorted.length;
+  const from = (page - 1) * pageSize;
+  const months = sorted.slice(from, from + pageSize);
+
+  return { months, totalCount };
 }
 
 /** The current "yyyy-mm" period, server clock. */
