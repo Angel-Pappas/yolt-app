@@ -18,13 +18,17 @@ function periodBounds(period: string): { from: string; to: string } {
  * filtered by `invoice_from`/`invoice_to` (not `from`/`to` — those filter
  * by the transaction's own date) so "which transactions make up this
  * month's VAT" reuses the existing table instead of a bespoke breakdown.
+ *
+ * No `max-w` cap (like Transactions) — seven numeric/month columns need
+ * more room than the fixed-width report card layout other single-figure
+ * pages use.
  */
 export default async function VatTaxPage() {
   const supabase = await createClient();
   const months = await getMonthlyVat(supabase);
 
   return (
-    <div className="flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
+    <div className="flex w-full flex-1 flex-col gap-6 p-6">
       <div className="space-y-3">
         <Link
           href="/taxes"
@@ -41,9 +45,12 @@ export default async function VatTaxPage() {
             <thead>
               <tr className={tableHeadRowClass}>
                 <th className={thClass}>Month</th>
-                <th className={`${thClass} text-right`}>Output VAT</th>
-                <th className={`${thClass} text-right`}>Input VAT</th>
-                <th className={`${thClass} text-right`}>Net</th>
+                <th className={`${thClass} text-right`}>Income VAT</th>
+                <th className={`${thClass} text-right`}>Expenses VAT</th>
+                <th className={`${thClass} text-right`}>Net VAT</th>
+                <th className={`${thClass} text-right`}>Roll over</th>
+                <th className={`${thClass} text-right`}>Payable this month</th>
+                <th className={`${thClass} text-right`}>Payable next month</th>
               </tr>
             </thead>
             <tbody>
@@ -65,15 +72,24 @@ export default async function VatTaxPage() {
                     <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
                       {formatAmount(m.inputVat)}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
+                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink">
                       {formatAmount(m.net)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
+                      {formatAmount(m.rolloverIn)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
+                      {formatAmount(m.payableThisMonth)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
+                      {formatAmount(m.payableNextMonth)}
                     </td>
                   </tr>
                 );
               })}
               {months.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-faint">
                     No VAT-bearing transactions yet.
                   </td>
                 </tr>

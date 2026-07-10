@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatAmount, formatMonthYear } from "@/lib/format";
-import { getMonthlyVat, currentPeriod, previousPeriod } from "./queries";
+import { getMonthlyVat, currentPeriod } from "./queries";
 import { TAX_TYPES } from "./tax-types";
 
 export default async function TaxesPage() {
@@ -9,12 +9,13 @@ export default async function TaxesPage() {
   const months = await getMonthlyVat(supabase);
 
   const thisPeriod = currentPeriod();
-  const lastPeriod = previousPeriod(thisPeriod);
-  // VAT is filed/paid based on the *previous* month's net (Greek VAT
-  // practice, explicit user description) — "this month so far" is the
-  // current month's net still accumulating, not what's actually due yet.
-  const payableThisMonth = months.find((m) => m.period === lastPeriod)?.net ?? 0;
-  const thisMonthNet = months.find((m) => m.period === thisPeriod)?.net ?? 0;
+  const thisMonthRow = months.find((m) => m.period === thisPeriod);
+  // `payableThisMonth` already accounts for any credit rolled in from a
+  // prior negative month and any installment deferred in from a prior
+  // large debit — see getMonthlyVat's ledger walk — so this is the real
+  // cash figure, not just this period's own raw net.
+  const payableThisMonth = thisMonthRow?.payableThisMonth ?? 0;
+  const thisMonthNet = thisMonthRow?.net ?? 0;
 
   return (
     <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
@@ -39,7 +40,7 @@ export default async function TaxesPage() {
                 <p className="text-xs text-ink-muted">
                   Payable this month
                   <span className="block text-[11px] text-ink-faint">
-                    {formatMonthYear(lastPeriod)} net
+                    {formatMonthYear(thisPeriod)}
                   </span>
                 </p>
                 <p className="text-2xl font-semibold tabular-nums text-ink">
@@ -48,9 +49,9 @@ export default async function TaxesPage() {
               </div>
               <div>
                 <p className="text-xs text-ink-muted">
-                  This month so far
+                  This month&apos;s net
                   <span className="block text-[11px] text-ink-faint">
-                    {formatMonthYear(thisPeriod)} net
+                    {formatMonthYear(thisPeriod)}
                   </span>
                 </p>
                 <p className="text-2xl font-semibold tabular-nums text-ink">
