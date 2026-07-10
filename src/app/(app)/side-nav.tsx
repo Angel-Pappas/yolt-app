@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/entities", label: "Entities" },
   { href: "/wallets", label: "Wallets" },
   { href: "/taxes", label: "Taxes" },
+  { href: "/lists", label: "Lists" },
 ];
 
 export function SideNav() {

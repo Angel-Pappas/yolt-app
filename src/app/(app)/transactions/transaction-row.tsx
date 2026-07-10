@@ -3,6 +3,7 @@
 import { useDialog } from "@/components/dialog/use-dialog";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
+import { TypePill } from "@/components/table/type-pill";
 import { computeTotal, formatAmount, formatDate } from "@/lib/format";
 import { deleteTransaction, updateTransaction } from "./actions";
 import { TransactionFormDialog } from "./transaction-form-dialog";
@@ -10,8 +11,9 @@ import { ReconcileButton } from "./reconcile-button";
 import { InvoiceButton } from "./invoice-button";
 import type { Transaction, TransactionType } from "./queries";
 import type { Entity } from "../entities/queries";
+import type { Category } from "../lists/categories/queries";
 import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../options/vat-rate-queries";
+import type { VatRate } from "../lists/vat-rates/vat-rate-queries";
 
 const TYPE_LABEL: Record<TransactionType, string> = {
   income: "Income",
@@ -19,34 +21,22 @@ const TYPE_LABEL: Record<TransactionType, string> = {
   transfer: "Transfer",
 };
 
-const TYPE_PILL: Record<TransactionType, string> = {
+const TYPE_COLOR: Record<TransactionType, string> = {
   income: "bg-income-soft text-income",
   expense: "bg-expense-soft text-expense",
   transfer: "bg-transfer-soft text-transfer",
 };
 
-function TypePill({ type }: { type: TransactionType }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${TYPE_PILL[type]}`}
-    >
-      <span
-        className="h-1.5 w-1.5 rounded-full"
-        style={{ backgroundColor: "currentColor" }}
-      />
-      {TYPE_LABEL[type]}
-    </span>
-  );
-}
-
 export function TransactionRow({
   transaction,
   entities,
+  categories,
   wallets,
   vatRates,
 }: {
   transaction: Transaction;
   entities: Entity[];
+  categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
 }) {
@@ -59,7 +49,10 @@ export function TransactionRow({
         {formatDate(transaction.date)}
       </td>
       <td className="px-4 py-3">
-        <TypePill type={transaction.type} />
+        <TypePill
+          label={TYPE_LABEL[transaction.type]}
+          colorClass={TYPE_COLOR[transaction.type]}
+        />
       </td>
       <td className="px-4 py-3 text-sm text-ink-muted">
         {transaction.entity?.name ?? "—"}
@@ -105,6 +98,7 @@ export function TransactionRow({
           title="Edit transaction"
           submitLabel="Save"
           entities={entities}
+          categories={categories}
           wallets={wallets}
           vatRates={vatRates}
           defaultValues={{
@@ -113,6 +107,7 @@ export function TransactionRow({
             type: transaction.type,
             net: transaction.net,
             entity: transaction.entity,
+            category: transaction.category,
             wallet_id: transaction.wallet.id,
             to_wallet_id: transaction.to_wallet?.id ?? null,
             vat_rate_id: transaction.vat_rate?.id ?? null,

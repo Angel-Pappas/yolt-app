@@ -11,6 +11,7 @@ export type Transaction = {
   vat_amount: string;
   created_at: string;
   entity: { id: string; name: string } | null;
+  category: { id: string; name: string } | null;
   wallet: { id: string; name: string };
   to_wallet: { id: string; name: string } | null;
   vat_rate: { id: string; name: string; rate: string } | null;
@@ -98,6 +99,8 @@ type TransactionsExpandedRow = {
   created_at: string;
   entity_id: string | null;
   entity_name: string | null;
+  category_id: string | null;
+  category_name: string | null;
   wallet_id: string;
   wallet_name: string | null;
   to_wallet_id: string | null;
@@ -120,6 +123,9 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
     created_at: row.created_at,
     entity: row.entity_id
       ? { id: row.entity_id, name: row.entity_name ?? "" }
+      : null,
+    category: row.category_id
+      ? { id: row.category_id, name: row.category_name ?? "" }
       : null,
     wallet: { id: row.wallet_id, name: row.wallet_name ?? "" },
     to_wallet: row.to_wallet_id

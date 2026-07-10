@@ -9,8 +9,9 @@ import {
   type TransactionType,
 } from "./queries";
 import { getActiveEntities } from "../entities/queries";
+import { getActiveCategories } from "../lists/categories/queries";
 import { getActiveWallets } from "../wallets/queries";
-import { getActiveVatRates } from "../options/vat-rate-queries";
+import { getActiveVatRates } from "../lists/vat-rates/vat-rate-queries";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
 import { TransactionTableHeader } from "./transaction-table-header";
@@ -85,19 +86,25 @@ export default async function TransactionsPage({
   const rawPage = Number(getParam(rawParams, "page"));
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
 
-  const [transactionsResult, { data: entities }, { data: wallets }, { data: vatRates }] =
-    await Promise.all([
-      getActiveTransactions(supabase, {
-        filters,
-        sort,
-        dir,
-        page: requestedPage,
-        pageSize: PAGE_SIZE,
-      }),
-      getActiveEntities(supabase),
-      getActiveWallets(supabase),
-      getActiveVatRates(supabase),
-    ]);
+  const [
+    transactionsResult,
+    { data: entities },
+    { data: categories },
+    { data: wallets },
+    { data: vatRates },
+  ] = await Promise.all([
+    getActiveTransactions(supabase, {
+      filters,
+      sort,
+      dir,
+      page: requestedPage,
+      pageSize: PAGE_SIZE,
+    }),
+    getActiveEntities(supabase),
+    getActiveCategories(supabase),
+    getActiveWallets(supabase),
+    getActiveVatRates(supabase),
+  ]);
 
   let { transactions, totalCount } = transactionsResult;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -131,6 +138,7 @@ export default async function TransactionsPage({
             title="Add transaction"
             submitLabel="Add"
             entities={entities ?? []}
+            categories={categories ?? []}
             wallets={wallets ?? []}
             vatRates={vatRates ?? []}
             action={addTransaction}
@@ -152,6 +160,7 @@ export default async function TransactionsPage({
                   key={t.id}
                   transaction={t}
                   entities={entities ?? []}
+                  categories={categories ?? []}
                   wallets={wallets ?? []}
                   vatRates={vatRates ?? []}
                 />

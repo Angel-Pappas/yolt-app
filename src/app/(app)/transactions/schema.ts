@@ -13,6 +13,7 @@ const incomeExpenseFields = {
   description: z.string().trim().min(1, "Description is required"),
   net: z.coerce.number().min(0, "Net must be zero or greater"),
   entity_id: optionalUuid("Invalid entity"),
+  category_id: optionalUuid("Invalid category"),
   wallet_id: z.uuid("Choose a wallet"),
   vat_rate_id: z.uuid("Choose a VAT rate"),
 };

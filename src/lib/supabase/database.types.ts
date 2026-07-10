@@ -30,6 +30,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name: string
+          type: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       entities: {
         Row: {
           created_at: string
@@ -62,6 +92,7 @@ export type Database = {
       }
       transactions: {
         Row: {
+          category_id: string | null
           created_at: string
           date: string
           deleted_at: string | null
@@ -80,6 +111,7 @@ export type Database = {
           wallet_id: string
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           date: string
           deleted_at?: string | null
@@ -98,6 +130,7 @@ export type Database = {
           wallet_id: string
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           date?: string
           deleted_at?: string | null
@@ -116,6 +149,13 @@ export type Database = {
           wallet_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_entity_id_fkey"
             columns: ["entity_id"]
@@ -207,6 +247,8 @@ export type Database = {
     Views: {
       transactions_expanded: {
         Row: {
+          category_id: string | null
+          category_name: string | null
           created_at: string | null
           date: string | null
           description: string | null
@@ -230,6 +272,13 @@ export type Database = {
           wallet_name: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_entity_id_fkey"
             columns: ["entity_id"]

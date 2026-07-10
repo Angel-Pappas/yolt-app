@@ -6,7 +6,7 @@ import { HeaderFilterPopover } from "@/components/table/header-filter-popover";
 import { useListParams } from "@/components/table/use-list-params";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../options/vat-rate-queries";
+import type { VatRate } from "../lists/vat-rates/vat-rate-queries";
 import type { SortDir, SortKey } from "./queries";
 
 const DEFAULT_SORT: SortKey = "date";

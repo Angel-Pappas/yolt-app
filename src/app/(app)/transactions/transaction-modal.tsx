@@ -5,7 +5,8 @@ import { AddButton } from "@/components/table/add-button";
 import { TransactionFormDialog } from "./transaction-form-dialog";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../options/vat-rate-queries";
+import type { VatRate } from "../lists/vat-rates/vat-rate-queries";
+import type { Category } from "../lists/categories/queries";
 import type { TransactionType } from "./queries";
 
 type TransactionModalProps = {
@@ -15,6 +16,7 @@ type TransactionModalProps = {
   title: string;
   submitLabel: string;
   entities: Entity[];
+  categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
   defaultValues?: {
@@ -23,6 +25,7 @@ type TransactionModalProps = {
     type: TransactionType;
     net: string;
     entity: { id: string; name: string } | null;
+    category: { id: string; name: string } | null;
     wallet_id: string;
     to_wallet_id: string | null;
     vat_rate_id: string | null;
@@ -37,6 +40,7 @@ export function TransactionModal({
   title,
   submitLabel,
   entities,
+  categories,
   wallets,
   vatRates,
   defaultValues,
@@ -58,6 +62,7 @@ export function TransactionModal({
         title={title}
         submitLabel={submitLabel}
         entities={entities}
+        categories={categories}
         wallets={wallets}
         vatRates={vatRates}
         defaultValues={defaultValues}

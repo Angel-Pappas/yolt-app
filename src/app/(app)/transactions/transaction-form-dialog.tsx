@@ -8,9 +8,13 @@ import { addEntity } from "../entities/actions";
 import { EntityFormDialog } from "../entities/entity-form-dialog";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../options/vat-rate-queries";
+import type { VatRate } from "../lists/vat-rates/vat-rate-queries";
+import { addCategory } from "../lists/categories/actions";
+import { CategoryFormDialog } from "../lists/categories/category-form-dialog";
+import type { Category } from "../lists/categories/queries";
 import type { TransactionType } from "./queries";
 import { EntityCombobox } from "./entity-combobox";
+import { CategoryCombobox } from "./category-combobox";
 
 const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
   { value: "income", label: "Income" },
@@ -23,6 +27,7 @@ type TransactionFormDialogProps = {
   title: string;
   submitLabel: string;
   entities: Entity[];
+  categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
   defaultValues?: {
@@ -31,6 +36,7 @@ type TransactionFormDialogProps = {
     type: TransactionType;
     net: string;
     entity: { id: string; name: string } | null;
+    category: { id: string; name: string } | null;
     wallet_id: string;
     to_wallet_id: string | null;
     vat_rate_id: string | null;
@@ -44,6 +50,7 @@ export function TransactionFormDialog({
   title,
   submitLabel,
   entities,
+  categories,
   wallets,
   vatRates,
   defaultValues,
@@ -51,10 +58,11 @@ export function TransactionFormDialog({
   onDone,
 }: TransactionFormDialogProps) {
   const uid = useId();
-  // Rendered as a sibling of the main <form> below (not nested inside it) —
-  // a <form> can't validly contain another <form>, and the add-entity
-  // dialog has its own.
+  // Rendered as siblings of the main <form> below (not nested inside it) —
+  // a <form> can't validly contain another <form>, and the add-entity/
+  // add-category dialogs each have their own.
   const addEntityDialogRef = useRef<HTMLDialogElement>(null);
+  const addCategoryDialogRef = useRef<HTMLDialogElement>(null);
 
   const [type, setType] = useState<TransactionType>(
     defaultValues?.type ?? "income"
@@ -98,13 +106,23 @@ export function TransactionFormDialog({
         (!isTransfer && vatRates.length === 0)
       }
       dialogChildren={
-        <EntityFormDialog
-          dialogRef={addEntityDialogRef}
-          title="Add entity"
-          submitLabel="Add"
-          action={addEntity}
-          onDone={() => addEntityDialogRef.current?.close()}
-        />
+        <>
+          <EntityFormDialog
+            dialogRef={addEntityDialogRef}
+            title="Add entity"
+            submitLabel="Add"
+            action={addEntity}
+            onDone={() => addEntityDialogRef.current?.close()}
+          />
+          <CategoryFormDialog
+            dialogRef={addCategoryDialogRef}
+            title="Add category"
+            submitLabel="Add"
+            defaultValues={{ name: "", type: type === "transfer" ? "expense" : type }}
+            action={addCategory}
+            onDone={() => addCategoryDialogRef.current?.close()}
+          />
+        </>
       }
     >
       <div>
@@ -155,6 +173,15 @@ export function TransactionFormDialog({
           entities={entities}
           defaultValue={defaultValues?.entity ?? null}
           onAddNew={() => addEntityDialogRef.current?.showModal()}
+        />
+      )}
+
+      {!isTransfer && (
+        <CategoryCombobox
+          categories={categories}
+          type={type}
+          defaultValue={defaultValues?.category ?? null}
+          onAddNew={() => addCategoryDialogRef.current?.showModal()}
         />
       )}
 

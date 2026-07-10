@@ -37,12 +37,42 @@ async function resolveVatAmount(
   return round2((net * Number(data.rate)) / 100);
 }
 
+/**
+ * Defense-in-depth: the category combobox already only ever offers
+ * categories matching the form's current income/expense type, so this
+ * only fires on a bug, not a normal user flow — mirrors resolveVatAmount
+ * fetching related-row data server-side rather than trusting the client.
+ */
+async function resolveCategoryId(
+  supabase: SupabaseClient,
+  categoryId: string | null,
+  type: "income" | "expense"
+): Promise<string | null> {
+  if (!categoryId) return null;
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("type")
+    .eq("id", categoryId)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Invalid category");
+  }
+  if (data.type !== type) {
+    throw new Error(`That category is for ${data.type}, not ${type}`);
+  }
+
+  return categoryId;
+}
+
 type TransactionFields = {
   date: string;
   description: string;
   type: TransactionType;
   net: number;
   entity_id: string | null;
+  category_id: string | null;
   wallet_id: string;
   to_wallet_id: string | null;
   vat_rate_id: string | null;
@@ -71,6 +101,7 @@ async function resolveFields(
       type: input.type,
       net: input.net,
       entity_id: null,
+      category_id: null,
       wallet_id: input.wallet_id,
       to_wallet_id: input.to_wallet_id,
       vat_rate_id: null,
@@ -78,11 +109,10 @@ async function resolveFields(
     };
   }
 
-  const vat_amount = await resolveVatAmount(
-    supabase,
-    input.net,
-    input.vat_rate_id
-  );
+  const [vat_amount, category_id] = await Promise.all([
+    resolveVatAmount(supabase, input.net, input.vat_rate_id),
+    resolveCategoryId(supabase, input.category_id, input.type),
+  ]);
 
   return {
     date: input.date,
@@ -90,6 +120,7 @@ async function resolveFields(
     type: input.type,
     net: input.net,
     entity_id: input.entity_id,
+    category_id,
     wallet_id: input.wallet_id,
     to_wallet_id: null,
     vat_rate_id: input.vat_rate_id,

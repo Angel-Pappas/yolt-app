@@ -17,7 +17,7 @@ export async function addVatRate(formData: FormData) {
   }
 
   revalidatePath("/transactions");
-  revalidatePath("/options");
+  revalidatePath("/lists/vat-rates");
 }
 
 export async function updateVatRate(id: string, formData: FormData) {
@@ -34,7 +34,7 @@ export async function updateVatRate(id: string, formData: FormData) {
   }
 
   revalidatePath("/transactions");
-  revalidatePath("/options");
+  revalidatePath("/lists/vat-rates");
 }
 
 export async function deleteVatRate(id: string) {
@@ -51,5 +51,5 @@ export async function deleteVatRate(id: string) {
   }
 
   revalidatePath("/transactions");
-  revalidatePath("/options");
+  revalidatePath("/lists/vat-rates");
 }
