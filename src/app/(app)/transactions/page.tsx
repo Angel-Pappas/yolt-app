@@ -2,9 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { addTransaction } from "./actions";
 import {
   getActiveTransactions,
+  getWalletTransactionsWithBalance,
   SORT_KEYS,
+  BALANCE_SORT_KEYS,
   type TransactionFilters,
+  type TransactionListResult,
   type TransactionType,
+  type WalletTransactionFilters,
 } from "./queries";
 import { getActiveEntities } from "../entities/queries";
 import { getActiveCategories } from "../lists/categories/queries";
@@ -13,6 +17,7 @@ import { getActiveVatRates } from "../lists/vat-rates/vat-rate-queries";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
 import { TransactionTableHeader } from "./transaction-table-header";
+import { BalanceViewControl } from "./balance-view-control";
 import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
@@ -74,57 +79,88 @@ export default async function TransactionsPage({
 }) {
   const supabase = await createClient();
   const rawParams = await searchParams;
+
+  // Wallets are needed up front to validate the `balance` param (a wallet
+  // id) before we can even decide which query function to call below, so
+  // this one is fetched ahead of the rest rather than joining the
+  // Promise.all with everything else.
+  const { data: wallets } = await getActiveWallets(supabase);
+
+  const balanceParam = getParam(rawParams, "balance");
+  const balanceWallet =
+    balanceParam && UUID_RE.test(balanceParam)
+      ? (wallets ?? []).find((w) => w.id === balanceParam) ?? null
+      : null;
+
   const filters = parseFilters(rawParams);
   const { sort, dir } = parseSortParam(
     getParam(rawParams, "sort"),
     getParam(rawParams, "dir"),
-    SORT_KEYS
+    balanceWallet ? BALANCE_SORT_KEYS : SORT_KEYS
   );
-  const hasActiveFilters = Object.values(filters).some(
-    (value) => value !== undefined
-  );
+  const balanceMin = parseNumberParam(getParam(rawParams, "balance_min"));
+  const balanceMax = parseNumberParam(getParam(rawParams, "balance_max"));
+  const hasActiveFilters =
+    Object.values(filters).some((value) => value !== undefined) ||
+    balanceMin !== undefined ||
+    balanceMax !== undefined;
 
   const rawPage = Number(getParam(rawParams, "page"));
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
 
-  const [
-    transactionsResult,
-    { data: entities },
-    { data: categories },
-    { data: wallets },
-    { data: vatRates },
-  ] = await Promise.all([
-    getActiveTransactions(supabase, {
-      filters,
-      sort,
-      dir,
-      page: requestedPage,
-      pageSize: PAGE_SIZE,
-    }),
-    getActiveEntities(supabase),
-    getActiveCategories(supabase),
-    getActiveWallets(supabase),
-    getActiveVatRates(supabase),
-  ]);
+  // "Balance view" (see balance-view-control.tsx): pinned to one wallet,
+  // no separate Wallet column/filter (the whole list is already scoped to
+  // it), running balance computed in JS over that wallet's complete
+  // history — see getWalletTransactionsWithBalance for why this can't be
+  // pushed down into the database the way the normal path is.
+  function fetchPage(page: number): Promise<TransactionListResult> {
+    if (balanceWallet) {
+      const balanceFilters: WalletTransactionFilters = {
+        search: filters.search,
+        type: filters.type,
+        entityId: filters.entityId,
+        categoryId: filters.categoryId,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        netMin: filters.netMin,
+        netMax: filters.netMax,
+        vatAmountMin: filters.vatAmountMin,
+        vatAmountMax: filters.vatAmountMax,
+        totalMin: filters.totalMin,
+        totalMax: filters.totalMax,
+        balanceMin,
+        balanceMax,
+      };
+      return getWalletTransactionsWithBalance(supabase, balanceWallet.id, {
+        filters: balanceFilters,
+        sort,
+        dir,
+        page,
+        pageSize: PAGE_SIZE,
+      });
+    }
+    return getActiveTransactions(supabase, { filters, sort, dir, page, pageSize: PAGE_SIZE });
+  }
+
+  const [transactionsResult, { data: entities }, { data: categories }, { data: vatRates }] =
+    await Promise.all([
+      fetchPage(requestedPage),
+      getActiveEntities(supabase),
+      getActiveCategories(supabase),
+      getActiveVatRates(supabase),
+    ]);
 
   let { transactions, totalCount } = transactionsResult;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   let page = requestedPage;
 
   // Filters can shrink the result set out from under whatever page the
-  // URL asked for (e.g. narrowing a filter while on page 3) — .range()
-  // just returns an empty array rather than erroring, so re-fetch
+  // URL asked for (e.g. narrowing a filter while on page 3) — re-fetch
   // clamped to the last valid page instead of showing a confusing blank
   // page with "Page 3 of 1".
   if (requestedPage > totalPages) {
     page = totalPages;
-    ({ transactions, totalCount } = await getActiveTransactions(supabase, {
-      filters,
-      sort,
-      dir,
-      page,
-      pageSize: PAGE_SIZE,
-    }));
+    ({ transactions, totalCount } = await fetchPage(page));
   }
 
   return (
@@ -134,16 +170,19 @@ export default async function TransactionsPage({
         searchPlaceholder="Search description…"
         showDateRange
         addButton={
-          <TransactionModal
-            trigger="Add transaction"
-            title="Add transaction"
-            submitLabel="Add"
-            entities={entities ?? []}
-            categories={categories ?? []}
-            wallets={wallets ?? []}
-            vatRates={vatRates ?? []}
-            action={addTransaction}
-          />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <BalanceViewControl wallets={wallets ?? []} activeWallet={balanceWallet} />
+            <TransactionModal
+              trigger="Add transaction"
+              title="Add transaction"
+              submitLabel="Add"
+              entities={entities ?? []}
+              categories={categories ?? []}
+              wallets={wallets ?? []}
+              vatRates={vatRates ?? []}
+              action={addTransaction}
+            />
+          </div>
         }
       />
 
@@ -154,6 +193,7 @@ export default async function TransactionsPage({
               entities={entities ?? []}
               categories={categories ?? []}
               wallets={wallets ?? []}
+              balanceMode={balanceWallet !== null}
             />
             <tbody>
               {transactions.map((t) => (
@@ -164,6 +204,7 @@ export default async function TransactionsPage({
                   categories={categories ?? []}
                   wallets={wallets ?? []}
                   vatRates={vatRates ?? []}
+                  balanceMode={balanceWallet !== null}
                 />
               ))}
               {totalCount === 0 && (
@@ -171,7 +212,9 @@ export default async function TransactionsPage({
                   <td colSpan={10} className="px-4 py-10 text-center text-sm text-ink-faint">
                     {hasActiveFilters
                       ? "No transactions match these filters."
-                      : "No transactions yet."}
+                      : balanceWallet
+                        ? `No transactions for ${balanceWallet.name} yet.`
+                        : "No transactions yet."}
                   </td>
                 </tr>
               )}

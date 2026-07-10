@@ -35,7 +35,6 @@ export async function updateWallet(id: string, formData: FormData) {
 
   revalidatePath("/transactions");
   revalidatePath("/wallets");
-  revalidatePath(`/wallets/${id}`);
 }
 
 export async function deleteWallet(id: string) {

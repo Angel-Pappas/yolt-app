@@ -11,19 +11,24 @@ import { useSortState } from "@/components/table/use-sort-state";
 import type { Entity } from "../entities/queries";
 import type { Category } from "../lists/categories/queries";
 import type { Wallet } from "../wallets/queries";
-import { SORT_KEYS, type SortKey } from "./queries";
+import { SORT_KEYS, BALANCE_SORT_KEYS, type SortKey } from "./queries";
 
 export function TransactionTableHeader({
   entities,
   categories,
   wallets,
+  balanceMode = false,
 }: {
   entities: Entity[];
   categories: Category[];
   wallets: Wallet[];
+  /** "Balance view" — see transactions/page.tsx. Swaps the Wallet column for a running-balance one. */
+  balanceMode?: boolean;
 }) {
   const { searchParams, setFilterParams } = useListParams();
-  const { currentSort, currentDir, handleSort } = useSortState<SortKey>(SORT_KEYS);
+  const { currentSort, currentDir, handleSort } = useSortState<SortKey>(
+    balanceMode ? BALANCE_SORT_KEYS : SORT_KEYS
+  );
 
   return (
     <thead>
@@ -61,23 +66,25 @@ export function TransactionTableHeader({
             <HeaderDateRangeFilterPopover />
           </div>
         </th>
-        <th className={thClass}>
-          <div className="flex items-center gap-1.5">
-            <SortableHeaderCell
-              label="Wallet"
-              sortKey="wallet"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              onSort={handleSort}
-            />
-            <HeaderFilterPopover
-              label="wallets"
-              value={searchParams.get("wallet") ?? ""}
-              onChange={(v) => setFilterParams({ wallet: v || null })}
-              options={wallets.map((w) => ({ value: w.id, label: w.name }))}
-            />
-          </div>
-        </th>
+        {!balanceMode && (
+          <th className={thClass}>
+            <div className="flex items-center gap-1.5">
+              <SortableHeaderCell
+                label="Wallet"
+                sortKey="wallet"
+                currentSort={currentSort}
+                currentDir={currentDir}
+                onSort={handleSort}
+              />
+              <HeaderFilterPopover
+                label="wallets"
+                value={searchParams.get("wallet") ?? ""}
+                onChange={(v) => setFilterParams({ wallet: v || null })}
+                options={wallets.map((w) => ({ value: w.id, label: w.name }))}
+              />
+            </div>
+          </th>
+        )}
         <th className={thClass}>
           <div className="flex items-center gap-1.5">
             <SortableHeaderCell
@@ -178,6 +185,26 @@ export function TransactionTableHeader({
             />
           </div>
         </th>
+        {balanceMode && (
+          <th className={`${thClass} text-right`}>
+            <div className="flex items-center justify-end gap-1.5">
+              <HeaderNumberRangeFilterPopover
+                label="balance"
+                minParamKey="balance_min"
+                maxParamKey="balance_max"
+                align="right"
+              />
+              <SortableHeaderCell
+                label="Balance"
+                sortKey="balance"
+                currentSort={currentSort}
+                currentDir={currentDir}
+                align="right"
+                onSort={handleSort}
+              />
+            </div>
+          </th>
+        )}
         <th className={thClass}></th>
       </tr>
     </thead>

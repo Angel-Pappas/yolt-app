@@ -39,12 +39,15 @@ export function TransactionRow({
   categories,
   wallets,
   vatRates,
+  balanceMode = false,
 }: {
   transaction: Transaction;
   entities: Entity[];
   categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
+  /** "Balance view" — see transactions/page.tsx. Swaps the Wallet column for a running-balance one. */
+  balanceMode?: boolean;
 }) {
   const { dialogRef, open, close } = useDialog();
   const isTransfer = transaction.type === "transfer";
@@ -64,18 +67,20 @@ export function TransactionRow({
       <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
         {formatDate(transaction.date)}
       </td>
-      <td className="px-4 py-3 text-sm whitespace-nowrap text-ink">
-        {isTransfer ? (
-          <span className="flex flex-col gap-0.5 leading-none">
-            <span>{transaction.wallet.name}</span>
-            <span className="text-[11px] leading-none text-ink-faint">
-              → {transaction.to_wallet?.name ?? "—"}
+      {!balanceMode && (
+        <td className="px-4 py-3 text-sm whitespace-nowrap text-ink">
+          {isTransfer ? (
+            <span className="flex flex-col gap-0.5 leading-none">
+              <span>{transaction.wallet.name}</span>
+              <span className="text-[11px] leading-none text-ink-faint">
+                → {transaction.to_wallet?.name ?? "—"}
+              </span>
             </span>
-          </span>
-        ) : (
-          transaction.wallet.name
-        )}
-      </td>
+          ) : (
+            transaction.wallet.name
+          )}
+        </td>
+      )}
       <td className="px-4 py-3 text-sm text-ink-muted">
         {transaction.category?.name ?? "—"}
       </td>
@@ -92,6 +97,11 @@ export function TransactionRow({
       <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
         {formatAmount(computeTotal(transaction.net, transaction.vat_amount))}
       </td>
+      {balanceMode && (
+        <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
+          {formatAmount(transaction.runningBalance ?? 0)}
+        </td>
+      )}
       <td
         className="px-4 py-3 text-right whitespace-nowrap"
         onClick={(e) => e.stopPropagation()}

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { computeTotal } from "@/lib/format";
 
 export type TransactionType = "income" | "expense" | "transfer";
 
@@ -18,6 +19,12 @@ export type Transaction = {
   is_reconciled: boolean;
   /** 1-12, or null if no invoice has been logged for this transaction yet. */
   invoice_month: number | null;
+  /**
+   * Only set in "balance view" (see getWalletTransactionsWithBalance below)
+   * — the running balance of one specific wallet as of this row, walking
+   * that wallet's full history chronologically. Undefined everywhere else.
+   */
+  runningBalance?: number;
 };
 
 export type TransactionFilters = {
@@ -48,9 +55,11 @@ export type SortKey =
   | "description"
   | "net"
   | "vat_amount"
-  | "total";
+  | "total"
+  | "balance";
 export type SortDir = "asc" | "desc";
 
+/** Valid sort keys for the normal (all-wallets) list — no "balance" column exists there. */
 export const SORT_KEYS: SortKey[] = [
   "date",
   "type",
@@ -63,8 +72,21 @@ export const SORT_KEYS: SortKey[] = [
   "total",
 ];
 
-/** Maps a sort key to its column on the transactions_expanded view. */
-const SORT_COLUMN: Record<SortKey, string> = {
+/** Valid sort keys in balance view (see getWalletTransactionsWithBalance) — no "wallet" column, since the list is already scoped to one. */
+export const BALANCE_SORT_KEYS: SortKey[] = [
+  "date",
+  "type",
+  "category",
+  "entity",
+  "description",
+  "net",
+  "vat_amount",
+  "total",
+  "balance",
+];
+
+/** Maps a sort key to its column on the transactions_expanded view (only the normal, DB-sorted list uses this — "balance" has no DB column, since it's computed in JS by getWalletTransactionsWithBalance). */
+const SORT_COLUMN: Partial<Record<SortKey, string>> = {
   date: "date",
   type: "type",
   wallet: "wallet_name",
@@ -228,7 +250,7 @@ export async function getActiveTransactions(
     query = query.lte("total", filters.totalMax);
   }
 
-  query = query.order(SORT_COLUMN[sort], { ascending: dir === "asc" });
+  query = query.order(SORT_COLUMN[sort] ?? "date", { ascending: dir === "asc" });
   if (sort !== "date") {
     query = query.order("date", { ascending: true });
   }
@@ -248,4 +270,167 @@ export async function getActiveTransactions(
     transactions: (data ?? []).map(toTransaction),
     totalCount: count ?? 0,
   };
+}
+
+export type WalletTransactionFilters = Omit<TransactionFilters, "walletId"> & {
+  balanceMin?: number;
+  balanceMax?: number;
+};
+
+export type WalletTransactionListParams = {
+  filters?: WalletTransactionFilters;
+  sort?: SortKey;
+  dir?: SortDir;
+  page?: number;
+  pageSize?: number;
+};
+
+/**
+ * "Balance view" (2026-07) — the Transactions page's replacement for what
+ * used to be a separate `/wallets/[id]` ledger page: press "Balance view",
+ * pick a wallet, and this same table narrows to just that wallet's
+ * transactions with a running Balance column swapped in for the (now
+ * redundant) Wallet column — everything else about the table (Net/VAT/
+ * Total columns, filters, sorting, row actions) stays exactly as it is
+ * everywhere else, since it's still `TransactionRow`/`TransactionTableHeader`
+ * rendering it, just with `balanceMode` on.
+ *
+ * The running balance has to be computed over the wallet's *complete*
+ * active history first, walked chronologically — sorting/filtering by
+ * anything other than date would otherwise produce a wrong (or at least
+ * meaningless) balance for later rows, since each one depends on knowing
+ * about every row before it. So, same as the old wallet ledger this
+ * replaces: fetch everything for this wallet unfiltered, compute the
+ * running balance, and only *then* apply filters/sort/pagination to the
+ * already-computed list, entirely in JS — this can't be pushed down into
+ * the database the way getActiveTransactions is, for the same reason.
+ */
+export async function getWalletTransactionsWithBalance(
+  supabase: SupabaseClient,
+  walletId: string,
+  params: WalletTransactionListParams = {}
+): Promise<TransactionListResult> {
+  const filters = params.filters ?? {};
+  const sort = params.sort ?? "date";
+  const dir = params.dir ?? "asc";
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 25;
+
+  const { data, error } = await supabase
+    .from("transactions_expanded")
+    .select("*")
+    .eq("is_deleted", false)
+    .or(`wallet_id.eq.${walletId},to_wallet_id.eq.${walletId}`)
+    .order("date", { ascending: true })
+    .order("created_at", { ascending: true })
+    .returns<TransactionsExpandedRow[]>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  let running = 0;
+  const allWithBalance: Transaction[] = (data ?? []).map((row) => {
+    const transaction = toTransaction(row);
+    let amount: number;
+    if (transaction.type === "transfer") {
+      const isFromSide = row.wallet_id === walletId;
+      amount = isFromSide ? -Number(transaction.net) : Number(transaction.net);
+    } else {
+      const total = computeTotal(transaction.net, transaction.vat_amount);
+      amount = transaction.type === "income" ? total : -total;
+    }
+    running += amount;
+    return { ...transaction, runningBalance: running };
+  });
+
+  let filtered = allWithBalance;
+  if (filters.search) {
+    const needle = filters.search.toLowerCase();
+    filtered = filtered.filter((t) => t.description.toLowerCase().includes(needle));
+  }
+  if (filters.type) {
+    filtered = filtered.filter((t) => t.type === filters.type);
+  }
+  if (filters.entityId) {
+    filtered = filtered.filter((t) => t.entity?.id === filters.entityId);
+  }
+  if (filters.categoryId) {
+    filtered = filtered.filter((t) => t.category?.id === filters.categoryId);
+  }
+  if (filters.dateFrom) {
+    filtered = filtered.filter((t) => t.date >= filters.dateFrom!);
+  }
+  if (filters.dateTo) {
+    filtered = filtered.filter((t) => t.date <= filters.dateTo!);
+  }
+  if (filters.netMin !== undefined) {
+    filtered = filtered.filter((t) => Number(t.net) >= filters.netMin!);
+  }
+  if (filters.netMax !== undefined) {
+    filtered = filtered.filter((t) => Number(t.net) <= filters.netMax!);
+  }
+  if (filters.vatAmountMin !== undefined) {
+    filtered = filtered.filter((t) => Number(t.vat_amount) >= filters.vatAmountMin!);
+  }
+  if (filters.vatAmountMax !== undefined) {
+    filtered = filtered.filter((t) => Number(t.vat_amount) <= filters.vatAmountMax!);
+  }
+  if (filters.totalMin !== undefined) {
+    filtered = filtered.filter(
+      (t) => computeTotal(t.net, t.vat_amount) >= filters.totalMin!
+    );
+  }
+  if (filters.totalMax !== undefined) {
+    filtered = filtered.filter(
+      (t) => computeTotal(t.net, t.vat_amount) <= filters.totalMax!
+    );
+  }
+  if (filters.balanceMin !== undefined) {
+    filtered = filtered.filter((t) => (t.runningBalance ?? 0) >= filters.balanceMin!);
+  }
+  if (filters.balanceMax !== undefined) {
+    filtered = filtered.filter((t) => (t.runningBalance ?? 0) <= filters.balanceMax!);
+  }
+
+  // Array.prototype.sort is stable (ES2019+), so entries that tie on the
+  // chosen key keep their original chronological order.
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp: number;
+    switch (sort) {
+      case "type":
+        cmp = a.type.localeCompare(b.type);
+        break;
+      case "category":
+        cmp = (a.category?.name ?? "").localeCompare(b.category?.name ?? "");
+        break;
+      case "entity":
+        cmp = (a.entity?.name ?? "").localeCompare(b.entity?.name ?? "");
+        break;
+      case "description":
+        cmp = a.description.localeCompare(b.description);
+        break;
+      case "net":
+        cmp = Number(a.net) - Number(b.net);
+        break;
+      case "vat_amount":
+        cmp = Number(a.vat_amount) - Number(b.vat_amount);
+        break;
+      case "total":
+        cmp = computeTotal(a.net, a.vat_amount) - computeTotal(b.net, b.vat_amount);
+        break;
+      case "balance":
+        cmp = (a.runningBalance ?? 0) - (b.runningBalance ?? 0);
+        break;
+      default:
+        cmp = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+    }
+    return dir === "asc" ? cmp : -cmp;
+  });
+
+  const totalCount = sorted.length;
+  const from = (page - 1) * pageSize;
+  const transactions = sorted.slice(from, from + pageSize);
+
+  return { transactions, totalCount };
 }

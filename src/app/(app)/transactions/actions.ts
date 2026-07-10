@@ -131,7 +131,6 @@ async function resolveFields(
 function revalidateAffectedPaths() {
   revalidatePath("/transactions");
   revalidatePath("/wallets");
-  revalidatePath("/wallets/[id]", "page");
   revalidatePath("/taxes");
 }
 

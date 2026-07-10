@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useDialog } from "@/components/dialog/use-dialog";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
 import { formatAmount } from "@/lib/format";
 import { deleteWallet, updateWallet } from "./actions";
 import { WalletFormDialog } from "./wallet-form-dialog";
-import { PencilIcon } from "@/components/icons";
 import type { Wallet } from "./queries";
 
 export function WalletRow({
@@ -20,15 +18,8 @@ export function WalletRow({
   const { dialogRef, open, close } = useDialog();
 
   return (
-    <tr className={tableRowClass({ interactive: false })}>
-      <td className="px-4 py-3 text-sm">
-        <Link
-          href={`/wallets/${wallet.id}`}
-          className="font-medium text-ink underline decoration-edge-strong underline-offset-4 hover:text-accent hover:decoration-accent"
-        >
-          {wallet.name}
-        </Link>
-      </td>
+    <tr onClick={open} className={tableRowClass()}>
+      <td className="px-4 py-3 text-sm text-ink">{wallet.name}</td>
       <td
         className={`px-4 py-3 text-right text-sm font-semibold tabular-nums ${
           balance < 0 ? "text-expense" : "text-ink"
@@ -36,15 +27,7 @@ export function WalletRow({
       >
         {formatAmount(balance)}
       </td>
-      <td className="px-4 py-3 text-right">
-        <button
-          type="button"
-          onClick={open}
-          aria-label="Edit wallet"
-          className="rounded-md p-1.5 text-ink-faint opacity-0 transition group-hover:opacity-100 hover:bg-canvas hover:text-ink"
-        >
-          <PencilIcon className="h-4 w-4" />
-        </button>
+      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <DeleteButton
           action={() => deleteWallet(wallet.id)}
           confirmMessage="Delete this wallet?"
