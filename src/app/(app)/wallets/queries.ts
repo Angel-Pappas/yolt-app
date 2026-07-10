@@ -82,6 +82,8 @@ export type WalletListParams = {
   search?: string;
   sort?: WalletSortKey;
   dir?: WalletSortDir;
+  balanceMin?: number;
+  balanceMax?: number;
   page?: number;
   pageSize?: number;
 };
@@ -132,10 +134,17 @@ export async function getWalletsList(
     throw new Error(error.message);
   }
 
-  const withBalance = (data ?? []).map((w) => ({
+  let withBalance = (data ?? []).map((w) => ({
     ...w,
     balance: balances.get(w.id) ?? 0,
   }));
+
+  if (params.balanceMin !== undefined) {
+    withBalance = withBalance.filter((w) => w.balance >= params.balanceMin!);
+  }
+  if (params.balanceMax !== undefined) {
+    withBalance = withBalance.filter((w) => w.balance <= params.balanceMax!);
+  }
 
   withBalance.sort((a, b) => {
     const cmp =
@@ -160,6 +169,17 @@ export type WalletLedgerEntry = {
   /** For transfers, the "from" and "to" wallet names (same order as the Transactions page's X → Y). */
   fromWalletName: string | null;
   toWalletName: string | null;
+  entityId: string | null;
+  /**
+   * The Entity column's display value: the actual entity name for
+   * income/expense, or the counterparty wallet (arrowed toward/away from
+   * this wallet) for a transfer — this page has no separate Wallet column
+   * (it's already scoped to one wallet), so this is where that "other
+   * side" information now lives once the Type column became icon-only.
+   */
+  entityName: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
   runningBalance: number;
 };
 
@@ -174,13 +194,26 @@ type WalletLedgerRow = {
   wallet_name: string | null;
   to_wallet_id: string | null;
   to_wallet_name: string | null;
+  entity_id: string | null;
+  entity_name: string | null;
+  category_id: string | null;
+  category_name: string | null;
 };
 
-export type WalletLedgerSortKey = "date" | "description" | "type" | "amount" | "balance";
+export type WalletLedgerSortKey =
+  | "date"
+  | "category"
+  | "entity"
+  | "description"
+  | "type"
+  | "amount"
+  | "balance";
 export type WalletLedgerSortDir = "asc" | "desc";
 
 export const WALLET_LEDGER_SORT_KEYS: WalletLedgerSortKey[] = [
   "date",
+  "category",
+  "entity",
   "description",
   "type",
   "amount",
@@ -190,9 +223,15 @@ export const WALLET_LEDGER_SORT_KEYS: WalletLedgerSortKey[] = [
 export type WalletLedgerParams = {
   search?: string;
   type?: TransactionType;
+  entityId?: string;
+  categoryId?: string;
   /** Inclusive, ISO "yyyy-mm-dd". */
   dateFrom?: string;
   dateTo?: string;
+  amountMin?: number;
+  amountMax?: number;
+  balanceMin?: number;
+  balanceMax?: number;
   sort?: WalletLedgerSortKey;
   dir?: WalletLedgerSortDir;
   page?: number;
@@ -230,7 +269,7 @@ export async function getWalletLedger(
   const { data, error } = await supabase
     .from("transactions_expanded")
     .select(
-      "id, date, description, type, net, vat_amount, wallet_id, wallet_name, to_wallet_id, to_wallet_name"
+      "id, date, description, type, net, vat_amount, wallet_id, wallet_name, to_wallet_id, to_wallet_name, entity_id, entity_name, category_id, category_name"
     )
     .eq("is_deleted", false)
     .or(`wallet_id.eq.${walletId},to_wallet_id.eq.${walletId}`)
@@ -247,15 +286,20 @@ export async function getWalletLedger(
     let amount: number;
     let fromWalletName: string | null = null;
     let toWalletName: string | null = null;
+    let entityName: string | null;
 
     if (row.type === "transfer") {
       const isFromSide = row.wallet_id === walletId;
       amount = isFromSide ? -Number(row.net) : Number(row.net);
       fromWalletName = row.wallet_name;
       toWalletName = row.to_wallet_name;
+      entityName = isFromSide
+        ? `→ ${row.to_wallet_name ?? "—"}`
+        : `← ${row.wallet_name ?? "—"}`;
     } else {
       const total = computeTotal(row.net, row.vat_amount);
       amount = row.type === "income" ? total : -total;
+      entityName = row.entity_name;
     }
 
     running += amount;
@@ -267,6 +311,10 @@ export async function getWalletLedger(
       amount,
       fromWalletName,
       toWalletName,
+      entityId: row.entity_id,
+      entityName,
+      categoryId: row.category_id,
+      categoryName: row.category_name,
       runningBalance: running,
     };
   });
@@ -279,11 +327,29 @@ export async function getWalletLedger(
   if (params.type) {
     filtered = filtered.filter((e) => e.type === params.type);
   }
+  if (params.entityId) {
+    filtered = filtered.filter((e) => e.entityId === params.entityId);
+  }
+  if (params.categoryId) {
+    filtered = filtered.filter((e) => e.categoryId === params.categoryId);
+  }
   if (params.dateFrom) {
     filtered = filtered.filter((e) => e.date >= params.dateFrom!);
   }
   if (params.dateTo) {
     filtered = filtered.filter((e) => e.date <= params.dateTo!);
+  }
+  if (params.amountMin !== undefined) {
+    filtered = filtered.filter((e) => e.amount >= params.amountMin!);
+  }
+  if (params.amountMax !== undefined) {
+    filtered = filtered.filter((e) => e.amount <= params.amountMax!);
+  }
+  if (params.balanceMin !== undefined) {
+    filtered = filtered.filter((e) => e.runningBalance >= params.balanceMin!);
+  }
+  if (params.balanceMax !== undefined) {
+    filtered = filtered.filter((e) => e.runningBalance <= params.balanceMax!);
   }
 
   const sort = params.sort ?? "date";
@@ -293,6 +359,12 @@ export async function getWalletLedger(
   const sorted = [...filtered].sort((a, b) => {
     let cmp: number;
     switch (sort) {
+      case "category":
+        cmp = (a.categoryName ?? "").localeCompare(b.categoryName ?? "");
+        break;
+      case "entity":
+        cmp = (a.entityName ?? "").localeCompare(b.entityName ?? "");
+        break;
       case "description":
         cmp = a.description.localeCompare(b.description);
         break;

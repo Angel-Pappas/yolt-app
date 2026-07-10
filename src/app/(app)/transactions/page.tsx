@@ -3,8 +3,6 @@ import { addTransaction } from "./actions";
 import {
   getActiveTransactions,
   SORT_KEYS,
-  type SortDir,
-  type SortKey,
   type TransactionFilters,
   type TransactionType,
 } from "./queries";
@@ -17,6 +15,8 @@ import { TransactionRow } from "./transaction-row";
 import { TransactionTableHeader } from "./transaction-table-header";
 import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
+import { parseSortParam } from "@/components/table/parse-sort-param";
+import { parseNumberParam } from "@/lib/parse-params";
 
 const TRANSACTION_TYPES: TransactionType[] = ["income", "expense", "transfer"];
 const UUID_RE =
@@ -43,7 +43,7 @@ function parseFilters(searchParams: RawSearchParams): TransactionFilters {
   const type = getParam(searchParams, "type");
   const entity = getParam(searchParams, "entity");
   const wallet = getParam(searchParams, "wallet");
-  const vat = getParam(searchParams, "vat");
+  const category = getParam(searchParams, "category");
   const from = getParam(searchParams, "from");
   const to = getParam(searchParams, "to");
 
@@ -55,19 +55,16 @@ function parseFilters(searchParams: RawSearchParams): TransactionFilters {
         : undefined,
     entityId: entity && UUID_RE.test(entity) ? entity : undefined,
     walletId: wallet && UUID_RE.test(wallet) ? wallet : undefined,
-    vatRateId: vat && UUID_RE.test(vat) ? vat : undefined,
+    categoryId: category && UUID_RE.test(category) ? category : undefined,
     dateFrom: from && DATE_RE.test(from) ? from : undefined,
     dateTo: to && DATE_RE.test(to) ? to : undefined,
+    netMin: parseNumberParam(getParam(searchParams, "net_min")),
+    netMax: parseNumberParam(getParam(searchParams, "net_max")),
+    vatAmountMin: parseNumberParam(getParam(searchParams, "vat_amount_min")),
+    vatAmountMax: parseNumberParam(getParam(searchParams, "vat_amount_max")),
+    totalMin: parseNumberParam(getParam(searchParams, "total_min")),
+    totalMax: parseNumberParam(getParam(searchParams, "total_max")),
   };
-}
-
-function parseSort(searchParams: RawSearchParams): { sort: SortKey; dir: SortDir } {
-  const sortParam = getParam(searchParams, "sort");
-  const sort = SORT_KEYS.includes(sortParam as SortKey)
-    ? (sortParam as SortKey)
-    : "date";
-  const dir: SortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
-  return { sort, dir };
 }
 
 export default async function TransactionsPage({
@@ -78,7 +75,11 @@ export default async function TransactionsPage({
   const supabase = await createClient();
   const rawParams = await searchParams;
   const filters = parseFilters(rawParams);
-  const { sort, dir } = parseSort(rawParams);
+  const { sort, dir } = parseSortParam(
+    getParam(rawParams, "sort"),
+    getParam(rawParams, "dir"),
+    SORT_KEYS
+  );
   const hasActiveFilters = Object.values(filters).some(
     (value) => value !== undefined
   );
@@ -151,8 +152,8 @@ export default async function TransactionsPage({
           <table className="w-full text-sm">
             <TransactionTableHeader
               entities={entities ?? []}
+              categories={categories ?? []}
               wallets={wallets ?? []}
-              vatRates={vatRates ?? []}
             />
             <tbody>
               {transactions.map((t) => (

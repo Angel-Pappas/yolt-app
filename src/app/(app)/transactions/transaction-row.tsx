@@ -3,7 +3,7 @@
 import { useDialog } from "@/components/dialog/use-dialog";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
-import { TypePill } from "@/components/table/type-pill";
+import { IncomeIcon, ExpenseIcon, TransferIcon } from "@/components/icons";
 import { computeTotal, formatAmount, formatDate } from "@/lib/format";
 import { deleteTransaction, updateTransaction } from "./actions";
 import { TransactionFormDialog } from "./transaction-form-dialog";
@@ -27,6 +27,12 @@ const TYPE_COLOR: Record<TransactionType, string> = {
   transfer: "bg-transfer-soft text-transfer",
 };
 
+const TYPE_ICON: Record<TransactionType, typeof IncomeIcon> = {
+  income: IncomeIcon,
+  expense: ExpenseIcon,
+  transfer: TransferIcon,
+};
+
 export function TransactionRow({
   transaction,
   entities,
@@ -42,38 +48,43 @@ export function TransactionRow({
 }) {
   const { dialogRef, open, close } = useDialog();
   const isTransfer = transaction.type === "transfer";
+  const TypeIcon = TYPE_ICON[transaction.type];
 
   return (
     <tr onClick={open} className={tableRowClass()}>
+      <td className="px-4 py-3">
+        <span
+          className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${TYPE_COLOR[transaction.type]}`}
+          title={TYPE_LABEL[transaction.type]}
+          aria-label={TYPE_LABEL[transaction.type]}
+        >
+          <TypeIcon className="h-4 w-4" />
+        </span>
+      </td>
       <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
         {formatDate(transaction.date)}
       </td>
-      <td className="px-4 py-3">
-        <TypePill
-          label={TYPE_LABEL[transaction.type]}
-          colorClass={TYPE_COLOR[transaction.type]}
-        />
-      </td>
-      <td className="px-4 py-3 text-sm text-ink-muted">
-        {transaction.entity?.name ?? "—"}
-      </td>
       <td className="px-4 py-3 text-sm whitespace-nowrap text-ink">
         {isTransfer ? (
-          <span className="inline-flex items-center gap-1.5">
-            {transaction.wallet.name}
-            <span className="text-ink-faint">→</span>
-            {transaction.to_wallet?.name ?? "—"}
+          <span className="flex flex-col gap-0.5 leading-none">
+            <span>{transaction.wallet.name}</span>
+            <span className="text-[11px] leading-none text-ink-faint">
+              → {transaction.to_wallet?.name ?? "—"}
+            </span>
           </span>
         ) : (
           transaction.wallet.name
         )}
       </td>
+      <td className="px-4 py-3 text-sm text-ink-muted">
+        {transaction.category?.name ?? "—"}
+      </td>
+      <td className="px-4 py-3 text-sm text-ink-muted">
+        {isTransfer ? "Transfer" : (transaction.entity?.name ?? "—")}
+      </td>
       <td className="px-4 py-3 text-sm text-ink">{transaction.description}</td>
       <td className="px-4 py-3 text-right text-sm tabular-nums text-ink">
         {formatAmount(transaction.net)}
-      </td>
-      <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
-        {isTransfer ? "—" : `${transaction.vat_rate?.rate ?? "—"}%`}
       </td>
       <td className="px-4 py-3 text-right text-sm tabular-nums text-ink-faint">
         {isTransfer ? "—" : formatAmount(transaction.vat_amount)}

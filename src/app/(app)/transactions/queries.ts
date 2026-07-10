@@ -21,26 +21,32 @@ export type Transaction = {
 };
 
 export type TransactionFilters = {
-  /** Matched against description only (Entity/Wallet/VAT each have their own dedicated filter). */
+  /** Matched against description only (Entity/Wallet/Category each have their own dedicated filter). */
   search?: string;
   type?: TransactionType;
   entityId?: string;
+  categoryId?: string;
   /** Matches transactions where this wallet is either side — the single wallet (income/expense) or either the "from" or "to" wallet (transfer). */
   walletId?: string;
-  vatRateId?: string;
   /** Inclusive, ISO "yyyy-mm-dd". */
   dateFrom?: string;
   dateTo?: string;
+  netMin?: number;
+  netMax?: number;
+  vatAmountMin?: number;
+  vatAmountMax?: number;
+  totalMin?: number;
+  totalMax?: number;
 };
 
 export type SortKey =
   | "date"
   | "type"
-  | "entity"
   | "wallet"
+  | "category"
+  | "entity"
   | "description"
   | "net"
-  | "vat"
   | "vat_amount"
   | "total";
 export type SortDir = "asc" | "desc";
@@ -48,11 +54,11 @@ export type SortDir = "asc" | "desc";
 export const SORT_KEYS: SortKey[] = [
   "date",
   "type",
-  "entity",
   "wallet",
+  "category",
+  "entity",
   "description",
   "net",
-  "vat",
   "vat_amount",
   "total",
 ];
@@ -61,11 +67,11 @@ export const SORT_KEYS: SortKey[] = [
 const SORT_COLUMN: Record<SortKey, string> = {
   date: "date",
   type: "type",
-  entity: "entity_name",
   wallet: "wallet_name",
+  category: "category_name",
+  entity: "entity_name",
   description: "description",
   net: "net",
-  vat: "vat_rate",
   vat_amount: "vat_amount",
   total: "total",
 };
@@ -194,14 +200,32 @@ export async function getActiveTransactions(
       `wallet_id.eq.${filters.walletId},to_wallet_id.eq.${filters.walletId}`
     );
   }
-  if (filters.vatRateId) {
-    query = query.eq("vat_rate_id", filters.vatRateId);
+  if (filters.categoryId) {
+    query = query.eq("category_id", filters.categoryId);
   }
   if (filters.dateFrom) {
     query = query.gte("date", filters.dateFrom);
   }
   if (filters.dateTo) {
     query = query.lte("date", filters.dateTo);
+  }
+  if (filters.netMin !== undefined) {
+    query = query.gte("net", filters.netMin);
+  }
+  if (filters.netMax !== undefined) {
+    query = query.lte("net", filters.netMax);
+  }
+  if (filters.vatAmountMin !== undefined) {
+    query = query.gte("vat_amount", filters.vatAmountMin);
+  }
+  if (filters.vatAmountMax !== undefined) {
+    query = query.lte("vat_amount", filters.vatAmountMax);
+  }
+  if (filters.totalMin !== undefined) {
+    query = query.gte("total", filters.totalMin);
+  }
+  if (filters.totalMax !== undefined) {
+    query = query.lte("total", filters.totalMax);
   }
 
   query = query.order(SORT_COLUMN[sort], { ascending: dir === "asc" });

@@ -3,50 +3,31 @@
 import { thClass, tableHeadRowClass } from "@/components/table/table-styles";
 import { SortableHeaderCell } from "@/components/table/sortable-header-cell";
 import { HeaderFilterPopover } from "@/components/table/header-filter-popover";
+import { HeaderTextFilterPopover } from "@/components/table/header-text-filter-popover";
+import { HeaderNumberRangeFilterPopover } from "@/components/table/header-number-range-filter-popover";
+import { HeaderDateRangeFilterPopover } from "@/components/table/header-date-range-filter-popover";
 import { useListParams } from "@/components/table/use-list-params";
+import { useSortState } from "@/components/table/use-sort-state";
 import type { Entity } from "../entities/queries";
+import type { Category } from "../lists/categories/queries";
 import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../lists/vat-rates/vat-rate-queries";
-import type { SortDir, SortKey } from "./queries";
-
-const DEFAULT_SORT: SortKey = "date";
-const DEFAULT_DIR: SortDir = "asc";
+import { SORT_KEYS, type SortKey } from "./queries";
 
 export function TransactionTableHeader({
   entities,
+  categories,
   wallets,
-  vatRates,
 }: {
   entities: Entity[];
+  categories: Category[];
   wallets: Wallet[];
-  vatRates: VatRate[];
 }) {
   const { searchParams, setFilterParams } = useListParams();
-
-  const currentSort = (searchParams.get("sort") as SortKey) || DEFAULT_SORT;
-  const currentDir: SortDir =
-    searchParams.get("dir") === "desc" ? "desc" : DEFAULT_DIR;
-
-  function handleSort(key: SortKey) {
-    if (currentSort === key) {
-      setFilterParams({ sort: key, dir: currentDir === "asc" ? "desc" : "asc" });
-    } else {
-      setFilterParams({ sort: key, dir: "asc" });
-    }
-  }
+  const { currentSort, currentDir, handleSort } = useSortState<SortKey>(SORT_KEYS);
 
   return (
     <thead>
       <tr className={tableHeadRowClass}>
-        <th className={thClass}>
-          <SortableHeaderCell
-            label="Date"
-            sortKey="date"
-            currentSort={currentSort}
-            currentDir={currentDir}
-            onSort={handleSort}
-          />
-        </th>
         <th className={thClass}>
           <div className="flex items-center gap-1.5">
             <SortableHeaderCell
@@ -71,18 +52,13 @@ export function TransactionTableHeader({
         <th className={thClass}>
           <div className="flex items-center gap-1.5">
             <SortableHeaderCell
-              label="Entity"
-              sortKey="entity"
+              label="Date"
+              sortKey="date"
               currentSort={currentSort}
               currentDir={currentDir}
               onSort={handleSort}
             />
-            <HeaderFilterPopover
-              label="entities"
-              value={searchParams.get("entity") ?? ""}
-              onChange={(v) => setFilterParams({ entity: v || null })}
-              options={entities.map((e) => ({ value: e.id, label: e.name }))}
-            />
+            <HeaderDateRangeFilterPopover />
           </div>
         </th>
         <th className={thClass}>
@@ -103,39 +79,62 @@ export function TransactionTableHeader({
           </div>
         </th>
         <th className={thClass}>
-          <SortableHeaderCell
-            label="Description"
-            sortKey="description"
-            currentSort={currentSort}
-            currentDir={currentDir}
-            onSort={handleSort}
-          />
+          <div className="flex items-center gap-1.5">
+            <SortableHeaderCell
+              label="Category"
+              sortKey="category"
+              currentSort={currentSort}
+              currentDir={currentDir}
+              onSort={handleSort}
+            />
+            <HeaderFilterPopover
+              label="categories"
+              value={searchParams.get("category") ?? ""}
+              onChange={(v) => setFilterParams({ category: v || null })}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            />
+          </div>
         </th>
-        <th className={`${thClass} text-right`}>
-          <SortableHeaderCell
-            label="Net"
-            sortKey="net"
-            currentSort={currentSort}
-            currentDir={currentDir}
-            align="right"
-            onSort={handleSort}
-          />
+        <th className={thClass}>
+          <div className="flex items-center gap-1.5">
+            <SortableHeaderCell
+              label="Entity"
+              sortKey="entity"
+              currentSort={currentSort}
+              currentDir={currentDir}
+              onSort={handleSort}
+            />
+            <HeaderFilterPopover
+              label="entities"
+              value={searchParams.get("entity") ?? ""}
+              onChange={(v) => setFilterParams({ entity: v || null })}
+              options={entities.map((e) => ({ value: e.id, label: e.name }))}
+            />
+          </div>
+        </th>
+        <th className={thClass}>
+          <div className="flex items-center gap-1.5">
+            <SortableHeaderCell
+              label="Description"
+              sortKey="description"
+              currentSort={currentSort}
+              currentDir={currentDir}
+              onSort={handleSort}
+            />
+            <HeaderTextFilterPopover label="description" paramKey="q" />
+          </div>
         </th>
         <th className={`${thClass} text-right`}>
           <div className="flex items-center justify-end gap-1.5">
-            <HeaderFilterPopover
-              label="rates"
-              value={searchParams.get("vat") ?? ""}
-              onChange={(v) => setFilterParams({ vat: v || null })}
+            <HeaderNumberRangeFilterPopover
+              label="net"
+              minParamKey="net_min"
+              maxParamKey="net_max"
               align="right"
-              options={vatRates.map((v) => ({
-                value: v.id,
-                label: `${v.name} (${v.rate}%)`,
-              }))}
             />
             <SortableHeaderCell
-              label="VAT"
-              sortKey="vat"
+              label="Net"
+              sortKey="net"
               currentSort={currentSort}
               currentDir={currentDir}
               align="right"
@@ -144,24 +143,40 @@ export function TransactionTableHeader({
           </div>
         </th>
         <th className={`${thClass} text-right`}>
-          <SortableHeaderCell
-            label="VAT Amount"
-            sortKey="vat_amount"
-            currentSort={currentSort}
-            currentDir={currentDir}
-            align="right"
-            onSort={handleSort}
-          />
+          <div className="flex items-center justify-end gap-1.5">
+            <HeaderNumberRangeFilterPopover
+              label="VAT"
+              minParamKey="vat_amount_min"
+              maxParamKey="vat_amount_max"
+              align="right"
+            />
+            <SortableHeaderCell
+              label="VAT"
+              sortKey="vat_amount"
+              currentSort={currentSort}
+              currentDir={currentDir}
+              align="right"
+              onSort={handleSort}
+            />
+          </div>
         </th>
         <th className={`${thClass} text-right`}>
-          <SortableHeaderCell
-            label="Total"
-            sortKey="total"
-            currentSort={currentSort}
-            currentDir={currentDir}
-            align="right"
-            onSort={handleSort}
-          />
+          <div className="flex items-center justify-end gap-1.5">
+            <HeaderNumberRangeFilterPopover
+              label="total"
+              minParamKey="total_min"
+              maxParamKey="total_max"
+              align="right"
+            />
+            <SortableHeaderCell
+              label="Total"
+              sortKey="total"
+              currentSort={currentSort}
+              currentDir={currentDir}
+              align="right"
+              onSort={handleSort}
+            />
+          </div>
         </th>
         <th className={thClass}></th>
       </tr>

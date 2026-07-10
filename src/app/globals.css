@@ -31,6 +31,8 @@
   --expense-soft: #fbeae7;
   --transfer: #7c6ac7;
   --transfer-soft: #f0edfb;
+  --success: #1f9d55;
+  --success-soft: #e2f6e9;
   --focus-ring: #2e7d8c;
   --shadow-card: 0 1px 2px rgba(35, 42, 58, 0.04), 0 1px 1px rgba(35, 42, 58, 0.03);
   --shadow-pop: 0 8px 24px rgba(35, 42, 58, 0.14), 0 2px 6px rgba(35, 42, 58, 0.07);
@@ -60,6 +62,8 @@
     --expense-soft: #2f211f;
     --transfer: #a79bd1;
     --transfer-soft: #262138;
+    --success: #4cbd7c;
+    --success-soft: #1a2e21;
     --focus-ring: #7fb4c0;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-pop: 0 12px 28px rgba(0, 0, 0, 0.45);
@@ -86,6 +90,8 @@
   --expense-soft: #2f211f;
   --transfer: #a79bd1;
   --transfer-soft: #262138;
+  --success: #4cbd7c;
+  --success-soft: #1a2e21;
   --focus-ring: #7fb4c0;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-pop: 0 12px 28px rgba(0, 0, 0, 0.45);
@@ -111,6 +117,8 @@
   --expense-soft: #fbeae7;
   --transfer: #7c6ac7;
   --transfer-soft: #f0edfb;
+  --success: #1f9d55;
+  --success-soft: #e2f6e9;
   --focus-ring: #2e7d8c;
   --shadow-card: 0 1px 2px rgba(35, 42, 58, 0.04), 0 1px 1px rgba(35, 42, 58, 0.03);
   --shadow-pop: 0 8px 24px rgba(35, 42, 58, 0.14), 0 2px 6px rgba(35, 42, 58, 0.07);
@@ -138,6 +146,8 @@
   --color-expense-soft: var(--expense-soft);
   --color-transfer: var(--transfer);
   --color-transfer-soft: var(--transfer-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --font-sans: var(--font-body-family);
   --font-display: var(--font-display-family);
 }

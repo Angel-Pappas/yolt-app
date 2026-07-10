@@ -26,7 +26,7 @@ export function ReconcileButton({
         }
         className={`rounded-md p-1.5 transition ${
           transaction.is_reconciled
-            ? "text-accent hover:bg-accent-soft"
+            ? "text-success hover:bg-success-soft"
             : "text-ink-faint hover:bg-canvas hover:text-ink"
         }`}
       >

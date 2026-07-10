@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { TablePagination } from "@/components/table/pagination";
+import { parseSortParam } from "@/components/table/parse-sort-param";
+import { parseNumberParam } from "@/lib/parse-params";
 import { addWallet } from "./actions";
-import { WALLET_SORT_KEYS, getWalletsList, type WalletSortDir, type WalletSortKey } from "./queries";
+import { WALLET_SORT_KEYS, getWalletsList } from "./queries";
 import { WalletModal } from "./wallet-modal";
 import { WalletRow } from "./wallet-row";
 import { WalletTableHeader } from "./wallet-table-header";
@@ -16,15 +18,6 @@ function getParam(searchParams: RawSearchParams, key: string): string | undefine
   return typeof value === "string" ? value : undefined;
 }
 
-function parseSort(searchParams: RawSearchParams): { sort: WalletSortKey; dir: WalletSortDir } {
-  const sortParam = getParam(searchParams, "sort");
-  const sort = WALLET_SORT_KEYS.includes(sortParam as WalletSortKey)
-    ? (sortParam as WalletSortKey)
-    : "name";
-  const dir: WalletSortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
-  return { sort, dir };
-}
-
 export default async function WalletsPage({
   searchParams,
 }: {
@@ -33,15 +26,21 @@ export default async function WalletsPage({
   const supabase = await createClient();
   const rawParams = await searchParams;
   const search = getParam(rawParams, "q")?.trim();
-  const { sort, dir } = parseSort(rawParams);
+  const { sort, dir } = parseSortParam(
+    getParam(rawParams, "sort"),
+    getParam(rawParams, "dir"),
+    WALLET_SORT_KEYS
+  );
+  const balanceMin = parseNumberParam(getParam(rawParams, "balance_min"));
+  const balanceMax = parseNumberParam(getParam(rawParams, "balance_max"));
 
   const rawPage = Number(getParam(rawParams, "page"));
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
 
+  const listParams = { search, sort, dir, balanceMin, balanceMax };
+
   let { wallets, totalCount } = await getWalletsList(supabase, {
-    search,
-    sort,
-    dir,
+    ...listParams,
     page: requestedPage,
     pageSize: PAGE_SIZE,
   });
@@ -51,9 +50,7 @@ export default async function WalletsPage({
   if (requestedPage > totalPages) {
     page = totalPages;
     ({ wallets, totalCount } = await getWalletsList(supabase, {
-      search,
-      sort,
-      dir,
+      ...listParams,
       page,
       pageSize: PAGE_SIZE,
     }));

@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { TablePagination } from "@/components/table/pagination";
+import { parseSortParam } from "@/components/table/parse-sort-param";
 import { addEntity } from "./actions";
-import { ENTITY_SORT_KEYS, getEntitiesList, type EntitySortDir, type EntitySortKey } from "./queries";
+import { ENTITY_SORT_KEYS, getEntitiesList } from "./queries";
 import { EntityModal } from "./entity-modal";
 import { EntityRow } from "./entity-row";
 import { EntityTableHeader } from "./entity-table-header";
@@ -16,15 +17,6 @@ function getParam(searchParams: RawSearchParams, key: string): string | undefine
   return typeof value === "string" ? value : undefined;
 }
 
-function parseSort(searchParams: RawSearchParams): { sort: EntitySortKey; dir: EntitySortDir } {
-  const sortParam = getParam(searchParams, "sort");
-  const sort = ENTITY_SORT_KEYS.includes(sortParam as EntitySortKey)
-    ? (sortParam as EntitySortKey)
-    : "name";
-  const dir: EntitySortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
-  return { sort, dir };
-}
-
 export default async function EntitiesPage({
   searchParams,
 }: {
@@ -33,7 +25,11 @@ export default async function EntitiesPage({
   const supabase = await createClient();
   const rawParams = await searchParams;
   const search = getParam(rawParams, "q")?.trim();
-  const { sort, dir } = parseSort(rawParams);
+  const { sort, dir } = parseSortParam(
+    getParam(rawParams, "sort"),
+    getParam(rawParams, "dir"),
+    ENTITY_SORT_KEYS
+  );
 
   const rawPage = Number(getParam(rawParams, "page"));
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;

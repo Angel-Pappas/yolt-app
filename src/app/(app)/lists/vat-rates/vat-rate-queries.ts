@@ -27,11 +27,20 @@ export type VatRateSortDir = "asc" | "desc";
 export const VAT_RATE_SORT_KEYS: VatRateSortKey[] = ["name", "rate"];
 
 export type VatRateListParams = {
+  /** Matched against name — no toolbar search box on this page (short, rarely-changed list), only reachable via the Name column's header filter. */
+  search?: string;
   sort?: VatRateSortKey;
   dir?: VatRateSortDir;
+  rateMin?: number;
+  rateMax?: number;
   page?: number;
   pageSize?: number;
 };
+
+/** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
+function escapeLikePattern(value: string): string {
+  return value.replace(/[%_]/g, (match) => `\\${match}`);
+}
 
 export type VatRateListResult = {
   vatRates: VatRate[];
@@ -58,6 +67,16 @@ export async function getVatRatesList(
     .from("vat_rates")
     .select("id, name, rate", { count: "exact" })
     .eq("is_deleted", false);
+
+  if (params.search) {
+    query = query.ilike("name", `%${escapeLikePattern(params.search)}%`);
+  }
+  if (params.rateMin !== undefined) {
+    query = query.gte("rate", params.rateMin);
+  }
+  if (params.rateMax !== undefined) {
+    query = query.lte("rate", params.rateMax);
+  }
 
   query = query.order(sort, { ascending: dir === "asc" });
   if (sort !== "rate") {

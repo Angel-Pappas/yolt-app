@@ -1,14 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
+import { parseSortParam } from "@/components/table/parse-sort-param";
 import { addCategory } from "./actions";
-import {
-  CATEGORY_SORT_KEYS,
-  getCategoriesList,
-  type CategorySortDir,
-  type CategorySortKey,
-  type CategoryType,
-} from "./queries";
+import { CATEGORY_SORT_KEYS, getCategoriesList, type CategoryType } from "./queries";
 import { CategoryModal } from "./category-modal";
 import { CategoryRow } from "./category-row";
 import { CategoryTableHeader } from "./category-table-header";
@@ -21,15 +16,6 @@ type RawSearchParams = Record<string, string | string[] | undefined>;
 function getParam(searchParams: RawSearchParams, key: string): string | undefined {
   const value = searchParams[key];
   return typeof value === "string" ? value : undefined;
-}
-
-function parseSort(searchParams: RawSearchParams): { sort: CategorySortKey; dir: CategorySortDir } {
-  const sortParam = getParam(searchParams, "sort");
-  const sort = CATEGORY_SORT_KEYS.includes(sortParam as CategorySortKey)
-    ? (sortParam as CategorySortKey)
-    : "name";
-  const dir: CategorySortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
-  return { sort, dir };
 }
 
 export default async function CategoriesPage({
@@ -45,7 +31,11 @@ export default async function CategoriesPage({
     typeParam && CATEGORY_TYPES.includes(typeParam as CategoryType)
       ? (typeParam as CategoryType)
       : undefined;
-  const { sort, dir } = parseSort(rawParams);
+  const { sort, dir } = parseSortParam(
+    getParam(rawParams, "sort"),
+    getParam(rawParams, "dir"),
+    CATEGORY_SORT_KEYS
+  );
 
   const rawPage = Number(getParam(rawParams, "page"));
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;

@@ -71,6 +71,11 @@ export function PlusIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Redesigned 2026-07 to visually match SortIcon (both are minimal 2-part
+ * line marks) rather than the previous 3-bar funnel — a "sliders" glyph:
+ * two horizontal tracks with a filled handle on each.
+ */
 export function FilterIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -82,7 +87,102 @@ export function FilterIcon({ className }: { className?: string }) {
       className={className}
       aria-hidden="true"
     >
-      <path d="M4 5h16M7 12h10M10 19h4" />
+      <path d="M4 7h16" />
+      <path d="M4 17h16" />
+      <circle cx="9" cy="7" r="2.25" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="17" r="2.25" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/**
+ * The tri-state sort indicator — up/down chevrons that are *always*
+ * rendered (per explicit user direction), with the inactive direction
+ * dimmed via opacity rather than removed. `state` "none" dims both evenly
+ * (unsorted); "asc"/"desc" brightens the matching arrow and dims the other.
+ * Color (active vs inactive column) is left to the caller via `currentColor`.
+ */
+export function SortIcon({
+  state,
+  className,
+}: {
+  state: "asc" | "desc" | "none";
+  className?: string;
+}) {
+  const upOpacity = state === "desc" ? 0.3 : state === "asc" ? 1 : 0.55;
+  const downOpacity = state === "asc" ? 0.3 : state === "desc" ? 1 : 0.55;
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m7 10 5-5 5 5" opacity={upOpacity} />
+      <path d="m7 14 5 5 5-5" opacity={downOpacity} />
+    </svg>
+  );
+}
+
+/** Transaction Type column icon (income) — replaces the old text pill. */
+export function IncomeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 19V5" />
+      <path d="m6 11 6-6 6 6" />
+    </svg>
+  );
+}
+
+/** Transaction Type column icon (expense) — replaces the old text pill. */
+export function ExpenseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 5v14" />
+      <path d="m6 13 6 6 6-6" />
+    </svg>
+  );
+}
+
+/** Transaction Type column icon (transfer) — replaces the old text pill. */
+export function TransferIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M4 8h13" />
+      <path d="m13 4 4 4-4 4" />
+      <path d="M20 16H7" />
+      <path d="m11 12-4 4 4 4" />
     </svg>
   );
 }

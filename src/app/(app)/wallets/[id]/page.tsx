@@ -3,18 +3,19 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
-import {
-  WALLET_LEDGER_SORT_KEYS,
-  getWalletLedger,
-  type WalletLedgerSortDir,
-  type WalletLedgerSortKey,
-} from "../queries";
+import { parseSortParam } from "@/components/table/parse-sort-param";
+import { parseNumberParam } from "@/lib/parse-params";
+import { WALLET_LEDGER_SORT_KEYS, getWalletLedger } from "../queries";
+import { getActiveEntities } from "../../entities/queries";
+import { getActiveCategories } from "../../lists/categories/queries";
 import type { TransactionType } from "../../transactions/queries";
 import { WalletLedgerTableHeader } from "./wallet-ledger-table-header";
 import { WalletLedgerRow } from "./wallet-ledger-row";
 
 const PAGE_SIZE = 25;
 const TRANSACTION_TYPES: TransactionType[] = ["income", "expense", "transfer"];
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -22,18 +23,6 @@ type RawSearchParams = Record<string, string | string[] | undefined>;
 function getParam(searchParams: RawSearchParams, key: string): string | undefined {
   const value = searchParams[key];
   return typeof value === "string" ? value : undefined;
-}
-
-function parseSort(searchParams: RawSearchParams): {
-  sort: WalletLedgerSortKey;
-  dir: WalletLedgerSortDir;
-} {
-  const sortParam = getParam(searchParams, "sort");
-  const sort = WALLET_LEDGER_SORT_KEYS.includes(sortParam as WalletLedgerSortKey)
-    ? (sortParam as WalletLedgerSortKey)
-    : "date";
-  const dir: WalletLedgerSortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
-  return { sort, dir };
 }
 
 export default async function WalletLedgerPage({
@@ -64,20 +53,48 @@ export default async function WalletLedgerPage({
     typeParam && TRANSACTION_TYPES.includes(typeParam as TransactionType)
       ? (typeParam as TransactionType)
       : undefined;
+  const entityParam = getParam(rawParams, "entity");
+  const entityId = entityParam && UUID_RE.test(entityParam) ? entityParam : undefined;
+  const categoryParam = getParam(rawParams, "category");
+  const categoryId = categoryParam && UUID_RE.test(categoryParam) ? categoryParam : undefined;
   const fromParam = getParam(rawParams, "from");
   const toParam = getParam(rawParams, "to");
   const dateFrom = fromParam && DATE_RE.test(fromParam) ? fromParam : undefined;
   const dateTo = toParam && DATE_RE.test(toParam) ? toParam : undefined;
-  const { sort, dir } = parseSort(rawParams);
+  const amountMin = parseNumberParam(getParam(rawParams, "amount_min"));
+  const amountMax = parseNumberParam(getParam(rawParams, "amount_max"));
+  const balanceMin = parseNumberParam(getParam(rawParams, "balance_min"));
+  const balanceMax = parseNumberParam(getParam(rawParams, "balance_max"));
+  const { sort, dir } = parseSortParam(
+    getParam(rawParams, "sort"),
+    getParam(rawParams, "dir"),
+    WALLET_LEDGER_SORT_KEYS
+  );
 
   const rawPage = Number(getParam(rawParams, "page"));
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
 
-  const ledgerParams = { search, type, dateFrom, dateTo, sort, dir, pageSize: PAGE_SIZE };
-  let { entries, totalCount } = await getWalletLedger(supabase, id, {
-    ...ledgerParams,
-    page: requestedPage,
-  });
+  const ledgerParams = {
+    search,
+    type,
+    entityId,
+    categoryId,
+    dateFrom,
+    dateTo,
+    amountMin,
+    amountMax,
+    balanceMin,
+    balanceMax,
+    sort,
+    dir,
+    pageSize: PAGE_SIZE,
+  };
+  const [ledgerResult, { data: entities }, { data: categories }] = await Promise.all([
+    getWalletLedger(supabase, id, { ...ledgerParams, page: requestedPage }),
+    getActiveEntities(supabase),
+    getActiveCategories(supabase),
+  ]);
+  let { entries, totalCount } = ledgerResult;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   let page = requestedPage;
 
@@ -89,7 +106,18 @@ export default async function WalletLedgerPage({
     }));
   }
 
-  const hasActiveFilters = Boolean(search || type || dateFrom || dateTo);
+  const hasActiveFilters = Boolean(
+    search ||
+      type ||
+      entityId ||
+      categoryId ||
+      dateFrom ||
+      dateTo ||
+      amountMin !== undefined ||
+      amountMax !== undefined ||
+      balanceMin !== undefined ||
+      balanceMax !== undefined
+  );
 
   return (
     <div className="flex w-full flex-1 flex-col gap-6 p-6">
@@ -110,14 +138,14 @@ export default async function WalletLedgerPage({
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <WalletLedgerTableHeader />
+            <WalletLedgerTableHeader entities={entities ?? []} categories={categories ?? []} />
             <tbody>
               {entries.map((e) => (
                 <WalletLedgerRow key={e.id} entry={e} />
               ))}
               {totalCount === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-faint">
                     {hasActiveFilters
                       ? "No transactions match these filters."
                       : "No transactions for this wallet yet."}

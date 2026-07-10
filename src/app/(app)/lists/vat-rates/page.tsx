@@ -1,13 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
+import { parseSortParam } from "@/components/table/parse-sort-param";
+import { parseNumberParam } from "@/lib/parse-params";
 import { addVatRate } from "./vat-rate-actions";
-import {
-  VAT_RATE_SORT_KEYS,
-  getVatRatesList,
-  type VatRateSortDir,
-  type VatRateSortKey,
-} from "./vat-rate-queries";
+import { VAT_RATE_SORT_KEYS, getVatRatesList } from "./vat-rate-queries";
 import { VatRateModal } from "./vat-rate-modal";
 import { VatRateRow } from "./vat-rate-row";
 import { VatRateTableHeader } from "./vat-rate-table-header";
@@ -21,15 +18,6 @@ function getParam(searchParams: RawSearchParams, key: string): string | undefine
   return typeof value === "string" ? value : undefined;
 }
 
-function parseSort(searchParams: RawSearchParams): { sort: VatRateSortKey; dir: VatRateSortDir } {
-  const sortParam = getParam(searchParams, "sort");
-  const sort = VAT_RATE_SORT_KEYS.includes(sortParam as VatRateSortKey)
-    ? (sortParam as VatRateSortKey)
-    : "rate";
-  const dir: VatRateSortDir = getParam(searchParams, "dir") === "desc" ? "desc" : "asc";
-  return { sort, dir };
-}
-
 export default async function VatRatesPage({
   searchParams,
 }: {
@@ -37,14 +25,22 @@ export default async function VatRatesPage({
 }) {
   const supabase = await createClient();
   const rawParams = await searchParams;
-  const { sort, dir } = parseSort(rawParams);
+  const { sort, dir } = parseSortParam(
+    getParam(rawParams, "sort"),
+    getParam(rawParams, "dir"),
+    VAT_RATE_SORT_KEYS
+  );
+  const search = getParam(rawParams, "q")?.trim();
+  const rateMin = parseNumberParam(getParam(rawParams, "rate_min"));
+  const rateMax = parseNumberParam(getParam(rawParams, "rate_max"));
 
   const rawPage = Number(getParam(rawParams, "page"));
   const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
 
+  const listParams = { search, sort, dir, rateMin, rateMax };
+
   let { vatRates, totalCount } = await getVatRatesList(supabase, {
-    sort,
-    dir,
+    ...listParams,
     page: requestedPage,
     pageSize: PAGE_SIZE,
   });
@@ -54,8 +50,7 @@ export default async function VatRatesPage({
   if (requestedPage > totalPages) {
     page = totalPages;
     ({ vatRates, totalCount } = await getVatRatesList(supabase, {
-      sort,
-      dir,
+      ...listParams,
       page,
       pageSize: PAGE_SIZE,
     }));
@@ -86,7 +81,9 @@ export default async function VatRatesPage({
               {totalCount === 0 && (
                 <tr>
                   <td colSpan={3} className="px-4 py-10 text-center text-sm text-ink-faint">
-                    No VAT rates yet.
+                    {search || rateMin !== undefined || rateMax !== undefined
+                      ? "No VAT rates match these filters."
+                      : "No VAT rates yet."}
                   </td>
                 </tr>
               )}
