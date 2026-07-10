@@ -32,6 +32,7 @@ type TransactionFormDialogProps = {
   vatRates: VatRate[];
   defaultValues?: {
     date: string;
+    invoice_date: string;
     description: string;
     type: TransactionType;
     net: string;
@@ -67,6 +68,19 @@ export function TransactionFormDialog({
   const [type, setType] = useState<TransactionType>(
     defaultValues?.type ?? "income"
   );
+  const [date, setDate] = useState(
+    defaultValues?.date ?? new Date().toISOString().slice(0, 10)
+  );
+  const [invoiceDate, setInvoiceDate] = useState(
+    defaultValues?.invoice_date ?? date
+  );
+  // Once the user edits Invoice date directly, it stops following Date —
+  // preserved across an edit re-open by checking whether the saved values
+  // already diverged, so an existing deliberate divergence doesn't get
+  // silently re-synced just because Date is touched again in this session.
+  const [invoiceDateTouched, setInvoiceDateTouched] = useState(
+    defaultValues ? defaultValues.invoice_date !== defaultValues.date : false
+  );
   const [net, setNet] = useState(defaultValues?.net ?? "");
   const [vatRateId, setVatRateId] = useState(
     defaultValues?.vat_rate_id ?? vatRates[0]?.id ?? ""
@@ -92,6 +106,18 @@ export function TransactionFormDialog({
 
   const sameWalletError =
     isTransfer && walletId && toWalletId && walletId === toWalletId;
+
+  function handleDateChange(value: string) {
+    setDate(value);
+    if (!invoiceDateTouched) {
+      setInvoiceDate(value);
+    }
+  }
+
+  function handleInvoiceDateChange(value: string) {
+    setInvoiceDate(value);
+    setInvoiceDateTouched(true);
+  }
 
   return (
     <ModalShell
@@ -161,9 +187,23 @@ export function TransactionFormDialog({
           name="date"
           type="date"
           required
-          defaultValue={
-            defaultValues?.date ?? new Date().toISOString().slice(0, 10)
-          }
+          value={date}
+          onChange={(e) => handleDateChange(e.target.value)}
+          className={`${formInputClass} [color-scheme:light]`}
+        />
+      </div>
+
+      <div>
+        <label htmlFor={`${uid}-invoice-date`} className={formLabelClass}>
+          Invoice date
+        </label>
+        <input
+          id={`${uid}-invoice-date`}
+          name="invoice_date"
+          type="date"
+          required
+          value={invoiceDate}
+          onChange={(e) => handleInvoiceDateChange(e.target.value)}
           className={`${formInputClass} [color-scheme:light]`}
         />
       </div>

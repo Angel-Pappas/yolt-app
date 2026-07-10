@@ -27,3 +27,24 @@ export function formatAmount(value: number | string): string {
 export function computeTotal(net: number | string, vatAmount: number | string): number {
   return Number(net) + Number(vatAmount);
 }
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** Expects a "yyyy-mm" tax-period key (see taxes/queries.ts) and renders e.g. "July 2026". */
+export function formatMonthYear(period: string): string {
+  const [year, month] = period.split("-");
+  return `${MONTH_NAMES[Number(month) - 1]} ${year}`;
+}

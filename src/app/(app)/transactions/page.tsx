@@ -51,6 +51,8 @@ function parseFilters(searchParams: RawSearchParams): TransactionFilters {
   const category = getParam(searchParams, "category");
   const from = getParam(searchParams, "from");
   const to = getParam(searchParams, "to");
+  const invoiceFrom = getParam(searchParams, "invoice_from");
+  const invoiceTo = getParam(searchParams, "invoice_to");
 
   return {
     search: search || undefined,
@@ -63,6 +65,8 @@ function parseFilters(searchParams: RawSearchParams): TransactionFilters {
     categoryId: category && UUID_RE.test(category) ? category : undefined,
     dateFrom: from && DATE_RE.test(from) ? from : undefined,
     dateTo: to && DATE_RE.test(to) ? to : undefined,
+    invoiceDateFrom: invoiceFrom && DATE_RE.test(invoiceFrom) ? invoiceFrom : undefined,
+    invoiceDateTo: invoiceTo && DATE_RE.test(invoiceTo) ? invoiceTo : undefined,
     netMin: parseNumberParam(getParam(searchParams, "net_min")),
     netMax: parseNumberParam(getParam(searchParams, "net_max")),
     vatAmountMin: parseNumberParam(getParam(searchParams, "vat_amount_min")),
@@ -122,6 +126,8 @@ export default async function TransactionsPage({
         categoryId: filters.categoryId,
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
+        invoiceDateFrom: filters.invoiceDateFrom,
+        invoiceDateTo: filters.invoiceDateTo,
         netMin: filters.netMin,
         netMax: filters.netMax,
         vatAmountMin: filters.vatAmountMin,

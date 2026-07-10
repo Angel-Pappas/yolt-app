@@ -3,7 +3,7 @@
 import { useDialog } from "@/components/dialog/use-dialog";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
-import { IncomeIcon, ExpenseIcon, TransferIcon } from "@/components/icons";
+import { IncomeIcon, ExpenseIcon, TransferIcon, InvoiceIcon } from "@/components/icons";
 import { computeTotal, formatAmount, formatDate } from "@/lib/format";
 import { deleteTransaction, updateTransaction } from "./actions";
 import { TransactionFormDialog } from "./transaction-form-dialog";
@@ -65,7 +65,17 @@ export function TransactionRow({
         </span>
       </td>
       <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted">
-        {formatDate(transaction.date)}
+        {transaction.invoice_date !== transaction.date ? (
+          <span className="flex flex-col gap-0.5 leading-none">
+            <span>{formatDate(transaction.date)}</span>
+            <span className="inline-flex items-center gap-1 text-[11px] leading-none text-ink-faint">
+              <InvoiceIcon className="h-2.5 w-2.5" />
+              {formatDate(transaction.invoice_date)}
+            </span>
+          </span>
+        ) : (
+          formatDate(transaction.date)
+        )}
       </td>
       {!balanceMode && (
         <td className="px-4 py-3 text-sm whitespace-nowrap text-ink">
@@ -124,6 +134,7 @@ export function TransactionRow({
           vatRates={vatRates}
           defaultValues={{
             date: transaction.date,
+            invoice_date: transaction.invoice_date,
             description: transaction.description,
             type: transaction.type,
             net: transaction.net,

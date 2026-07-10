@@ -6,6 +6,14 @@ export type TransactionType = "income" | "expense" | "transfer";
 export type Transaction = {
   id: string;
   date: string;
+  /**
+   * When the invoice was issued — may differ from `date` (when the money
+   * actually moved). Drives which month's tax period this transaction
+   * belongs to (see taxes/queries.ts); defaults to `date` at save time and
+   * isn't kept in sync afterward. Not shown as its own column — the Date
+   * cell stacks it beneath `date` only when the two differ.
+   */
+  invoice_date: string;
   description: string;
   type: TransactionType;
   net: string;
@@ -38,6 +46,9 @@ export type TransactionFilters = {
   /** Inclusive, ISO "yyyy-mm-dd". */
   dateFrom?: string;
   dateTo?: string;
+  /** Filters on invoice_date rather than date — used by the Taxes page's monthly drill-down links. Inclusive, ISO "yyyy-mm-dd". */
+  invoiceDateFrom?: string;
+  invoiceDateTo?: string;
   netMin?: number;
   netMax?: number;
   vatAmountMin?: number;
@@ -120,6 +131,7 @@ function escapeLikePattern(value: string): string {
 type TransactionsExpandedRow = {
   id: string;
   date: string;
+  invoice_date: string;
   description: string;
   type: TransactionType;
   net: string;
@@ -144,6 +156,7 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
   return {
     id: row.id,
     date: row.date,
+    invoice_date: row.invoice_date,
     description: row.description,
     type: row.type,
     net: row.net,
@@ -230,6 +243,12 @@ export async function getActiveTransactions(
   }
   if (filters.dateTo) {
     query = query.lte("date", filters.dateTo);
+  }
+  if (filters.invoiceDateFrom) {
+    query = query.gte("invoice_date", filters.invoiceDateFrom);
+  }
+  if (filters.invoiceDateTo) {
+    query = query.lte("invoice_date", filters.invoiceDateTo);
   }
   if (filters.netMin !== undefined) {
     query = query.gte("net", filters.netMin);
@@ -363,6 +382,12 @@ export async function getWalletTransactionsWithBalance(
   }
   if (filters.dateTo) {
     filtered = filtered.filter((t) => t.date <= filters.dateTo!);
+  }
+  if (filters.invoiceDateFrom) {
+    filtered = filtered.filter((t) => t.invoice_date >= filters.invoiceDateFrom!);
+  }
+  if (filters.invoiceDateTo) {
+    filtered = filtered.filter((t) => t.invoice_date <= filters.invoiceDateTo!);
   }
   if (filters.netMin !== undefined) {
     filtered = filtered.filter((t) => Number(t.net) >= filters.netMin!);

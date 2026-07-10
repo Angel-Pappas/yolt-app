@@ -99,6 +99,7 @@ export type Database = {
           description: string
           entity_id: string | null
           id: string
+          invoice_date: string
           invoice_month: number | null
           is_deleted: boolean
           is_reconciled: boolean
@@ -118,6 +119,7 @@ export type Database = {
           description: string
           entity_id?: string | null
           id?: string
+          invoice_date: string
           invoice_month?: number | null
           is_deleted?: boolean
           is_reconciled?: boolean
@@ -137,6 +139,7 @@ export type Database = {
           description?: string
           entity_id?: string | null
           id?: string
+          invoice_date?: string
           invoice_month?: number | null
           is_deleted?: boolean
           is_reconciled?: boolean
@@ -255,6 +258,7 @@ export type Database = {
           entity_id: string | null
           entity_name: string | null
           id: string | null
+          invoice_date: string | null
           invoice_month: number | null
           is_deleted: boolean | null
           is_reconciled: boolean | null

@@ -68,6 +68,7 @@ async function resolveCategoryId(
 
 type TransactionFields = {
   date: string;
+  invoice_date: string;
   description: string;
   type: TransactionType;
   net: number;
@@ -97,6 +98,7 @@ async function resolveFields(
   if (input.type === "transfer") {
     return {
       date: input.date,
+      invoice_date: input.invoice_date,
       description: input.description,
       type: input.type,
       net: input.net,
@@ -116,6 +118,7 @@ async function resolveFields(
 
   return {
     date: input.date,
+    invoice_date: input.invoice_date,
     description: input.description,
     type: input.type,
     net: input.net,

@@ -10,6 +10,7 @@ function optionalUuid(message: string) {
 
 const incomeExpenseFields = {
   date: z.iso.date("Invalid date"),
+  invoice_date: z.iso.date("Invalid invoice date"),
   description: z.string().trim().min(1, "Description is required"),
   net: z.coerce.number().min(0, "Net must be zero or greater"),
   entity_id: optionalUuid("Invalid entity"),
@@ -23,6 +24,7 @@ const expenseSchema = z.object({ type: z.literal("expense"), ...incomeExpenseFie
 const transferSchema = z.object({
   type: z.literal("transfer"),
   date: z.iso.date("Invalid date"),
+  invoice_date: z.iso.date("Invalid invoice date"),
   description: z.string().trim().min(1, "Description is required"),
   net: z.coerce.number().min(0, "Amount must be zero or greater"),
   wallet_id: z.uuid("Choose a from wallet"),

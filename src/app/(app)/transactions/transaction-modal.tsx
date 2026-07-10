@@ -21,6 +21,7 @@ type TransactionModalProps = {
   vatRates: VatRate[];
   defaultValues?: {
     date: string;
+    invoice_date: string;
     description: string;
     type: TransactionType;
     net: string;
