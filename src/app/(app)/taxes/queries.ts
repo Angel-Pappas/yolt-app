@@ -1,25 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/**
- * VAT owed is never stored — it's a live aggregate over transactions, so
- * it can never drift out of sync as transactions are added, edited,
- * deleted, or restored. When other tax types are added later, each gets
- * its own aggregate computed the same way.
- */
-export async function getTotalVat(supabase: SupabaseClient): Promise<number> {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("vat_amount")
-    .eq("is_deleted", false)
-    .returns<{ vat_amount: string }[]>();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return (data ?? []).reduce((sum, row) => sum + Number(row.vat_amount), 0);
-}
-
 export type MonthlyVat = {
   /** "yyyy-mm" */
   period: string;
@@ -86,4 +66,17 @@ export async function getMonthlyVat(supabase: SupabaseClient): Promise<MonthlyVa
       net: outputVat - inputVat,
     }))
     .sort((a, b) => b.period.localeCompare(a.period));
+}
+
+/** The current "yyyy-mm" period, server clock. */
+export function currentPeriod(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+/** The "yyyy-mm" period immediately before the given one. */
+export function previousPeriod(period: string): string {
+  const [year, month] = period.split("-").map(Number);
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  return `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
 }
