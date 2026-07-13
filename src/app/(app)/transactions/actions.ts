@@ -5,12 +5,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { formDataToRecord } from "@/lib/form-data";
 import { parseOrThrow } from "@/lib/validation";
+import { round2 } from "@/lib/format";
 import { invoiceMonthSchema, reconcileSchema, transactionSchema } from "./schema";
 import type { TransactionType } from "./queries";
-
-function round2(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
 
 /**
  * VAT amount is computed and stored server-side from the rate's current

@@ -28,6 +28,11 @@ export function computeTotal(net: number | string, vatAmount: number | string): 
   return Number(net) + Number(vatAmount);
 }
 
+/** Rounds to exactly 2 decimals, avoiding float artifacts like 0.1 + 0.2. Shared by the transaction form's client-side net/total math and the server's VAT computation, so both round the same way. */
+export function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 const MONTH_NAMES = [
   "January",
   "February",

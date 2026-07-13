@@ -181,7 +181,6 @@ export default async function TransactionsPage({
             <TransactionModal
               trigger="Add transaction"
               title="Add transaction"
-              submitLabel="Add"
               entities={entities ?? []}
               categories={categories ?? []}
               wallets={wallets ?? []}
