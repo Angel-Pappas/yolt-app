@@ -4,6 +4,7 @@ import ExcelJS from "exceljs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { round2 } from "@/lib/format";
+import { resolveInvoiceMonthInput } from "../invoice-month";
 
 type TxType = "income" | "expense";
 
@@ -22,6 +23,7 @@ export type ResolvedImportRow = {
   vatRate: number;
   vatAmount: number;
   invoiceMonth: number | null;
+  invoiceNotRequired: boolean;
 };
 
 export type ImportPreview = {
@@ -210,13 +212,14 @@ export async function parseImportFile(formData: FormData): Promise<ImportPreview
       continue;
     }
 
-    // "-"/blank/0 all mean "not invoiced yet" (0 isn't a valid invoice_month
-    // — the DB constraint requires 1-12) — only a real 1-12 integer counts.
+    // "Bacon" uses the same 1-13 shape as the Invoice modal's own input
+    // (13 = "confirmed, no invoice needed") — reuse the exact same
+    // translation so the two stay in sync. Anything else (blank, "-", a
+    // stray 0 from before the user cleaned the file) resolves to neither.
     const baconRaw = get("Bacon");
-    const invoiceMonth =
-      typeof baconRaw === "number" && Number.isInteger(baconRaw) && baconRaw >= 1 && baconRaw <= 12
-        ? baconRaw
-        : null;
+    const baconNum = typeof baconRaw === "number" && Number.isInteger(baconRaw) ? baconRaw : null;
+    const { invoice_month: invoiceMonth, invoice_not_required: invoiceNotRequired } =
+      resolveInvoiceMonthInput(baconNum);
 
     const total = income != null ? income : (expense as number);
     const net = round2(total / (1 + vatRate / 100));
@@ -240,6 +243,7 @@ export async function parseImportFile(formData: FormData): Promise<ImportPreview
       vatRate,
       vatAmount,
       invoiceMonth,
+      invoiceNotRequired,
     });
   }
 
@@ -377,6 +381,7 @@ export async function commitImport(rows: ResolvedImportRow[]): Promise<{ importe
       vat_rate_id: mustGet(vatRateMap, String(r.vatRate), "VAT rate"),
       vat_amount: r.vatAmount,
       invoice_month: r.invoiceMonth,
+      invoice_not_required: r.invoiceNotRequired,
     }));
 
     const { data: inserted, error: insertError } = await supabase

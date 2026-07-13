@@ -156,6 +156,7 @@ export type Database = {
           id: string
           invoice_date: string
           invoice_month: number | null
+          invoice_not_required: boolean
           is_deleted: boolean
           is_reconciled: boolean
           net: number
@@ -176,6 +177,7 @@ export type Database = {
           id?: string
           invoice_date: string
           invoice_month?: number | null
+          invoice_not_required?: boolean
           is_deleted?: boolean
           is_reconciled?: boolean
           net: number
@@ -196,6 +198,7 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_month?: number | null
+          invoice_not_required?: boolean
           is_deleted?: boolean
           is_reconciled?: boolean
           net?: number
@@ -315,6 +318,7 @@ export type Database = {
           id: string | null
           invoice_date: string | null
           invoice_month: number | null
+          invoice_not_required: boolean | null
           is_deleted: boolean | null
           is_reconciled: boolean | null
           net: number | null

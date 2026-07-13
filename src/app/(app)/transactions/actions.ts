@@ -7,6 +7,7 @@ import { formDataToRecord } from "@/lib/form-data";
 import { parseOrThrow } from "@/lib/validation";
 import { round2 } from "@/lib/format";
 import { invoiceMonthSchema, reconcileSchema, transactionSchema } from "./schema";
+import { resolveInvoiceMonthInput } from "./invoice-month";
 import type { TransactionType } from "./queries";
 
 /**
@@ -336,7 +337,7 @@ export async function setInvoiceMonth(id: string, formData: FormData) {
 
   const { error } = await supabase
     .from("transactions")
-    .update({ invoice_month })
+    .update(resolveInvoiceMonthInput(invoice_month))
     .eq("id", id);
 
   if (error) {

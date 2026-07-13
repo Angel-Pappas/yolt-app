@@ -220,7 +220,14 @@ export function ReconcileIcon({ className }: { className?: string }) {
   );
 }
 
-export function InvoiceIcon({ className }: { className?: string }) {
+/** `notRequired` adds a diagonal strike-through — the Invoice button's third state ("confirmed, no invoice needed"), distinct from unlit ("not reviewed yet"). */
+export function InvoiceIcon({
+  className,
+  notRequired = false,
+}: {
+  className?: string;
+  notRequired?: boolean;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -234,6 +241,7 @@ export function InvoiceIcon({ className }: { className?: string }) {
     >
       <path d="M6 2h8l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
       <path d="M14 2v5h5" />
+      {notRequired && <path d="M4 20 20 4" />}
     </svg>
   );
 }

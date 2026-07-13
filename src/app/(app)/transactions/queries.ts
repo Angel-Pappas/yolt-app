@@ -25,8 +25,10 @@ export type Transaction = {
   to_wallet: { id: string; name: string } | null;
   vat_rate: { id: string; name: string; rate: string } | null;
   is_reconciled: boolean;
-  /** 1-12, or null if no invoice has been logged for this transaction yet. */
+  /** 1-12, or null if no invoice has been logged for this transaction yet — see invoice_not_required for the third "confirmed, no invoice needed" state. */
   invoice_month: number | null;
+  /** True only when the user has explicitly confirmed this transaction needs no invoice (e.g. payroll) — mutually exclusive with invoice_month being set (DB-enforced). Distinct from invoice_month being null, which just means "not reviewed yet." */
+  invoice_not_required: boolean;
   /**
    * The transaction's amount breakdown (transaction_vat_lines) — almost
    * always exactly one line mirroring net/vat_rate above, occasionally
@@ -160,6 +162,7 @@ type TransactionsExpandedRow = {
   vat_rate: string | null;
   is_reconciled: boolean;
   invoice_month: number | null;
+  invoice_not_required: boolean;
 };
 
 function toTransaction(row: TransactionsExpandedRow): Transaction {
@@ -191,6 +194,7 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
       : null,
     is_reconciled: row.is_reconciled,
     invoice_month: row.invoice_month,
+    invoice_not_required: row.invoice_not_required,
     vatLines: [],
   };
 }

@@ -110,7 +110,14 @@ export const reconcileSchema = z
 
 export type ReconcileInput = z.infer<typeof reconcileSchema>;
 
-/** Empty string -> null (clears the invoice month), otherwise 1-12. */
+/**
+ * Empty string -> null, otherwise 1-13. 13 is a UI-only shorthand for
+ * "confirmed, no invoice needed" — a single field keeps the fast
+ * press-type-Enter flow instead of a second control, but 13 is translated
+ * into the separate `invoice_not_required` column before it's ever stored
+ * (see resolveInvoiceMonthInput() in actions.ts) — the database never has
+ * a fake "month 13" sitting in a column that otherwise always means 1-12.
+ */
 export const invoiceMonthSchema = z.object({
   invoice_month: z
     .string()
@@ -119,9 +126,9 @@ export const invoiceMonthSchema = z.object({
     .pipe(
       z
         .number()
-        .int("Enter a whole month number")
-        .min(1, "Enter a month from 1 to 12")
-        .max(12, "Enter a month from 1 to 12")
+        .int("Enter a whole number")
+        .min(1, 'Enter a month from 1 to 12, or 13 for "not needed"')
+        .max(13, 'Enter a month from 1 to 12, or 13 for "not needed"')
         .nullable()
     ),
 });

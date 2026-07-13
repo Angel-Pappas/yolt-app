@@ -8,7 +8,9 @@ import type { Transaction } from "./queries";
 
 export function InvoiceButton({ transaction }: { transaction: Transaction }) {
   const { dialogRef, open, close } = useDialog();
-  const hasInvoice = transaction.invoice_month !== null;
+  const hasMonth = transaction.invoice_month !== null;
+  const notRequired = transaction.invoice_not_required;
+  const lit = hasMonth || notRequired;
 
   return (
     <>
@@ -16,18 +18,20 @@ export function InvoiceButton({ transaction }: { transaction: Transaction }) {
         type="button"
         onClick={open}
         aria-label={
-          hasInvoice
+          hasMonth
             ? `Invoice filed — month ${transaction.invoice_month}`
-            : "Log invoice month"
+            : notRequired
+              ? "No invoice needed"
+              : "Log invoice month"
         }
         className={`relative rounded-md p-1.5 transition ${
-          hasInvoice
+          lit
             ? "text-accent hover:bg-accent-soft"
             : "text-ink-faint hover:bg-canvas hover:text-ink"
         }`}
       >
-        <InvoiceIcon className="h-4 w-4" />
-        {hasInvoice && (
+        <InvoiceIcon className="h-4 w-4" notRequired={notRequired} />
+        {hasMonth && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-ink">
             {transaction.invoice_month}
           </span>
