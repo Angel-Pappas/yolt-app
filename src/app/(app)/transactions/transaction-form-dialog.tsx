@@ -553,7 +553,31 @@ export function TransactionFormDialog({
           </div>
         ) : (
           <div className="sm:col-span-2">
-            <label className={formLabelClass}>Amount</label>
+            <div className="mb-1 flex items-center justify-between">
+              <span className={formLabelClass}>Amount</span>
+              <div
+                role="radiogroup"
+                aria-label="Amount entry mode"
+                className="inline-flex shrink-0 gap-0.5 rounded-md border border-edge bg-canvas p-0.5"
+              >
+                {AMOUNT_MODE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={amountMode === opt.value}
+                    onClick={() => setAmountMode(opt.value)}
+                    className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                      amountMode === opt.value
+                        ? "bg-surface-raised text-ink shadow-sm"
+                        : "text-ink-muted hover:text-ink"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               {lines.map((line, i) => (
                 <div key={line.key} className="flex items-center gap-2">
@@ -583,30 +607,6 @@ export function TransactionFormDialog({
                       </option>
                     ))}
                   </select>
-                  {i === 0 && (
-                    <div
-                      role="radiogroup"
-                      aria-label="Amount entry mode"
-                      className="inline-flex shrink-0 gap-0.5 rounded-md border border-edge bg-canvas p-0.5"
-                    >
-                      {AMOUNT_MODE_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          role="radio"
-                          aria-checked={amountMode === opt.value}
-                          onClick={() => setAmountMode(opt.value)}
-                          className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-                            amountMode === opt.value
-                              ? "bg-surface-raised text-ink shadow-sm"
-                              : "text-ink-muted hover:text-ink"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                   {lines.length > 1 && (
                     <button
                       type="button"
