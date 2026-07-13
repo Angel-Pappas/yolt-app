@@ -17,6 +17,21 @@ import type { TransactionType } from "./queries";
 import { EntityCombobox } from "./entity-combobox";
 import { CategoryCombobox } from "./category-combobox";
 
+/**
+ * `formInputClass` bakes in `w-full`, which is correct for every other
+ * field in this app (each one alone on its own row) but wrong for the
+ * amount-line row below, where the input and the VAT select sit side by
+ * side and each need their own explicit width (`flex-1`/`w-32`). Appending
+ * a width utility after `w-full` in the same class string does NOT
+ * reliably override it — Tailwind orders same-property utilities by where
+ * they first appear across the whole app's generated stylesheet, not by
+ * position in a given className string, so `w-full` can still win and
+ * force the select to ~100% width, overflowing the row sideways (see
+ * Directions.md — never let a modal scroll horizontally). Stripping it out
+ * here removes the conflict entirely instead of fighting the cascade.
+ */
+const flexInputClass = formInputClass.replace("w-full ", "");
+
 const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
   { value: "income", label: "Income" },
   { value: "expense", label: "Expense" },
@@ -552,14 +567,14 @@ export function TransactionFormDialog({
                     aria-label="Amount"
                     value={line.net}
                     onChange={(e) => updateLine(line.key, { net: e.target.value })}
-                    className={`${formInputClass} flex-1`}
+                    className={`${flexInputClass} min-w-0 flex-1`}
                   />
                   <select
                     required
                     aria-label="VAT rate"
                     value={line.vatRateId}
                     onChange={(e) => updateLine(line.key, { vatRateId: e.target.value })}
-                    className={`${formInputClass} w-36 shrink-0`}
+                    className={`${flexInputClass} w-32 shrink-0`}
                   >
                     {vatRates.length === 0 && <option value="">No VAT rates</option>}
                     {vatRates.map((v) => (
