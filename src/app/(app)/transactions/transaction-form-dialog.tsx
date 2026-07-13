@@ -528,6 +528,7 @@ export function TransactionFormDialog({
             name="description"
             type="text"
             required
+            autoComplete="off"
             defaultValue={defaultValues?.description}
             className={formInputClass}
           />
