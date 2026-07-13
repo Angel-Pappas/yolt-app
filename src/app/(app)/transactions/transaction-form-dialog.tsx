@@ -197,17 +197,24 @@ export function TransactionFormDialog({
 
   // Net is always the value actually saved — in "total" mode a line's typed
   // number is treated as a total and the tax removed, in "net" mode it's
-  // exactly what was typed. VAT amount is then always net × rate, same
-  // formula the server uses to (re)compute it at save time, so the two
-  // never disagree. Summed across every line for the amount actually
-  // stored on the transaction.
+  // exactly what was typed. In total mode, vatAmount is anchored to
+  // total - net (matching resolveLineVatAmount() server-side) rather than
+  // net × rate — net was itself already rounded from total/rate, so
+  // deriving vat_amount from that rounded net a second time can drift the
+  // reconstructed total by a cent (found 2026-07 in the historical
+  // import, where every row goes through this path). Net mode has no
+  // total to anchor to, so it keeps the direct net × rate formula, which
+  // never had this drift risk. Summed across every line for the amount
+  // actually stored on the transaction.
   const computedLines = lines.map((line) => {
     const r = rateFor(line.vatRateId);
     const raw = Number(line.net || 0);
     const net =
       amountMode === "net" ? raw : r ? round2(raw / (1 + r / 100)) : raw;
-    const vatAmount = round2((net * r) / 100);
-    return { ...line, net, vatAmount };
+    const vatAmount =
+      amountMode === "total" ? Math.max(0, round2(raw - net)) : round2((net * r) / 100);
+    const total = amountMode === "total" ? raw : null;
+    return { ...line, net, vatAmount, total };
   });
 
   const amountNum = Number(amountInput || 0);
@@ -632,7 +639,7 @@ export function TransactionFormDialog({
               type="hidden"
               name="lines"
               value={JSON.stringify(
-                computedLines.map((l) => ({ net: l.net, vat_rate_id: l.vatRateId }))
+                computedLines.map((l) => ({ net: l.net, vat_rate_id: l.vatRateId, total: l.total }))
               )}
             />
             {vatRates.length === 0 && (

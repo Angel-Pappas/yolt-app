@@ -11,6 +11,15 @@ function optionalUuid(message: string) {
 const vatLineSchema = z.object({
   net: z.coerce.number().min(0, "Amount must be zero or greater"),
   vat_rate_id: z.uuid("Choose a VAT rate"),
+  /**
+   * The original total this line was entered as (Total mode) — null when
+   * entered as a net (Net mode). When present, the server anchors
+   * vat_amount to `total - net` instead of independently deriving it from
+   * `net * rate`, since net was itself already rounded from total/rate;
+   * deriving vat_amount from the rounded net a second time can drift the
+   * reconstructed total by a cent. See resolveLineVatAmount() in actions.ts.
+   */
+  total: z.number().min(0).nullable(),
 });
 
 /**

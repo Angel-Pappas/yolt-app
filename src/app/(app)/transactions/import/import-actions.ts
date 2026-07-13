@@ -223,7 +223,12 @@ export async function parseImportFile(formData: FormData): Promise<ImportPreview
 
     const total = income != null ? income : (expense as number);
     const net = round2(total / (1 + vatRate / 100));
-    const vatAmount = round2(net * (vatRate / 100));
+    // Anchored to total - net (not net * rate) so net + vatAmount always
+    // reconstructs the exact total — see resolveLineVatAmount() in
+    // actions.ts for why net * rate can drift a cent here (net was
+    // already rounded from total/rate, so re-deriving vat from it a
+    // second time compounds two independent roundings).
+    const vatAmount = Math.max(0, round2(round2(total) - net));
     const isoDate = date.toISOString().slice(0, 10);
 
     if (!existingWalletNames.has(walletName)) newWallets.add(walletName);

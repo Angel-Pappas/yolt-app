@@ -10,16 +10,9 @@ import { invoiceMonthSchema, reconcileSchema, transactionSchema } from "./schema
 import { resolveInvoiceMonthInput } from "./invoice-month";
 import type { TransactionType } from "./queries";
 
-/**
- * VAT amount is computed and stored server-side from the rate's current
- * percentage at the moment of save — never trusted from the client, and
- * never recomputed later from a possibly-since-edited rate. This is what
- * keeps past transactions historically accurate if a VAT rate's
- * percentage is changed afterwards.
- */
-async function resolveVatAmount(
+/** Fetches a VAT rate's current percentage — also serves as existence validation, since an unrecognized id throws. */
+async function resolveVatRatePercent(
   supabase: SupabaseClient,
-  net: number,
   vatRateId: string
 ): Promise<number> {
   const { data, error } = await supabase
@@ -32,7 +25,51 @@ async function resolveVatAmount(
     throw new Error("Invalid VAT rate");
   }
 
-  return round2((net * Number(data.rate)) / 100);
+  return Number(data.rate);
+}
+
+/**
+ * VAT amount is computed and stored server-side from the rate's current
+ * percentage at the moment of save — never trusted from the client, and
+ * never recomputed later from a possibly-since-edited rate. This is what
+ * keeps past transactions historically accurate if a VAT rate's
+ * percentage is changed afterwards.
+ */
+async function resolveVatAmount(
+  supabase: SupabaseClient,
+  net: number,
+  vatRateId: string
+): Promise<number> {
+  const rate = await resolveVatRatePercent(supabase, vatRateId);
+  return round2((net * rate) / 100);
+}
+
+/**
+ * Resolves one line's vat_amount. When the line was entered as a Total
+ * (Total mode — `total` is the original number the user typed), anchors
+ * vat_amount to `total - net` instead of independently deriving it from
+ * `net * rate`: net was itself already rounded from `total / (1 + rate)`,
+ * so re-deriving vat_amount from that already-rounded net a second time
+ * can leave `net + vat_amount` a cent off from the total the user actually
+ * typed (two independent roundings compounding) — found 2026-07 as a
+ * real ~4-5 cent drift across the historical import, where every row goes
+ * through this path. Anchoring to the known total instead guarantees an
+ * exact reconstruction every time. Net mode (no total, net itself is the
+ * ground truth) keeps the direct net*rate formula, which never had this
+ * drift risk in the first place. Still validates the VAT rate id is real
+ * even when its percentage isn't needed for the total-anchored branch.
+ */
+async function resolveLineVatAmount(
+  supabase: SupabaseClient,
+  net: number,
+  vatRateId: string,
+  total: number | null
+): Promise<number> {
+  if (total === null) {
+    return resolveVatAmount(supabase, net, vatRateId);
+  }
+  await resolveVatRatePercent(supabase, vatRateId);
+  return Math.max(0, round2(round2(total) - net));
 }
 
 /**
@@ -124,7 +161,7 @@ async function resolveFields(
       input.lines.map(async (line) => ({
         net: line.net,
         vat_rate_id: line.vat_rate_id,
-        vat_amount: await resolveVatAmount(supabase, line.net, line.vat_rate_id),
+        vat_amount: await resolveLineVatAmount(supabase, line.net, line.vat_rate_id, line.total),
       }))
     ),
     resolveCategoryId(supabase, input.category_id, input.type),
