@@ -144,6 +144,7 @@ export default async function TransactionsPage({
         dir,
         page,
         pageSize: PAGE_SIZE,
+        startingBalance: Number(balanceWallet.starting_balance),
       });
     }
     return getActiveTransactions(supabase, { filters, sort, dir, page, pageSize: PAGE_SIZE });

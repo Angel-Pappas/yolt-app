@@ -38,7 +38,7 @@ export function WalletRow({
           dialogRef={dialogRef}
           title="Edit wallet"
           submitLabel="Save"
-          defaultValues={{ name: wallet.name }}
+          defaultValues={{ name: wallet.name, starting_balance: wallet.starting_balance }}
           action={updateWallet.bind(null, wallet.id)}
           onDone={close}
         />

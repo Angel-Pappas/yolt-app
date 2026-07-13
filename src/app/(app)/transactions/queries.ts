@@ -352,6 +352,8 @@ export type WalletTransactionListParams = {
   dir?: SortDir;
   page?: number;
   pageSize?: number;
+  /** The wallet's starting_balance — the running balance walk seeds from this instead of 0. Defaults to 0 if omitted. */
+  startingBalance?: number;
 };
 
 /**
@@ -398,7 +400,7 @@ export async function getWalletTransactionsWithBalance(
     throw new Error(error.message);
   }
 
-  let running = 0;
+  let running = params.startingBalance ?? 0;
   const allWithBalance: Transaction[] = (data ?? []).map((row) => {
     const transaction = toTransaction(row);
     let amount: number;

@@ -8,9 +8,9 @@ import { walletSchema } from "./schema";
 
 export async function addWallet(formData: FormData) {
   const supabase = await createClient();
-  const { name } = parseOrThrow(walletSchema, formDataToRecord(formData));
+  const { name, starting_balance } = parseOrThrow(walletSchema, formDataToRecord(formData));
 
-  const { error } = await supabase.from("wallets").insert({ name });
+  const { error } = await supabase.from("wallets").insert({ name, starting_balance });
 
   if (error) {
     throw new Error(error.message);
@@ -22,11 +22,11 @@ export async function addWallet(formData: FormData) {
 
 export async function updateWallet(id: string, formData: FormData) {
   const supabase = await createClient();
-  const { name } = parseOrThrow(walletSchema, formDataToRecord(formData));
+  const { name, starting_balance } = parseOrThrow(walletSchema, formDataToRecord(formData));
 
   const { error } = await supabase
     .from("wallets")
-    .update({ name })
+    .update({ name, starting_balance })
     .eq("id", id);
 
   if (error) {

@@ -10,6 +10,7 @@ type WalletFormDialogProps = {
   submitLabel: string;
   defaultValues?: {
     name: string;
+    starting_balance: string;
   };
   action: (formData: FormData) => Promise<void>;
   onDone: () => void;
@@ -45,6 +46,24 @@ export function WalletFormDialog({
           defaultValue={defaultValues?.name}
           className={formInputClass}
         />
+      </div>
+
+      <div>
+        <label htmlFor={`${uid}-starting-balance`} className={formLabelClass}>
+          Starting balance
+        </label>
+        <input
+          id={`${uid}-starting-balance`}
+          name="starting_balance"
+          type="number"
+          step="0.01"
+          defaultValue={defaultValues?.starting_balance ?? 0}
+          className={formInputClass}
+        />
+        <p className="mt-1.5 text-xs text-ink-faint">
+          The balance this wallet already held before any transactions here. Set once, but
+          editable if it needs correcting.
+        </p>
       </div>
     </ModalShell>
   );

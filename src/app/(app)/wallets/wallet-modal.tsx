@@ -12,6 +12,7 @@ type WalletModalProps = {
   submitLabel: string;
   defaultValues?: {
     name: string;
+    starting_balance: string;
   };
   action: (formData: FormData) => Promise<void>;
 };

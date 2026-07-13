@@ -5,6 +5,8 @@ import type { TransactionType } from "../transactions/queries";
 export type Wallet = {
   id: string;
   name: string;
+  /** The baseline getWalletBalances() adds transaction activity on top of, instead of implicitly starting at zero. Set once at creation but stays an ordinary editable field. */
+  starting_balance: string;
 };
 
 /**
@@ -15,7 +17,7 @@ export type Wallet = {
 export async function getActiveWallets(supabase: SupabaseClient) {
   return supabase
     .from("wallets")
-    .select("id, name")
+    .select("id, name, starting_balance")
     .eq("is_deleted", false)
     .order("name", { ascending: true })
     .returns<Wallet[]>();
@@ -30,10 +32,11 @@ type WalletTransactionRow = {
 };
 
 /**
- * Current balance per wallet, computed live from every active
- * transaction that touches it. There is no stored balance column, so
- * this can never drift out of sync — editing, deleting, or restoring a
- * transaction is automatically reflected.
+ * Current balance per wallet: each wallet's `starting_balance` plus every
+ * active transaction that touches it. There is no stored running-balance
+ * column, so this can never drift out of sync — editing, deleting, or
+ * restoring a transaction (or changing starting_balance itself) is
+ * automatically reflected.
  *
  * Income adds (net + vat_amount) to its wallet, expense subtracts it.
  * A transfer has no VAT (net = the full amount moved) and subtracts
@@ -43,22 +46,32 @@ type WalletTransactionRow = {
 export async function getWalletBalances(
   supabase: SupabaseClient
 ): Promise<Map<string, number>> {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("type, wallet_id, to_wallet_id, net, vat_amount")
-    .eq("is_deleted", false)
-    .returns<WalletTransactionRow[]>();
+  const [{ data: wallets, error: walletsError }, { data: transactions, error: txError }] =
+    await Promise.all([
+      supabase.from("wallets").select("id, starting_balance").eq("is_deleted", false),
+      supabase
+        .from("transactions")
+        .select("type, wallet_id, to_wallet_id, net, vat_amount")
+        .eq("is_deleted", false)
+        .returns<WalletTransactionRow[]>(),
+    ]);
 
-  if (error) {
-    throw new Error(error.message);
+  if (walletsError) {
+    throw new Error(walletsError.message);
+  }
+  if (txError) {
+    throw new Error(txError.message);
   }
 
   const balances = new Map<string, number>();
+  for (const w of wallets ?? []) {
+    balances.set(w.id, Number(w.starting_balance));
+  }
   function add(walletId: string, amount: number) {
     balances.set(walletId, (balances.get(walletId) ?? 0) + amount);
   }
 
-  for (const row of data ?? []) {
+  for (const row of transactions ?? []) {
     if (row.type === "transfer") {
       const net = Number(row.net);
       add(row.wallet_id, -net);
@@ -120,7 +133,10 @@ export async function getWalletsList(
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? 25;
 
-  let query = supabase.from("wallets").select("id, name").eq("is_deleted", false);
+  let query = supabase
+    .from("wallets")
+    .select("id, name, starting_balance")
+    .eq("is_deleted", false);
   if (params.search) {
     query = query.ilike("name", `%${escapeLikePattern(params.search)}%`);
   }
