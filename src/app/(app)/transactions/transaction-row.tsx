@@ -138,11 +138,14 @@ export function TransactionRow({
             description: transaction.description,
             type: transaction.type,
             net: transaction.net,
+            lines: transaction.vatLines.map((l) => ({
+              net: l.net,
+              vat_rate_id: l.vat_rate_id ?? "",
+            })),
             entity: transaction.entity,
             category: transaction.category,
             wallet_id: transaction.wallet.id,
             to_wallet_id: transaction.to_wallet?.id ?? null,
-            vat_rate_id: transaction.vat_rate?.id ?? null,
           }}
           action={updateTransaction.bind(null, transaction.id)}
           onDone={close}

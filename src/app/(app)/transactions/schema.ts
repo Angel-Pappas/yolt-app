@@ -8,15 +8,38 @@ function optionalUuid(message: string) {
     .pipe(z.uuid(message).nullable());
 }
 
+const vatLineSchema = z.object({
+  net: z.coerce.number().min(0, "Amount must be zero or greater"),
+  vat_rate_id: z.uuid("Choose a VAT rate"),
+});
+
+/**
+ * The client serializes its amount lines (see transaction-form-dialog.tsx —
+ * 99% of transactions have exactly one, but a rare invoice mixing VAT rates
+ * can have more) as a single JSON form field rather than bracket-notation
+ * field names, since FormData has no native array/object support and this
+ * avoids hand-rolling that parsing.
+ */
+const linesField = z
+  .string()
+  .transform((raw, ctx) => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      ctx.addIssue({ code: "custom", message: "Invalid amount lines" });
+      return z.NEVER;
+    }
+  })
+  .pipe(z.array(vatLineSchema).min(1, "Add at least one amount"));
+
 const incomeExpenseFields = {
   date: z.iso.date("Invalid date"),
   invoice_date: z.iso.date("Invalid invoice date"),
   description: z.string().trim().min(1, "Description is required"),
-  net: z.coerce.number().min(0, "Net must be zero or greater"),
+  lines: linesField,
   entity_id: optionalUuid("Invalid entity"),
   category_id: optionalUuid("Invalid category"),
   wallet_id: z.uuid("Choose a wallet"),
-  vat_rate_id: z.uuid("Choose a VAT rate"),
 };
 
 const incomeSchema = z.object({ type: z.literal("income"), ...incomeExpenseFields });

@@ -90,6 +90,61 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_vat_lines: {
+        Row: {
+          created_at: string
+          id: string
+          net: number
+          position: number
+          transaction_id: string
+          user_id: string
+          vat_amount: number
+          vat_rate_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          net: number
+          position?: number
+          transaction_id: string
+          user_id?: string
+          vat_amount?: number
+          vat_rate_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          net?: number
+          position?: number
+          transaction_id?: string
+          user_id?: string
+          vat_amount?: number
+          vat_rate_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_vat_lines_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_vat_lines_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions_expanded"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_vat_lines_vat_rate_id_fkey"
+            columns: ["vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           category_id: string | null

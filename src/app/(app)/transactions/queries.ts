@@ -28,6 +28,16 @@ export type Transaction = {
   /** 1-12, or null if no invoice has been logged for this transaction yet. */
   invoice_month: number | null;
   /**
+   * The transaction's amount breakdown (transaction_vat_lines) — almost
+   * always exactly one line mirroring net/vat_rate above, occasionally
+   * more for a transaction split across VAT rates (see Summary.md).
+   * Empty for a transfer. Only actually needed by the edit dialog (to
+   * seed its line editor); every other consumer keeps using the summed
+   * net/vat_amount/vat_rate fields above, which are unaffected by how
+   * many lines make them up.
+   */
+  vatLines: { net: string; vat_rate_id: string | null }[];
+  /**
    * Only set in "balance view" (see getWalletTransactionsWithBalance below)
    * — the running balance of one specific wallet as of this row, walking
    * that wallet's full history chronologically. Undefined everywhere else.
@@ -181,7 +191,43 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
       : null,
     is_reconciled: row.is_reconciled,
     invoice_month: row.invoice_month,
+    vatLines: [],
   };
+}
+
+/**
+ * Fills in each transaction's `vatLines` from transaction_vat_lines, keyed
+ * by transaction_id. Only called on the page of rows actually being
+ * returned (25 max) — this is the one piece the flattened
+ * transactions_expanded view can't carry (a one-to-many table doesn't
+ * flatten onto a single row), and it's only actually needed by the edit
+ * dialog, so a small extra query per page is fine.
+ */
+async function attachVatLines(
+  supabase: SupabaseClient,
+  transactions: Transaction[]
+): Promise<Transaction[]> {
+  const ids = transactions.map((t) => t.id);
+  if (ids.length === 0) return transactions;
+
+  const { data, error } = await supabase
+    .from("transaction_vat_lines")
+    .select("transaction_id, net, vat_rate_id")
+    .in("transaction_id", ids)
+    .order("position", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const byTransaction = new Map<string, { net: string; vat_rate_id: string | null }[]>();
+  for (const row of data ?? []) {
+    const list = byTransaction.get(row.transaction_id) ?? [];
+    list.push({ net: row.net, vat_rate_id: row.vat_rate_id });
+    byTransaction.set(row.transaction_id, list);
+  }
+
+  return transactions.map((t) => ({ ...t, vatLines: byTransaction.get(t.id) ?? [] }));
 }
 
 /**
@@ -286,7 +332,7 @@ export async function getActiveTransactions(
   }
 
   return {
-    transactions: (data ?? []).map(toTransaction),
+    transactions: await attachVatLines(supabase, (data ?? []).map(toTransaction)),
     totalCount: count ?? 0,
   };
 }
@@ -457,5 +503,5 @@ export async function getWalletTransactionsWithBalance(
   const from = (page - 1) * pageSize;
   const transactions = sorted.slice(from, from + pageSize);
 
-  return { transactions, totalCount };
+  return { transactions: await attachVatLines(supabase, transactions), totalCount };
 }
