@@ -18,6 +18,7 @@ import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
 import { TransactionTableHeader } from "./transaction-table-header";
 import { BalanceViewControl } from "./balance-view-control";
+import { ImportTransactionsModal } from "./import/import-modal";
 import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
@@ -178,6 +179,7 @@ export default async function TransactionsPage({
         addButton={
           <div className="flex flex-wrap items-center gap-2.5">
             <BalanceViewControl wallets={wallets ?? []} activeWallet={balanceWallet} />
+            <ImportTransactionsModal />
             <TransactionModal
               trigger="Add transaction"
               title="Add transaction"
