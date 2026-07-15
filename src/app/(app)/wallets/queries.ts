@@ -1,6 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { computeTotal } from "@/lib/format";
-import type { TransactionType } from "../transactions/queries";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 export type Wallet = {
   id: string;
@@ -14,7 +12,7 @@ export type Wallet = {
  * See transactions/queries.ts for why filtering is done here and not in
  * the SELECT RLS policy.
  */
-export async function getActiveWallets(supabase: SupabaseClient) {
+export async function getActiveWallets(supabase: TypedSupabaseClient) {
   return supabase
     .from("wallets")
     .select("id, name, starting_balance")
@@ -23,67 +21,38 @@ export async function getActiveWallets(supabase: SupabaseClient) {
     .returns<Wallet[]>();
 }
 
-type WalletTransactionRow = {
-  type: TransactionType;
-  wallet_id: string;
-  to_wallet_id: string | null;
-  net: string;
-  vat_amount: string;
-};
+type WalletBalanceRow = { wallet_id: string; balance: string };
 
 /**
  * Current balance per wallet: each wallet's `starting_balance` plus every
- * active transaction that touches it. There is no stored running-balance
- * column, so this can never drift out of sync — editing, deleting, or
- * restoring a transaction (or changing starting_balance itself) is
- * automatically reflected.
+ * active transaction that touches it. There is still no stored
+ * running-balance column — this is recomputed on every read, so it can
+ * never drift out of sync when a transaction is edited, deleted, or
+ * restored (or when starting_balance itself changes).
  *
- * Income adds (net + vat_amount) to its wallet, expense subtracts it.
- * A transfer has no VAT (net = the full amount moved) and subtracts
- * from its `wallet_id` (the "from" side) while adding to its
- * `to_wallet_id` (the "to" side).
+ * The arithmetic lives in the `wallet_balances` view (see its migration)
+ * rather than here: income adds (net + vat_amount) to its wallet, expense
+ * subtracts it, and a transfer subtracts `net` from its "from" wallet
+ * while adding it to its "to" wallet. Summing it in SQL rather than
+ * streaming every transaction over the wire to reduce it in JS means this
+ * returns one row per wallet (a handful) instead of one per transaction
+ * (hundreds, and growing), which is what keeps it cheap as history piles
+ * up. The view is `security_invoker`, so RLS applies exactly as if the
+ * underlying tables were queried directly.
  */
 export async function getWalletBalances(
-  supabase: SupabaseClient
+  supabase: TypedSupabaseClient
 ): Promise<Map<string, number>> {
-  const [{ data: wallets, error: walletsError }, { data: transactions, error: txError }] =
-    await Promise.all([
-      supabase.from("wallets").select("id, starting_balance").eq("is_deleted", false),
-      supabase
-        .from("transactions")
-        .select("type, wallet_id, to_wallet_id, net, vat_amount")
-        .eq("is_deleted", false)
-        .returns<WalletTransactionRow[]>(),
-    ]);
+  const { data, error } = await supabase
+    .from("wallet_balances")
+    .select("wallet_id, balance")
+    .returns<WalletBalanceRow[]>();
 
-  if (walletsError) {
-    throw new Error(walletsError.message);
-  }
-  if (txError) {
-    throw new Error(txError.message);
+  if (error) {
+    throw new Error(error.message);
   }
 
-  const balances = new Map<string, number>();
-  for (const w of wallets ?? []) {
-    balances.set(w.id, Number(w.starting_balance));
-  }
-  function add(walletId: string, amount: number) {
-    balances.set(walletId, (balances.get(walletId) ?? 0) + amount);
-  }
-
-  for (const row of transactions ?? []) {
-    if (row.type === "transfer") {
-      const net = Number(row.net);
-      add(row.wallet_id, -net);
-      add(row.to_wallet_id as string, net);
-      continue;
-    }
-
-    const total = computeTotal(row.net, row.vat_amount);
-    add(row.wallet_id, row.type === "income" ? total : -total);
-  }
-
-  return balances;
+  return new Map((data ?? []).map((row) => [row.wallet_id, Number(row.balance)]));
 }
 
 export type WalletSortKey = "name" | "balance";
@@ -125,7 +94,7 @@ function escapeLikePattern(value: string): string {
  * accounts), so this has no real performance cost, unlike Transactions.
  */
 export async function getWalletsList(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   params: WalletListParams = {}
 ): Promise<WalletListResult> {
   const sort = params.sort ?? "name";

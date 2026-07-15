@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 export type CategoryType = "income" | "expense";
 
@@ -15,7 +15,7 @@ export type Category = {
  * form's current income/expense type). For the Categories page's own
  * searchable/sortable/paginated list view, see `getCategoriesList` below.
  */
-export async function getActiveCategories(supabase: SupabaseClient) {
+export async function getActiveCategories(supabase: TypedSupabaseClient) {
   return supabase
     .from("categories")
     .select("id, name, type")
@@ -56,7 +56,7 @@ function escapeLikePattern(value: string): string {
  * the app can never be silently truncated to one page's worth of rows.
  */
 export async function getCategoriesList(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   params: CategoryListParams = {}
 ): Promise<CategoryListResult> {
   const sort = params.sort ?? "name";

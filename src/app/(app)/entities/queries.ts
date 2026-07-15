@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 export type Entity = {
   id: string;
@@ -13,7 +13,7 @@ export type Entity = {
  * page's own searchable/sortable/paginated list view, see
  * `getEntitiesList` below.
  */
-export async function getActiveEntities(supabase: SupabaseClient) {
+export async function getActiveEntities(supabase: TypedSupabaseClient) {
   return supabase
     .from("entities")
     .select("id, name, vat_number")
@@ -55,7 +55,7 @@ function escapeLikePattern(value: string): string {
  * page's worth of rows.
  */
 export async function getEntitiesList(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   params: EntityListParams = {}
 ): Promise<EntityListResult> {
   const sort = params.sort ?? "name";

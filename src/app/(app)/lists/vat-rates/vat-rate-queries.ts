@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 export type VatRate = {
   id: string;
@@ -12,7 +12,7 @@ export type VatRate = {
  * page's VAT filter dropdown, etc). For the Options page's own
  * sortable/paginated VAT rates list, see `getVatRatesList` below.
  */
-export async function getActiveVatRates(supabase: SupabaseClient) {
+export async function getActiveVatRates(supabase: TypedSupabaseClient) {
   return supabase
     .from("vat_rates")
     .select("id, name, rate")
@@ -55,7 +55,7 @@ export type VatRateListResult = {
  * silently truncated to one page's worth of rows.
  */
 export async function getVatRatesList(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   params: VatRateListParams = {}
 ): Promise<VatRateListResult> {
   const sort = params.sort ?? "rate";

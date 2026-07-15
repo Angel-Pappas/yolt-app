@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { formDataToRecord } from "@/lib/form-data";
 import { parseOrThrow } from "@/lib/validation";
@@ -25,7 +25,7 @@ import type { TransactionType } from "./queries";
  * user is simply absent from the map and rejected the same way an
  * unrecognized one is.
  */
-async function loadVatRates(supabase: SupabaseClient): Promise<Map<string, number>> {
+async function loadVatRates(supabase: TypedSupabaseClient): Promise<Map<string, number>> {
   const { data, error } = await supabase.from("vat_rates").select("id, rate");
 
   if (error) {
@@ -90,7 +90,7 @@ function resolveLineVatAmount(
  * fetching related-row data server-side rather than trusting the client.
  */
 async function resolveCategoryId(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   categoryId: string | null,
   type: "income" | "expense"
 ): Promise<string | null> {
@@ -146,7 +146,7 @@ type WriteResult = { error: { message: string } | null };
  * needs one Wallet/From-wallet select at a time.
  */
 async function resolveFields(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   formData: FormData
 ): Promise<{ fields: TransactionFields; lines: ResolvedLine[] }> {
   const input = parseOrThrow(transactionSchema, formDataToRecord(formData));
@@ -215,7 +215,7 @@ async function resolveFields(
  * replace exists for.
  */
 async function writeLines(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   transactionId: string,
   lines: ResolvedLine[],
   { replaceExisting }: { replaceExisting: boolean }

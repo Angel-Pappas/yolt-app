@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import { computeTotal } from "@/lib/format";
 
 export type TransactionType = "income" | "expense" | "transfer";
@@ -203,6 +203,13 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
   };
 }
 
+/** Row shape of the transaction_vat_lines query below — `net` is a numeric, so it arrives as a string despite the generated types calling it a number. */
+type VatLineRow = {
+  transaction_id: string;
+  net: string;
+  vat_rate_id: string | null;
+};
+
 /**
  * Fills in each transaction's `vatLines` from transaction_vat_lines, keyed
  * by transaction_id. Only called on the page of rows actually being
@@ -212,7 +219,7 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
  * dialog, so a small extra query per page is fine.
  */
 async function attachVatLines(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   transactions: Transaction[]
 ): Promise<Transaction[]> {
   const ids = transactions.map((t) => t.id);
@@ -222,7 +229,13 @@ async function attachVatLines(
     .from("transaction_vat_lines")
     .select("transaction_id, net, vat_rate_id")
     .in("transaction_id", ids)
-    .order("position", { ascending: true });
+    .order("position", { ascending: true })
+    // `net` is a Postgres numeric, which comes back as a string at runtime
+    // even though the generated types label it `number` (see
+    // database.types.ts). Declaring the row shape here is what every other
+    // query in the app already does; this one was relying on the generated
+    // type's wrong label, which went unnoticed while the client was untyped.
+    .returns<VatLineRow[]>();
 
   if (error) {
     throw new Error(error.message);
@@ -261,7 +274,7 @@ async function attachVatLines(
  * matching nothing.
  */
 export async function getActiveTransactions(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   params: TransactionListParams = {}
 ): Promise<TransactionListResult> {
   const filters = params.filters ?? {};
@@ -387,7 +400,7 @@ export type WalletTransactionListParams = {
  * the database the way getActiveTransactions is, for the same reason.
  */
 export async function getWalletTransactionsWithBalance(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   walletId: string,
   params: WalletTransactionListParams = {}
 ): Promise<TransactionListResult> {

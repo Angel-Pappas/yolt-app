@@ -11,9 +11,12 @@
 // arithmetic, exactly as the rest of the app already does. The domain
 // types in each feature's queries.ts (Transaction, Entity, etc.) are the
 // ones that get this right and are what the rest of the app should use —
-// this file exists to type-check `.from()`/`.select()` calls (catching
-// typo'd table/column names) via `createClient<Database>()`, not to
-// replace those hand-written shapes.
+// this file exists to type-check `.from()`/`.select()` calls (catching a
+// typo'd table/column name at compile time). For that checking to actually
+// happen, query helpers must take the `TypedSupabaseClient` alias from
+// ./types, not the bare `SupabaseClient` from @supabase/supabase-js —
+// the latter silently erases all of it.
+
 export type Json =
   | string
   | number
@@ -228,6 +231,13 @@ export type Database = {
             foreignKeyName: "transactions_to_wallet_id_fkey"
             columns: ["to_wallet_id"]
             isOneToOne: false
+            referencedRelation: "wallet_balances"
+            referencedColumns: ["wallet_id"]
+          },
+          {
+            foreignKeyName: "transactions_to_wallet_id_fkey"
+            columns: ["to_wallet_id"]
+            isOneToOne: false
             referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
@@ -237,6 +247,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vat_rates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_balances"
+            referencedColumns: ["wallet_id"]
           },
           {
             foreignKeyName: "transactions_wallet_id_fkey"
@@ -356,6 +373,13 @@ export type Database = {
             foreignKeyName: "transactions_to_wallet_id_fkey"
             columns: ["to_wallet_id"]
             isOneToOne: false
+            referencedRelation: "wallet_balances"
+            referencedColumns: ["wallet_id"]
+          },
+          {
+            foreignKeyName: "transactions_to_wallet_id_fkey"
+            columns: ["to_wallet_id"]
+            isOneToOne: false
             referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
@@ -370,10 +394,32 @@ export type Database = {
             foreignKeyName: "transactions_wallet_id_fkey"
             columns: ["wallet_id"]
             isOneToOne: false
+            referencedRelation: "wallet_balances"
+            referencedColumns: ["wallet_id"]
+          },
+          {
+            foreignKeyName: "transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
             referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
         ]
+      }
+      wallet_balances: {
+        Row: {
+          balance: number | null
+          wallet_id: string | null
+        }
+        Insert: {
+          balance?: never
+          wallet_id?: string | null
+        }
+        Update: {
+          balance?: never
+          wallet_id?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {

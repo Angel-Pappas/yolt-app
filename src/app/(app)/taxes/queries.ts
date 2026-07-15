@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 /** Greek VAT rule (researched 2026-07, confirmed by the user): a debit over this amount, on an on-time return, may be split into 2 equal interest-free installments. This app always treats that option as taken. */
 const INSTALLMENT_THRESHOLD = 100;
@@ -59,7 +59,7 @@ function round2(value: number): number {
  * current period regardless of what page a filtered list would land it
  * on — same split as `getActiveWallets()` vs `getWalletsList()`.
  */
-export async function getMonthlyVatLedger(supabase: SupabaseClient): Promise<MonthlyVat[]> {
+export async function getMonthlyVatLedger(supabase: TypedSupabaseClient): Promise<MonthlyVat[]> {
   const { data, error } = await supabase
     .from("transactions")
     .select("type, vat_amount, invoice_date")
@@ -201,7 +201,7 @@ export type MonthlyVatListResult = {
  * documented tradeoff as the old wallet ledger's running-balance column.
  */
 export async function getMonthlyVatList(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   params: MonthlyVatListParams = {}
 ): Promise<MonthlyVatListResult> {
   const filters = params.filters ?? {};

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 export type CurrentUser = {
   email: string;
@@ -13,7 +13,7 @@ export type CurrentUser = {
  * menu) and the Account page, so there's one spot instead of two copies
  * of the `data?.claims?....` reach-in.
  */
-export async function getCurrentUser(supabase: SupabaseClient): Promise<CurrentUser> {
+export async function getCurrentUser(supabase: TypedSupabaseClient): Promise<CurrentUser> {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   const email = (claims?.email as string | undefined) ?? "";
