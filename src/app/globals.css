@@ -188,3 +188,37 @@ dialog:modal {
   margin: 1.5rem auto auto;
   text-align: left;
 }
+
+/*
+ * Column-filter popovers (see components/table/filter-popover-shell.tsx).
+ *
+ * These use the native popover attribute specifically to get into the
+ * browser's top layer, which is the only reliable way out of a clipping
+ * ancestor: every table's wrapper is `overflow-x-auto` for narrow screens,
+ * and per spec an overflow that isn't `visible` on one axis forces the
+ * other axis to compute to `auto` too — so that wrapper clipped an
+ * absolutely-positioned popover on BOTH axes. No z-index can fix that;
+ * clipping isn't a stacking-order problem. The top layer sidesteps it
+ * entirely.
+ *
+ * The UA stylesheet gives [popover] `inset: 0; margin: auto`, which would
+ * center it like a modal. These are anchored to a trigger instead, so the
+ * inset is cleared and the real coordinates are set inline by JS (see that
+ * component for why JS rather than CSS anchor positioning). Visual chrome
+ * lives on an inner element, not here — same rule as the dialogs above.
+ *
+ * text-align: left for exactly the same inheritance reason as dialog:modal:
+ * the top layer changes paint order, not DOM position, so a popover
+ * triggered from inside a `text-right` numeric column would otherwise
+ * inherit right-aligned text.
+ */
+[popover].filter-popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  text-align: left;
+}

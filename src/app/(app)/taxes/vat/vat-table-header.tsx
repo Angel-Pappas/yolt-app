@@ -1,11 +1,63 @@
 "use client";
 
 import { thClass, tableHeadRowClass } from "@/components/table/table-styles";
-import { SortableHeaderCell } from "@/components/table/sortable-header-cell";
+import { TableHeaderCell } from "@/components/table/table-header-cell";
 import { HeaderDateRangeFilterPopover } from "@/components/table/header-date-range-filter-popover";
 import { HeaderNumberRangeFilterPopover } from "@/components/table/header-number-range-filter-popover";
 import { useSortState } from "@/components/table/use-sort-state";
 import { MONTHLY_VAT_SORT_KEYS, type MonthlyVatSortKey } from "../queries";
+
+/** The six money columns, all the same shape — label, sort key, and which pair of range params back the filter. */
+const MONEY_COLUMNS: {
+  label: string;
+  sortKey: MonthlyVatSortKey;
+  filterLabel: string;
+  minParamKey: string;
+  maxParamKey: string;
+}[] = [
+  {
+    label: "Income VAT",
+    sortKey: "outputVat",
+    filterLabel: "income VAT",
+    minParamKey: "income_vat_min",
+    maxParamKey: "income_vat_max",
+  },
+  {
+    label: "Expenses VAT",
+    sortKey: "inputVat",
+    filterLabel: "expenses VAT",
+    minParamKey: "expense_vat_min",
+    maxParamKey: "expense_vat_max",
+  },
+  {
+    label: "Net VAT",
+    sortKey: "net",
+    filterLabel: "net VAT",
+    minParamKey: "net_min",
+    maxParamKey: "net_max",
+  },
+  {
+    label: "Roll over",
+    sortKey: "rolloverIn",
+    filterLabel: "roll over",
+    minParamKey: "rollover_min",
+    maxParamKey: "rollover_max",
+  },
+  {
+    label: "Payable this month",
+    sortKey: "payableThisMonth",
+    filterLabel: "payable this month",
+    minParamKey: "payable_this_min",
+    maxParamKey: "payable_this_max",
+  },
+  {
+    label: "Payable next month",
+    sortKey: "payableNextMonth",
+    filterLabel: "payable next month",
+    minParamKey: "payable_next_min",
+    maxParamKey: "payable_next_max",
+  },
+];
 
 /**
  * Sorting by anything other than Month will make Roll over/Payable
@@ -16,130 +68,36 @@ import { MONTHLY_VAT_SORT_KEYS, type MonthlyVatSortKey } from "../queries";
 export function VatTableHeader() {
   const { currentSort, currentDir, handleSort } =
     useSortState<MonthlyVatSortKey>(MONTHLY_VAT_SORT_KEYS);
+  const sort = { currentSort, currentDir, onSort: handleSort };
 
   return (
     <thead>
       <tr className={tableHeadRowClass}>
         <th className={thClass}>
-          <div className="flex items-center gap-1.5">
-            <SortableHeaderCell
-              label="Month"
-              sortKey="period"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              onSort={handleSort}
-            />
-            <HeaderDateRangeFilterPopover />
-          </div>
+          <TableHeaderCell
+            label="Month"
+            sortKey="period"
+            {...sort}
+            filter={<HeaderDateRangeFilterPopover />}
+          />
         </th>
-        <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="income VAT"
-              minParamKey="income_vat_min"
-              maxParamKey="income_vat_max"
+        {MONEY_COLUMNS.map((col) => (
+          <th key={col.sortKey} className={`${thClass} text-right`}>
+            <TableHeaderCell
+              label={col.label}
+              sortKey={col.sortKey}
               align="right"
+              {...sort}
+              filter={
+                <HeaderNumberRangeFilterPopover
+                  label={col.filterLabel}
+                  minParamKey={col.minParamKey}
+                  maxParamKey={col.maxParamKey}
+                />
+              }
             />
-            <SortableHeaderCell
-              label="Income VAT"
-              sortKey="outputVat"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
-        </th>
-        <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="expenses VAT"
-              minParamKey="expense_vat_min"
-              maxParamKey="expense_vat_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="Expenses VAT"
-              sortKey="inputVat"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
-        </th>
-        <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="net VAT"
-              minParamKey="net_min"
-              maxParamKey="net_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="Net VAT"
-              sortKey="net"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
-        </th>
-        <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="roll over"
-              minParamKey="rollover_min"
-              maxParamKey="rollover_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="Roll over"
-              sortKey="rolloverIn"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
-        </th>
-        <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="payable this month"
-              minParamKey="payable_this_min"
-              maxParamKey="payable_this_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="Payable this month"
-              sortKey="payableThisMonth"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
-        </th>
-        <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="payable next month"
-              minParamKey="payable_next_min"
-              maxParamKey="payable_next_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="Payable next month"
-              sortKey="payableNextMonth"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
-        </th>
+          </th>
+        ))}
       </tr>
     </thead>
   );

@@ -72,25 +72,35 @@ export function PlusIcon({ className }: { className?: string }) {
 }
 
 /**
- * Redesigned 2026-07 to visually match SortIcon (both are minimal 2-part
- * line marks) rather than the previous 3-bar funnel — a "sliders" glyph:
- * two horizontal tracks with a filled handle on each.
+ * The column-filter glyph: a funnel, the near-universal convention for
+ * "filter this column" (Excel, Sheets, every data grid) — replaced the
+ * previous two-line "sliders" mark in 2026-07 at explicit user request,
+ * since that one read as "settings" rather than "filter".
+ *
+ * `filled` is the active state: a solid funnel rather than an outline, so
+ * "this column is filtered" is legible at a glance from the shape alone
+ * and not only from color (which matters for anyone who can't rely on the
+ * accent hue to carry meaning).
  */
-export function FilterIcon({ className }: { className?: string }) {
+export function FunnelIcon({
+  className,
+  filled = false,
+}: {
+  className?: string;
+  filled?: boolean;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth={2}
       strokeLinecap="round"
+      strokeLinejoin="round"
       className={className}
       aria-hidden="true"
     >
-      <path d="M4 7h16" />
-      <path d="M4 17h16" />
-      <circle cx="9" cy="7" r="2.25" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="17" r="2.25" fill="currentColor" stroke="none" />
+      <path d="M3 5h18l-7 8.5V19l-4 2v-7.5L3 5Z" />
     </svg>
   );
 }

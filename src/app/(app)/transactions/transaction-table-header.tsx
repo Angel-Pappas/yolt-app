@@ -1,7 +1,7 @@
 "use client";
 
 import { thClass, tableHeadRowClass } from "@/components/table/table-styles";
-import { SortableHeaderCell } from "@/components/table/sortable-header-cell";
+import { TableHeaderCell } from "@/components/table/table-header-cell";
 import { HeaderFilterPopover } from "@/components/table/header-filter-popover";
 import { HeaderTextFilterPopover } from "@/components/table/header-text-filter-popover";
 import { HeaderNumberRangeFilterPopover } from "@/components/table/header-number-range-filter-popover";
@@ -30,179 +30,154 @@ export function TransactionTableHeader({
     balanceMode ? BALANCE_SORT_KEYS : SORT_KEYS
   );
 
+  /** Every cell takes the same sort wiring; only label/key/align/filter differ. */
+  const sort = { currentSort, currentDir, onSort: handleSort };
+
   return (
     <thead>
       <tr className={tableHeadRowClass}>
         <th className={thClass}>
-          <div className="flex items-center gap-1.5">
-            <SortableHeaderCell
-              label="Type"
-              sortKey="type"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              onSort={handleSort}
-            />
-            <HeaderFilterPopover
-              label="types"
-              value={searchParams.get("type") ?? ""}
-              onChange={(v) => setFilterParams({ type: v || null })}
-              options={[
-                { value: "income", label: "Income" },
-                { value: "expense", label: "Expense" },
-                { value: "transfer", label: "Transfer" },
-              ]}
-            />
-          </div>
+          <TableHeaderCell
+            label="Type"
+            sortKey="type"
+            {...sort}
+            filter={
+              <HeaderFilterPopover
+                label="types"
+                value={searchParams.get("type") ?? ""}
+                onChange={(v) => setFilterParams({ type: v || null })}
+                options={[
+                  { value: "income", label: "Income" },
+                  { value: "expense", label: "Expense" },
+                  { value: "transfer", label: "Transfer" },
+                ]}
+              />
+            }
+          />
         </th>
         <th className={thClass}>
-          <div className="flex items-center gap-1.5">
-            <SortableHeaderCell
-              label="Date"
-              sortKey="date"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              onSort={handleSort}
-            />
-            <HeaderDateRangeFilterPopover />
-          </div>
+          <TableHeaderCell
+            label="Date"
+            sortKey="date"
+            {...sort}
+            filter={<HeaderDateRangeFilterPopover />}
+          />
         </th>
         {!balanceMode && (
           <th className={thClass}>
-            <div className="flex items-center gap-1.5">
-              <SortableHeaderCell
-                label="Wallet"
-                sortKey="wallet"
-                currentSort={currentSort}
-                currentDir={currentDir}
-                onSort={handleSort}
-              />
-              <HeaderFilterPopover
-                label="wallets"
-                value={searchParams.get("wallet") ?? ""}
-                onChange={(v) => setFilterParams({ wallet: v || null })}
-                options={wallets.map((w) => ({ value: w.id, label: w.name }))}
-              />
-            </div>
+            <TableHeaderCell
+              label="Wallet"
+              sortKey="wallet"
+              {...sort}
+              filter={
+                <HeaderFilterPopover
+                  label="wallets"
+                  value={searchParams.get("wallet") ?? ""}
+                  onChange={(v) => setFilterParams({ wallet: v || null })}
+                  options={wallets.map((w) => ({ value: w.id, label: w.name }))}
+                />
+              }
+            />
           </th>
         )}
         <th className={thClass}>
-          <div className="flex items-center gap-1.5">
-            <SortableHeaderCell
-              label="Category"
-              sortKey="category"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              onSort={handleSort}
-            />
-            <HeaderFilterPopover
-              label="categories"
-              value={searchParams.get("category") ?? ""}
-              onChange={(v) => setFilterParams({ category: v || null })}
-              options={categories.map((c) => ({ value: c.id, label: c.name }))}
-            />
-          </div>
+          <TableHeaderCell
+            label="Category"
+            sortKey="category"
+            {...sort}
+            filter={
+              <HeaderFilterPopover
+                label="categories"
+                value={searchParams.get("category") ?? ""}
+                onChange={(v) => setFilterParams({ category: v || null })}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              />
+            }
+          />
         </th>
         <th className={thClass}>
-          <div className="flex items-center gap-1.5">
-            <SortableHeaderCell
-              label="Entity"
-              sortKey="entity"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              onSort={handleSort}
-            />
-            <HeaderFilterPopover
-              label="entities"
-              value={searchParams.get("entity") ?? ""}
-              onChange={(v) => setFilterParams({ entity: v || null })}
-              options={entities.map((e) => ({ value: e.id, label: e.name }))}
-            />
-          </div>
+          <TableHeaderCell
+            label="Entity"
+            sortKey="entity"
+            {...sort}
+            filter={
+              <HeaderFilterPopover
+                label="entities"
+                value={searchParams.get("entity") ?? ""}
+                onChange={(v) => setFilterParams({ entity: v || null })}
+                options={entities.map((e) => ({ value: e.id, label: e.name }))}
+              />
+            }
+          />
         </th>
         <th className={thClass}>
-          <div className="flex items-center gap-1.5">
-            <SortableHeaderCell
-              label="Description"
-              sortKey="description"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              onSort={handleSort}
-            />
-            <HeaderTextFilterPopover label="description" paramKey="q" />
-          </div>
+          <TableHeaderCell
+            label="Description"
+            sortKey="description"
+            {...sort}
+            filter={<HeaderTextFilterPopover label="description" paramKey="q" />}
+          />
         </th>
         <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="net"
-              minParamKey="net_min"
-              maxParamKey="net_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="Net"
-              sortKey="net"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
+          <TableHeaderCell
+            label="Net"
+            sortKey="net"
+            align="right"
+            {...sort}
+            filter={
+              <HeaderNumberRangeFilterPopover
+                label="net"
+                minParamKey="net_min"
+                maxParamKey="net_max"
+              />
+            }
+          />
         </th>
         <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="VAT"
-              minParamKey="vat_amount_min"
-              maxParamKey="vat_amount_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="VAT"
-              sortKey="vat_amount"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
+          <TableHeaderCell
+            label="VAT"
+            sortKey="vat_amount"
+            align="right"
+            {...sort}
+            filter={
+              <HeaderNumberRangeFilterPopover
+                label="VAT"
+                minParamKey="vat_amount_min"
+                maxParamKey="vat_amount_max"
+              />
+            }
+          />
         </th>
         <th className={`${thClass} text-right`}>
-          <div className="flex items-center justify-end gap-1.5">
-            <HeaderNumberRangeFilterPopover
-              label="total"
-              minParamKey="total_min"
-              maxParamKey="total_max"
-              align="right"
-            />
-            <SortableHeaderCell
-              label="Total"
-              sortKey="total"
-              currentSort={currentSort}
-              currentDir={currentDir}
-              align="right"
-              onSort={handleSort}
-            />
-          </div>
+          <TableHeaderCell
+            label="Total"
+            sortKey="total"
+            align="right"
+            {...sort}
+            filter={
+              <HeaderNumberRangeFilterPopover
+                label="total"
+                minParamKey="total_min"
+                maxParamKey="total_max"
+              />
+            }
+          />
         </th>
         {balanceMode && (
           <th className={`${thClass} text-right`}>
-            <div className="flex items-center justify-end gap-1.5">
-              <HeaderNumberRangeFilterPopover
-                label="balance"
-                minParamKey="balance_min"
-                maxParamKey="balance_max"
-                align="right"
-              />
-              <SortableHeaderCell
-                label="Balance"
-                sortKey="balance"
-                currentSort={currentSort}
-                currentDir={currentDir}
-                align="right"
-                onSort={handleSort}
-              />
-            </div>
+            <TableHeaderCell
+              label="Balance"
+              sortKey="balance"
+              align="right"
+              {...sort}
+              filter={
+                <HeaderNumberRangeFilterPopover
+                  label="balance"
+                  minParamKey="balance_min"
+                  maxParamKey="balance_max"
+                />
+              }
+            />
           </th>
         )}
         <th className={thClass}></th>
