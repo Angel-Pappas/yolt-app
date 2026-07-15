@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { formatAmount, round2 } from "@/lib/format";
+import { formatAmount, round2, todayLocalIsoDate } from "@/lib/format";
 import { ModalShell } from "@/components/dialog/modal-shell";
 import { formInputClass, formLabelClass } from "@/components/form-styles";
 import { TrashIcon } from "@/components/icons";
@@ -141,7 +141,7 @@ export function TransactionFormDialog({
 
   const [type, setType] = useState<TransactionType>(defaultValues?.type ?? "expense");
   const [date, setDate] = useState(
-    defaultValues?.date ?? new Date().toISOString().slice(0, 10)
+    defaultValues?.date ?? todayLocalIsoDate()
   );
   const [invoiceDate, setInvoiceDate] = useState(
     defaultValues?.invoice_date ?? date

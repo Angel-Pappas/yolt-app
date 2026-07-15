@@ -53,3 +53,17 @@ export function formatMonthYear(period: string): string {
   const [year, month] = period.split("-");
   return `${MONTH_NAMES[Number(month) - 1]} ${year}`;
 }
+
+/**
+ * Today's date as "yyyy-mm-dd" in the browser's local timezone. Deliberately
+ * not `new Date().toISOString().slice(0, 10)` — that converts to UTC first,
+ * which lands on the wrong day for part of the day in any timezone ahead of
+ * UTC (e.g. Greece), since local midnight is still "yesterday" in UTC.
+ */
+export function todayLocalIsoDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
