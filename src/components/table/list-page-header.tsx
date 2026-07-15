@@ -30,11 +30,14 @@ export function ListPageHeader({
   searchPlaceholder,
   showDateRange = false,
   addButton,
+  dateRangeExtra,
 }: {
   title: string;
   searchPlaceholder?: string;
   showDateRange?: boolean;
   addButton?: ReactNode;
+  /** Optional extra controls pushed to the far right of the date-range row (e.g. Transactions' quick-filter toggles) — left side keeps its existing layout untouched. */
+  dateRangeExtra?: ReactNode;
 }) {
   const { searchParams, clearAll } = useListParams();
   const hasFilters = searchParams.toString().length > 0;
@@ -50,9 +53,12 @@ export function ListPageHeader({
         </div>
       </div>
       {showDateRange && (
-        <div className="flex flex-wrap items-center gap-2.5">
-          <DateRangeFilter />
-          {hasFilters && <ClearFiltersLink onClick={clearAll} />}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <DateRangeFilter />
+            {hasFilters && <ClearFiltersLink onClick={clearAll} />}
+          </div>
+          {dateRangeExtra}
         </div>
       )}
     </div>

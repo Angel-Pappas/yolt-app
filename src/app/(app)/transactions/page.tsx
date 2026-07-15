@@ -18,6 +18,7 @@ import { TransactionModal } from "./transaction-modal";
 import { TransactionRow } from "./transaction-row";
 import { TransactionTableHeader } from "./transaction-table-header";
 import { BalanceViewControl } from "./balance-view-control";
+import { TransactionQuickFilters } from "./quick-filter-buttons";
 import { ImportTransactionsModal } from "./import/import-modal";
 import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
@@ -54,6 +55,8 @@ function parseFilters(searchParams: RawSearchParams): TransactionFilters {
   const to = getParam(searchParams, "to");
   const invoiceFrom = getParam(searchParams, "invoice_from");
   const invoiceTo = getParam(searchParams, "invoice_to");
+  const unreconciledOnly = getParam(searchParams, "unreconciled") === "1";
+  const missingInvoiceOnly = getParam(searchParams, "no_invoice") === "1";
 
   return {
     search: search || undefined,
@@ -74,6 +77,8 @@ function parseFilters(searchParams: RawSearchParams): TransactionFilters {
     vatAmountMax: parseNumberParam(getParam(searchParams, "vat_amount_max")),
     totalMin: parseNumberParam(getParam(searchParams, "total_min")),
     totalMax: parseNumberParam(getParam(searchParams, "total_max")),
+    unreconciledOnly: unreconciledOnly || undefined,
+    missingInvoiceOnly: missingInvoiceOnly || undefined,
   };
 }
 
@@ -135,6 +140,8 @@ export default async function TransactionsPage({
         vatAmountMax: filters.vatAmountMax,
         totalMin: filters.totalMin,
         totalMax: filters.totalMax,
+        unreconciledOnly: filters.unreconciledOnly,
+        missingInvoiceOnly: filters.missingInvoiceOnly,
         balanceMin,
         balanceMax,
       };
@@ -177,6 +184,7 @@ export default async function TransactionsPage({
         title="Transactions"
         searchPlaceholder="Search description…"
         showDateRange
+        dateRangeExtra={<TransactionQuickFilters />}
         addButton={
           <div className="flex flex-wrap items-center gap-2.5">
             <BalanceViewControl wallets={wallets ?? []} activeWallet={balanceWallet} />

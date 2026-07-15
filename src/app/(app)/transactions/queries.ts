@@ -67,6 +67,10 @@ export type TransactionFilters = {
   vatAmountMax?: number;
   totalMin?: number;
   totalMax?: number;
+  /** Only rows with is_reconciled = false — the "still needs review" quick filter. */
+  unreconciledOnly?: boolean;
+  /** Only rows with no invoice_month logged yet and invoice_not_required still false — "not yet worked on," excludes both a filed month and a confirmed-not-needed row. */
+  missingInvoiceOnly?: boolean;
 };
 
 export type SortKey =
@@ -318,6 +322,12 @@ export async function getActiveTransactions(
   if (filters.totalMax !== undefined) {
     query = query.lte("total", filters.totalMax);
   }
+  if (filters.unreconciledOnly) {
+    query = query.eq("is_reconciled", false);
+  }
+  if (filters.missingInvoiceOnly) {
+    query = query.is("invoice_month", null).eq("invoice_not_required", false);
+  }
 
   query = query.order(SORT_COLUMN[sort] ?? "date", { ascending: dir === "asc" });
   if (sort !== "date") {
@@ -468,6 +478,12 @@ export async function getWalletTransactionsWithBalance(
   }
   if (filters.balanceMax !== undefined) {
     filtered = filtered.filter((t) => (t.runningBalance ?? 0) <= filters.balanceMax!);
+  }
+  if (filters.unreconciledOnly) {
+    filtered = filtered.filter((t) => !t.is_reconciled);
+  }
+  if (filters.missingInvoiceOnly) {
+    filtered = filtered.filter((t) => t.invoice_month === null && !t.invoice_not_required);
   }
 
   // Array.prototype.sort is stable (ES2019+), so entries that tie on the
