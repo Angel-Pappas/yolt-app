@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Providers } from "./providers";
 import { getThemePreference } from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -32,9 +31,7 @@ export default async function RootLayout({
       data-theme={theme === "system" ? undefined : theme}
       className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

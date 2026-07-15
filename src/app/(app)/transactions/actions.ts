@@ -10,37 +10,48 @@ import { invoiceMonthSchema, reconcileSchema, transactionSchema } from "./schema
 import { resolveInvoiceMonthInput } from "./invoice-month";
 import type { TransactionType } from "./queries";
 
-/** Fetches a VAT rate's current percentage — also serves as existence validation, since an unrecognized id throws. */
-async function resolveVatRatePercent(
-  supabase: SupabaseClient,
-  vatRateId: string
-): Promise<number> {
-  const { data, error } = await supabase
-    .from("vat_rates")
-    .select("rate")
-    .eq("id", vatRateId)
-    .single();
+/**
+ * Loads every VAT rate's current percentage in one query, keyed by id.
+ * There are only ever a handful of rates, while a transaction can
+ * reference several across its lines — fetching each line's rate
+ * individually (the previous shape) meant one database query per line for
+ * data that fits comfortably in a single tiny one. Callers look rates up
+ * in the returned map instead.
+ *
+ * Deliberately does *not* filter out soft-deleted rates, matching the
+ * per-id fetch this replaced: editing an old transaction that used a
+ * since-deleted rate must still resolve that rate rather than fail.
+ * RLS scopes this to the current user's own rates, so an id from another
+ * user is simply absent from the map and rejected the same way an
+ * unrecognized one is.
+ */
+async function loadVatRates(supabase: SupabaseClient): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from("vat_rates").select("id, rate");
 
-  if (error || !data) {
-    throw new Error("Invalid VAT rate");
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return Number(data.rate);
+  return new Map((data ?? []).map((row) => [row.id, Number(row.rate)]));
+}
+
+/** Existence validation, exactly as the old per-id fetch provided: an id that isn't a real rate of this user's throws rather than silently resolving to 0. */
+function vatRatePercent(rates: Map<string, number>, vatRateId: string): number {
+  const rate = rates.get(vatRateId);
+  if (rate === undefined) {
+    throw new Error("Invalid VAT rate");
+  }
+  return rate;
 }
 
 /**
- * VAT amount is computed and stored server-side from the rate's current
- * percentage at the moment of save — never trusted from the client, and
- * never recomputed later from a possibly-since-edited rate. This is what
- * keeps past transactions historically accurate if a VAT rate's
- * percentage is changed afterwards.
+ * VAT amount is computed server-side from the rate's percentage at the
+ * moment of save — never trusted from the client, and never recomputed
+ * later from a possibly-since-edited rate. This is what keeps past
+ * transactions historically accurate if a VAT rate's percentage is
+ * changed afterwards.
  */
-async function resolveVatAmount(
-  supabase: SupabaseClient,
-  net: number,
-  vatRateId: string
-): Promise<number> {
-  const rate = await resolveVatRatePercent(supabase, vatRateId);
+function netModeVatAmount(net: number, rate: number): number {
   return round2((net * rate) / 100);
 }
 
@@ -59,16 +70,16 @@ async function resolveVatAmount(
  * drift risk in the first place. Still validates the VAT rate id is real
  * even when its percentage isn't needed for the total-anchored branch.
  */
-async function resolveLineVatAmount(
-  supabase: SupabaseClient,
+function resolveLineVatAmount(
+  rates: Map<string, number>,
   net: number,
   vatRateId: string,
   total: number | null
-): Promise<number> {
+): number {
+  const rate = vatRatePercent(rates, vatRateId);
   if (total === null) {
-    return resolveVatAmount(supabase, net, vatRateId);
+    return netModeVatAmount(net, rate);
   }
-  await resolveVatRatePercent(supabase, vatRateId);
   return Math.max(0, round2(round2(total) - net));
 }
 
@@ -118,6 +129,9 @@ type TransactionFields = {
 /** One resolved line of a (rare) multi-VAT-rate transaction — see transaction_vat_lines. vat_amount is computed server-side the same way the parent's is, never trusted from the client. */
 type ResolvedLine = { net: number; vat_rate_id: string; vat_amount: number };
 
+/** The only part of a Supabase write result the callers below care about — narrowed so several differently-shaped writes can be awaited as one batch. */
+type WriteResult = { error: { message: string } | null };
+
 /**
  * Validates the form against transactionSchema (mirrors the
  * transactions_type_fields_check DB constraint — see schema.ts) and
@@ -156,16 +170,16 @@ async function resolveFields(
     };
   }
 
-  const [lines, category_id] = await Promise.all([
-    Promise.all(
-      input.lines.map(async (line) => ({
-        net: line.net,
-        vat_rate_id: line.vat_rate_id,
-        vat_amount: await resolveLineVatAmount(supabase, line.net, line.vat_rate_id, line.total),
-      }))
-    ),
+  const [rates, category_id] = await Promise.all([
+    loadVatRates(supabase),
     resolveCategoryId(supabase, input.category_id, input.type),
   ]);
+
+  const lines = input.lines.map((line) => ({
+    net: line.net,
+    vat_rate_id: line.vat_rate_id,
+    vat_amount: resolveLineVatAmount(rates, line.net, line.vat_rate_id, line.total),
+  }));
 
   const net = round2(lines.reduce((sum, l) => sum + l.net, 0));
   const vat_amount = round2(lines.reduce((sum, l) => sum + l.vat_amount, 0));
@@ -188,19 +202,33 @@ async function resolveFields(
   };
 }
 
-/** Replaces a transaction's amount-line breakdown wholesale — simplest correct way to keep transaction_vat_lines in sync with whatever was just submitted, and naturally handles a type change (income/expense <-> transfer) with no special-casing. */
+/**
+ * Replaces a transaction's amount-line breakdown wholesale — simplest
+ * correct way to keep transaction_vat_lines in sync with whatever was just
+ * submitted, and naturally handles a type change (income/expense <->
+ * transfer) with no special-casing.
+ *
+ * `replaceExisting` skips the clearing DELETE for a transaction that was
+ * only just inserted and therefore cannot have any lines yet — the add
+ * path was paying a pointless extra database round trip to delete nothing.
+ * Every edit path still passes true, since that's the case the wholesale
+ * replace exists for.
+ */
 async function writeLines(
   supabase: SupabaseClient,
   transactionId: string,
-  lines: ResolvedLine[]
+  lines: ResolvedLine[],
+  { replaceExisting }: { replaceExisting: boolean }
 ) {
-  const { error: deleteError } = await supabase
-    .from("transaction_vat_lines")
-    .delete()
-    .eq("transaction_id", transactionId);
+  if (replaceExisting) {
+    const { error: deleteError } = await supabase
+      .from("transaction_vat_lines")
+      .delete()
+      .eq("transaction_id", transactionId);
 
-  if (deleteError) {
-    throw new Error(deleteError.message);
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
   }
 
   if (lines.length === 0) {
@@ -243,7 +271,7 @@ export async function addTransaction(formData: FormData) {
   }
 
   try {
-    await writeLines(supabase, data.id, lines);
+    await writeLines(supabase, data.id, lines, { replaceExisting: false });
   } catch (err) {
     // The parent row saved but its amount breakdown didn't — soft-delete it
     // rather than leave an orphaned transaction with no lines behind it
@@ -272,7 +300,7 @@ export async function updateTransaction(id: string, formData: FormData) {
     throw new Error(error.message);
   }
 
-  await writeLines(supabase, id, lines);
+  await writeLines(supabase, id, lines, { replaceExisting: true });
 
   revalidateAffectedPaths();
 }
@@ -299,18 +327,28 @@ export async function reconcileTransaction(id: string, formData: FormData) {
   let vat_amount: number | undefined;
   let netOverride: number | undefined;
   let to_wallet_id: string | undefined;
+  /** Supabase's query builder is a thenable, not a real Promise — Promise.all accepts either, but the array has to be typed to match. */
+  let lineUpdates: PromiseLike<WriteResult>[] = [];
 
   if (input.type === "transfer") {
     to_wallet_id = input.to_wallet_id;
   } else {
-    const { data: existingLines, error: linesError } = await supabase
-      .from("transaction_vat_lines")
-      .select("id, net, vat_rate_id")
-      .eq("transaction_id", id);
+    // The lines and the VAT rates don't depend on each other, so they're
+    // fetched together rather than one after the other — reconcile used to
+    // walk lines -> rate-per-line -> update-per-line -> update-transaction
+    // as four sequential waits.
+    const [linesResult, rates] = await Promise.all([
+      supabase
+        .from("transaction_vat_lines")
+        .select("id, net, vat_rate_id")
+        .eq("transaction_id", id),
+      loadVatRates(supabase),
+    ]);
 
-    if (linesError) {
-      throw new Error(linesError.message);
+    if (linesResult.error) {
+      throw new Error(linesResult.error.message);
     }
+    const existingLines = linesResult.data;
     if (!existingLines || existingLines.length === 0) {
       throw new Error("Could not find this transaction's VAT breakdown");
     }
@@ -318,35 +356,35 @@ export async function reconcileTransaction(id: string, formData: FormData) {
     const oldNet = existingLines.reduce((sum, l) => sum + Number(l.net), 0);
     const ratio = oldNet > 0 ? input.net / oldNet : 0;
 
-    const rescaled = await Promise.all(
-      existingLines.map(async (line, index) => {
-        const lineNet =
-          oldNet > 0
-            ? round2(Number(line.net) * ratio)
-            : index === 0
-              ? input.net
-              : 0;
-        const lineVat = line.vat_rate_id
-          ? await resolveVatAmount(supabase, lineNet, line.vat_rate_id)
-          : 0;
-        return { id: line.id, net: lineNet, vat_amount: lineVat };
-      })
-    );
-
-    await Promise.all(
-      rescaled.map((line) =>
-        supabase
-          .from("transaction_vat_lines")
-          .update({ net: line.net, vat_amount: line.vat_amount })
-          .eq("id", line.id)
-      )
-    );
+    const rescaled = existingLines.map((line, index) => {
+      const lineNet =
+        oldNet > 0
+          ? round2(Number(line.net) * ratio)
+          : index === 0
+            ? input.net
+            : 0;
+      const lineVat = line.vat_rate_id
+        ? netModeVatAmount(lineNet, vatRatePercent(rates, line.vat_rate_id))
+        : 0;
+      return { id: line.id, net: lineNet, vat_amount: lineVat };
+    });
 
     netOverride = round2(rescaled.reduce((sum, l) => sum + l.net, 0));
     vat_amount = round2(rescaled.reduce((sum, l) => sum + l.vat_amount, 0));
+
+    // Started, not awaited — the parent-row update below writes different
+    // rows and is computed from the same already-resolved numbers, so both
+    // writes go out together and are awaited as one batch.
+    lineUpdates = rescaled.map((line) =>
+      supabase
+        .from("transaction_vat_lines")
+        .update({ net: line.net, vat_amount: line.vat_amount })
+        .eq("id", line.id)
+        .then(({ error }) => ({ error }))
+    );
   }
 
-  const { error } = await supabase
+  const transactionUpdate: PromiseLike<WriteResult> = supabase
     .from("transactions")
     .update({
       date: input.date,
@@ -356,10 +394,13 @@ export async function reconcileTransaction(id: string, formData: FormData) {
       ...(to_wallet_id !== undefined ? { to_wallet_id } : {}),
       ...(vat_amount !== undefined ? { vat_amount } : {}),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .then(({ error }) => ({ error }));
 
-  if (error) {
-    throw new Error(error.message);
+  const results = await Promise.all([...lineUpdates, transactionUpdate]);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) {
+    throw new Error(failed.error.message);
   }
 
   revalidateAffectedPaths();
