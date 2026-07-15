@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
 import { addCategory } from "./actions";
@@ -8,7 +7,6 @@ import { CategoryModal } from "./category-modal";
 import { CategoryRow } from "./category-row";
 import { CategoryTableHeader } from "./category-table-header";
 
-const PAGE_SIZE = 25;
 const CATEGORY_TYPES: CategoryType[] = ["income", "expense"];
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -37,31 +35,14 @@ export default async function CategoriesPage({
     CATEGORY_SORT_KEYS
   );
 
-  const rawPage = Number(getParam(rawParams, "page"));
-  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
-
-  let { categories, totalCount } = await getCategoriesList(supabase, {
+  // No paging anywhere in the app (2026-07) — the full matching list
+  // renders and scrolls.
+  const { categories, totalCount } = await getCategoriesList(supabase, {
     search,
     type,
     sort,
     dir,
-    page: requestedPage,
-    pageSize: PAGE_SIZE,
   });
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  let page = requestedPage;
-
-  if (requestedPage > totalPages) {
-    page = totalPages;
-    ({ categories, totalCount } = await getCategoriesList(supabase, {
-      search,
-      type,
-      sort,
-      dir,
-      page,
-      pageSize: PAGE_SIZE,
-    }));
-  }
 
   return (
     <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
@@ -97,8 +78,6 @@ export default async function CategoriesPage({
           </table>
         </div>
       </div>
-
-      <TablePagination page={page} totalPages={totalPages} />
     </div>
   );
 }

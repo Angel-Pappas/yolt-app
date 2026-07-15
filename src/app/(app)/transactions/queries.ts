@@ -129,8 +129,9 @@ export type TransactionListParams = {
   filters?: TransactionFilters;
   sort?: SortKey;
   dir?: SortDir;
-  page?: number;
-  pageSize?: number;
+  /** Rows to skip. Offset/limit rather than page/pageSize because the list loads incrementally as the user scrolls (see transaction-rows.tsx) and needs to re-fetch an arbitrary already-loaded span, not just a fixed page. */
+  offset?: number;
+  limit?: number;
 };
 
 export type TransactionListResult = {
@@ -280,8 +281,8 @@ export async function getActiveTransactions(
   const filters = params.filters ?? {};
   const sort = params.sort ?? "date";
   const dir = params.dir ?? "asc";
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 25;
+  const offset = params.offset ?? 0;
+  const limit = params.limit ?? 50;
 
   let query = supabase
     .from("transactions_expanded")
@@ -347,10 +348,7 @@ export async function getActiveTransactions(
     query = query.order("date", { ascending: true });
   }
   query = query.order("created_at", { ascending: true });
-
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  query = query.range(from, to);
+  query = query.range(offset, offset + limit - 1);
 
   const { data, error, count } = await query.returns<TransactionsExpandedRow[]>();
 
@@ -373,8 +371,9 @@ export type WalletTransactionListParams = {
   filters?: WalletTransactionFilters;
   sort?: SortKey;
   dir?: SortDir;
-  page?: number;
-  pageSize?: number;
+  /** See TransactionListParams — same offset/limit windowing, applied in JS here rather than at the database level. */
+  offset?: number;
+  limit?: number;
   /** The wallet's starting_balance — the running balance walk seeds from this instead of 0. Defaults to 0 if omitted. */
   startingBalance?: number;
 };
@@ -407,8 +406,8 @@ export async function getWalletTransactionsWithBalance(
   const filters = params.filters ?? {};
   const sort = params.sort ?? "date";
   const dir = params.dir ?? "asc";
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 25;
+  const offset = params.offset ?? 0;
+  const limit = params.limit ?? 50;
 
   const { data, error } = await supabase
     .from("transactions_expanded")
@@ -535,8 +534,7 @@ export async function getWalletTransactionsWithBalance(
   });
 
   const totalCount = sorted.length;
-  const from = (page - 1) * pageSize;
-  const transactions = sorted.slice(from, from + pageSize);
+  const transactions = sorted.slice(offset, offset + limit);
 
   return { transactions: await attachVatLines(supabase, transactions), totalCount };
 }

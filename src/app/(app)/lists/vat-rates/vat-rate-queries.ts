@@ -33,8 +33,6 @@ export type VatRateListParams = {
   dir?: VatRateSortDir;
   rateMin?: number;
   rateMax?: number;
-  page?: number;
-  pageSize?: number;
 };
 
 /** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
@@ -60,8 +58,6 @@ export async function getVatRatesList(
 ): Promise<VatRateListResult> {
   const sort = params.sort ?? "rate";
   const dir = params.dir ?? "asc";
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 25;
 
   let query = supabase
     .from("vat_rates")
@@ -82,10 +78,6 @@ export async function getVatRatesList(
   if (sort !== "rate") {
     query = query.order("rate", { ascending: true });
   }
-
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  query = query.range(from, to);
 
   const { data, error, count } = await query.returns<VatRate[]>();
 

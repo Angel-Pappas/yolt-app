@@ -3,13 +3,22 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 /**
- * Shared URL-search-params helper for any list page's filter/sort/page
- * state (the search box, date range, sortable/filterable headers, and
- * pagination) — one place for the "merge into the current query string and
- * navigate" logic so all of them stay consistent about resetting `page`
- * when a filter or sort changes. Used by every table in the app (see
- * src/components/table/), not just Transactions, which is where this was
- * originally built.
+ * Shared URL-search-params helper for any list page's filter/sort state
+ * (the search box, date range, sortable/filterable headers) — one place
+ * for the "merge into the current query string and navigate" logic, so
+ * every filter on every page agrees about how it composes with the others.
+ * Used by every table in the app (see src/components/table/), not just
+ * Transactions, where it started.
+ *
+ * Filters always merge rather than replace: setting one leaves the rest of
+ * the querystring intact, which is what makes the header filters, the
+ * toolbar search, the date range, and the quick-filter toggles stack
+ * instead of clobbering each other.
+ *
+ * There's no page state to manage: no table in the app paginates any more
+ * (2026-07) — small lists render in full, and Transactions loads more as
+ * you scroll (see use-infinite-rows.ts), keyed on this querystring so any
+ * filter change starts it over.
  */
 export function useListParams() {
   const router = useRouter();
@@ -21,7 +30,7 @@ export function useListParams() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
-  /** Sets/clears one or more filter or sort params, resetting pagination back to page 1. */
+  /** Sets/clears one or more filter or sort params, leaving every other param untouched. */
   function setFilterParams(entries: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
     for (const [key, value] of Object.entries(entries)) {
@@ -31,18 +40,9 @@ export function useListParams() {
         params.delete(key);
       }
     }
+    // Drops a `page` left over from a bookmark made before pagination was
+    // removed, so an old link doesn't carry a param nothing reads any more.
     params.delete("page");
-    navigate(params);
-  }
-
-  /** Sets the current page without touching any filter/sort params. */
-  function setPage(page: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page > 1) {
-      params.set("page", String(page));
-    } else {
-      params.delete("page");
-    }
     navigate(params);
   }
 
@@ -50,5 +50,5 @@ export function useListParams() {
     router.replace(pathname, { scroll: false });
   }
 
-  return { searchParams, setFilterParams, setPage, clearAll };
+  return { searchParams, setFilterParams, clearAll };
 }

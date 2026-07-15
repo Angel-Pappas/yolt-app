@@ -32,8 +32,6 @@ export type EntityListParams = {
   search?: string;
   sort?: EntitySortKey;
   dir?: EntitySortDir;
-  page?: number;
-  pageSize?: number;
 };
 
 export type EntityListResult = {
@@ -47,12 +45,18 @@ function escapeLikePattern(value: string): string {
 }
 
 /**
- * The Entities page's own list view: search + sort + pagination, all at
- * the database level, same shape as transactions/queries.ts's
- * getActiveTransactions (part of the shared table template — see
- * src/components/table/). Kept separate from getActiveEntities above so
- * a dropdown elsewhere in the app can never be silently truncated to one
- * page's worth of rows.
+ * The Entities page's own list view: search + sort at the database level,
+ * part of the shared table template (see src/components/table/). Kept
+ * separate from getActiveEntities above so a dropdown elsewhere in the app
+ * can never be silently truncated by this one's filtering.
+ *
+ * Returns every match rather than a page of them: no table in the app
+ * paginates any more (2026-07 — see Summary.md), and an entity list is
+ * inherently small and slow-growing (one row per counterparty ever dealt
+ * with — under a hundred here), so the whole thing renders and simply
+ * scrolls. Transactions is the only list big enough to need loading in
+ * spans as you scroll; if this one ever reaches that scale, it should
+ * adopt the same useInfiniteRows treatment rather than bring paging back.
  */
 export async function getEntitiesList(
   supabase: TypedSupabaseClient,
@@ -60,8 +64,6 @@ export async function getEntitiesList(
 ): Promise<EntityListResult> {
   const sort = params.sort ?? "name";
   const dir = params.dir ?? "asc";
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 25;
 
   let query = supabase
     .from("entities")
@@ -77,10 +79,6 @@ export async function getEntitiesList(
   if (sort !== "name") {
     query = query.order("name", { ascending: true });
   }
-
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  query = query.range(from, to);
 
   const { data, error, count } = await query.returns<Entity[]>();
 

@@ -177,8 +177,6 @@ export type MonthlyVatListParams = {
   filters?: MonthlyVatFilters;
   sort?: MonthlyVatSortKey;
   dir?: MonthlyVatSortDir;
-  page?: number;
-  pageSize?: number;
 };
 
 export type MonthlyVatListResult = {
@@ -207,8 +205,6 @@ export async function getMonthlyVatList(
   const filters = params.filters ?? {};
   const sort = params.sort ?? "period";
   const dir = params.dir ?? "asc";
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 25;
 
   const all = await getMonthlyVatLedger(supabase);
 
@@ -283,11 +279,7 @@ export async function getMonthlyVatList(
     return dir === "asc" ? cmp : -cmp;
   });
 
-  const totalCount = sorted.length;
-  const from = (page - 1) * pageSize;
-  const months = sorted.slice(from, from + pageSize);
-
-  return { months, totalCount };
+  return { months: sorted, totalCount: sorted.length };
 }
 
 /** The current "yyyy-mm" period, server clock. */

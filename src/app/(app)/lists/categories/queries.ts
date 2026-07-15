@@ -34,8 +34,6 @@ export type CategoryListParams = {
   type?: CategoryType;
   sort?: CategorySortKey;
   dir?: CategorySortDir;
-  page?: number;
-  pageSize?: number;
 };
 
 export type CategoryListResult = {
@@ -49,11 +47,15 @@ function escapeLikePattern(value: string): string {
 }
 
 /**
- * The Categories page's own list view: search + type filter + sort +
- * pagination, all at the database level, same shape as every other list
- * page (part of the shared table template — see src/components/table/).
- * Kept separate from getActiveCategories above so a dropdown elsewhere in
- * the app can never be silently truncated to one page's worth of rows.
+ * The Categories page's own list view: search + type filter + sort, all at
+ * the database level, same shape as every other list page (part of the
+ * shared table template — see src/components/table/). Kept separate from
+ * getActiveCategories above so a dropdown elsewhere in the app can never
+ * be silently truncated by this one's filtering.
+ *
+ * Returns every match rather than a page of them — no table in the app
+ * paginates any more (2026-07, see Summary.md), and a category list is
+ * inherently a short, deliberate set.
  */
 export async function getCategoriesList(
   supabase: TypedSupabaseClient,
@@ -61,8 +63,6 @@ export async function getCategoriesList(
 ): Promise<CategoryListResult> {
   const sort = params.sort ?? "name";
   const dir = params.dir ?? "asc";
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 25;
 
   let query = supabase
     .from("categories")
@@ -80,10 +80,6 @@ export async function getCategoriesList(
   if (sort !== "name") {
     query = query.order("name", { ascending: true });
   }
-
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  query = query.range(from, to);
 
   const { data, error, count } = await query.returns<Category[]>();
 

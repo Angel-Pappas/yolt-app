@@ -3,83 +3,38 @@ import { addTransaction } from "./actions";
 import {
   getActiveTransactions,
   getWalletTransactionsWithBalance,
-  SORT_KEYS,
-  BALANCE_SORT_KEYS,
-  type TransactionFilters,
   type TransactionListResult,
-  type TransactionType,
-  type WalletTransactionFilters,
 } from "./queries";
+import {
+  hasActiveTransactionFilters,
+  parseTransactionListQuery,
+  toBalanceViewFilters,
+  TRANSACTION_PAGE_SIZE,
+} from "./list-params";
 import { getActiveEntities } from "../entities/queries";
 import { getActiveCategories } from "../lists/categories/queries";
 import { getActiveWallets } from "../wallets/queries";
 import { getActiveVatRates } from "../lists/vat-rates/vat-rate-queries";
 import { TransactionModal } from "./transaction-modal";
-import { TransactionRow } from "./transaction-row";
+import { TransactionRows } from "./transaction-rows";
 import { TransactionTableHeader } from "./transaction-table-header";
 import { BalanceViewControl } from "./balance-view-control";
 import { TransactionQuickFilters } from "./quick-filter-buttons";
 import { ImportTransactionsModal } from "./import/import-modal";
-import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
-import { parseSortParam } from "@/components/table/parse-sort-param";
-import { parseNumberParam } from "@/lib/parse-params";
 
-const TRANSACTION_TYPES: TransactionType[] = ["income", "expense", "transfer"];
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const PAGE_SIZE = 25;
+/** Type, Date, Wallet-or-Balance, Category, Entity, Description, Net, VAT, Total, actions. Balance view swaps Wallet for Balance, so the count is the same either way. */
+const COLUMN_COUNT = 10;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
-function getParam(searchParams: RawSearchParams, key: string): string | undefined {
-  const value = searchParams[key];
-  return typeof value === "string" ? value : undefined;
-}
-
-/**
- * Validates raw URL search params before they ever reach the Supabase
- * query — an invalid UUID/date/type passed straight to .eq/.or on a
- * typed column would error the whole query out, not just match nothing.
- * Anything that doesn't validate is silently dropped (treated as "no
- * filter"), same spirit as ignoring a malformed query string.
- */
-function parseFilters(searchParams: RawSearchParams): TransactionFilters {
-  const search = getParam(searchParams, "q")?.trim();
-  const type = getParam(searchParams, "type");
-  const entity = getParam(searchParams, "entity");
-  const wallet = getParam(searchParams, "wallet");
-  const category = getParam(searchParams, "category");
-  const from = getParam(searchParams, "from");
-  const to = getParam(searchParams, "to");
-  const invoiceFrom = getParam(searchParams, "invoice_from");
-  const invoiceTo = getParam(searchParams, "invoice_to");
-  const unreconciledOnly = getParam(searchParams, "unreconciled") === "1";
-  const missingInvoiceOnly = getParam(searchParams, "no_invoice") === "1";
-
-  return {
-    search: search || undefined,
-    type:
-      type && TRANSACTION_TYPES.includes(type as TransactionType)
-        ? (type as TransactionType)
-        : undefined,
-    entityId: entity && UUID_RE.test(entity) ? entity : undefined,
-    walletId: wallet && UUID_RE.test(wallet) ? wallet : undefined,
-    categoryId: category && UUID_RE.test(category) ? category : undefined,
-    dateFrom: from && DATE_RE.test(from) ? from : undefined,
-    dateTo: to && DATE_RE.test(to) ? to : undefined,
-    invoiceDateFrom: invoiceFrom && DATE_RE.test(invoiceFrom) ? invoiceFrom : undefined,
-    invoiceDateTo: invoiceTo && DATE_RE.test(invoiceTo) ? invoiceTo : undefined,
-    netMin: parseNumberParam(getParam(searchParams, "net_min")),
-    netMax: parseNumberParam(getParam(searchParams, "net_max")),
-    vatAmountMin: parseNumberParam(getParam(searchParams, "vat_amount_min")),
-    vatAmountMax: parseNumberParam(getParam(searchParams, "vat_amount_max")),
-    totalMin: parseNumberParam(getParam(searchParams, "total_min")),
-    totalMax: parseNumberParam(getParam(searchParams, "total_max")),
-    unreconciledOnly: unreconciledOnly || undefined,
-    missingInvoiceOnly: missingInvoiceOnly || undefined,
-  };
+/** A repeated param (`?type=a&type=b`) is meaningless for every filter here, so only single string values are taken — matching how these were always read. */
+function toSearchParams(raw: RawSearchParams): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value === "string") params.set(key, value);
+  }
+  return params;
 }
 
 export default async function TransactionsPage({
@@ -89,94 +44,60 @@ export default async function TransactionsPage({
 }) {
   const supabase = await createClient();
   const rawParams = await searchParams;
+  const params = toSearchParams(rawParams);
+  const searchParamsString = params.toString();
+  const query = parseTransactionListQuery(params);
 
-  // Wallets are needed up front to validate the `balance` param (a wallet
-  // id) before we can even decide which query function to call below, so
-  // this one is fetched ahead of the rest rather than joining the
-  // Promise.all with everything else.
+  // Wallets are needed up front to resolve the `balance` param into a real
+  // wallet before we can decide which query pipeline to use below, so this
+  // one is fetched ahead of the rest rather than joining the Promise.all.
   const { data: wallets } = await getActiveWallets(supabase);
+  const balanceWallet = query.balanceWalletId
+    ? (wallets ?? []).find((w) => w.id === query.balanceWalletId) ?? null
+    : null;
 
-  const balanceParam = getParam(rawParams, "balance");
-  const balanceWallet =
-    balanceParam && UUID_RE.test(balanceParam)
-      ? (wallets ?? []).find((w) => w.id === balanceParam) ?? null
-      : null;
-
-  const filters = parseFilters(rawParams);
-  const { sort, dir } = parseSortParam(
-    getParam(rawParams, "sort"),
-    getParam(rawParams, "dir"),
-    balanceWallet ? BALANCE_SORT_KEYS : SORT_KEYS
-  );
-  const balanceMin = parseNumberParam(getParam(rawParams, "balance_min"));
-  const balanceMax = parseNumberParam(getParam(rawParams, "balance_max"));
-  const hasActiveFilters =
-    Object.values(filters).some((value) => value !== undefined) ||
-    balanceMin !== undefined ||
-    balanceMax !== undefined;
-
-  const rawPage = Number(getParam(rawParams, "page"));
-  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
-
-  // "Balance view" (see balance-view-control.tsx): pinned to one wallet,
-  // no separate Wallet column/filter (the whole list is already scoped to
-  // it), running balance computed in JS over that wallet's complete
-  // history — see getWalletTransactionsWithBalance for why this can't be
-  // pushed down into the database the way the normal path is.
-  function fetchPage(page: number): Promise<TransactionListResult> {
+  // "Balance view" (see balance-view-control.tsx): pinned to one wallet, no
+  // Wallet column/filter (the list is already scoped to it), running
+  // balance computed in JS over that wallet's complete history — see
+  // getWalletTransactionsWithBalance for why that can't be pushed into the
+  // database the way the normal path is.
+  function fetchFirstSpan(): Promise<TransactionListResult> {
     if (balanceWallet) {
-      const balanceFilters: WalletTransactionFilters = {
-        search: filters.search,
-        type: filters.type,
-        entityId: filters.entityId,
-        categoryId: filters.categoryId,
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-        invoiceDateFrom: filters.invoiceDateFrom,
-        invoiceDateTo: filters.invoiceDateTo,
-        netMin: filters.netMin,
-        netMax: filters.netMax,
-        vatAmountMin: filters.vatAmountMin,
-        vatAmountMax: filters.vatAmountMax,
-        totalMin: filters.totalMin,
-        totalMax: filters.totalMax,
-        unreconciledOnly: filters.unreconciledOnly,
-        missingInvoiceOnly: filters.missingInvoiceOnly,
-        balanceMin,
-        balanceMax,
-      };
       return getWalletTransactionsWithBalance(supabase, balanceWallet.id, {
-        filters: balanceFilters,
-        sort,
-        dir,
-        page,
-        pageSize: PAGE_SIZE,
+        filters: toBalanceViewFilters(query),
+        sort: query.sort,
+        dir: query.dir,
+        offset: 0,
+        limit: TRANSACTION_PAGE_SIZE,
         startingBalance: Number(balanceWallet.starting_balance),
       });
     }
-    return getActiveTransactions(supabase, { filters, sort, dir, page, pageSize: PAGE_SIZE });
+    return getActiveTransactions(supabase, {
+      filters: query.filters,
+      sort: query.sort,
+      dir: query.dir,
+      offset: 0,
+      limit: TRANSACTION_PAGE_SIZE,
+    });
   }
 
-  const [transactionsResult, { data: entities }, { data: categories }, { data: vatRates }] =
-    await Promise.all([
-      fetchPage(requestedPage),
-      getActiveEntities(supabase),
-      getActiveCategories(supabase),
-      getActiveVatRates(supabase),
-    ]);
+  const [
+    { transactions, totalCount },
+    { data: entities },
+    { data: categories },
+    { data: vatRates },
+  ] = await Promise.all([
+    fetchFirstSpan(),
+    getActiveEntities(supabase),
+    getActiveCategories(supabase),
+    getActiveVatRates(supabase),
+  ]);
 
-  let { transactions, totalCount } = transactionsResult;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  let page = requestedPage;
-
-  // Filters can shrink the result set out from under whatever page the
-  // URL asked for (e.g. narrowing a filter while on page 3) — re-fetch
-  // clamped to the last valid page instead of showing a confusing blank
-  // page with "Page 3 of 1".
-  if (requestedPage > totalPages) {
-    page = totalPages;
-    ({ transactions, totalCount } = await fetchPage(page));
-  }
+  const emptyMessage = hasActiveTransactionFilters(query)
+    ? "No transactions match these filters."
+    : balanceWallet
+      ? `No transactions for ${balanceWallet.name} yet.`
+      : "No transactions yet.";
 
   return (
     <div className="flex w-full flex-1 flex-col gap-6 p-6">
@@ -211,35 +132,29 @@ export default async function TransactionsPage({
               wallets={wallets ?? []}
               balanceMode={balanceWallet !== null}
             />
-            <tbody>
-              {transactions.map((t) => (
-                <TransactionRow
-                  key={t.id}
-                  transaction={t}
-                  entities={entities ?? []}
-                  categories={categories ?? []}
-                  wallets={wallets ?? []}
-                  vatRates={vatRates ?? []}
-                  balanceMode={balanceWallet !== null}
-                />
-              ))}
-              {totalCount === 0 && (
-                <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-sm text-ink-faint">
-                    {hasActiveFilters
-                      ? "No transactions match these filters."
-                      : balanceWallet
-                        ? `No transactions for ${balanceWallet.name} yet.`
-                        : "No transactions yet."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
+            {/*
+              Keyed on the full querystring so any filter/sort/view change
+              remounts the list and drops the rows accumulated by scrolling
+              — the server has just rendered a fresh first span under the
+              new query, and that becomes the new starting point.
+            */}
+            <TransactionRows
+              key={searchParamsString}
+              initialTransactions={transactions}
+              totalCount={totalCount}
+              pageSize={TRANSACTION_PAGE_SIZE}
+              searchParamsString={searchParamsString}
+              entities={entities ?? []}
+              categories={categories ?? []}
+              wallets={wallets ?? []}
+              vatRates={vatRates ?? []}
+              balanceMode={balanceWallet !== null}
+              columnCount={COLUMN_COUNT}
+              emptyMessage={emptyMessage}
+            />
           </table>
         </div>
       </div>
-
-      <TablePagination page={page} totalPages={totalPages} />
     </div>
   );
 }

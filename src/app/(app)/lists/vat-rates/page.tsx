@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { TablePagination } from "@/components/table/pagination";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
 import { parseNumberParam } from "@/lib/parse-params";
@@ -8,8 +7,6 @@ import { VAT_RATE_SORT_KEYS, getVatRatesList } from "./vat-rate-queries";
 import { VatRateModal } from "./vat-rate-modal";
 import { VatRateRow } from "./vat-rate-row";
 import { VatRateTableHeader } from "./vat-rate-table-header";
-
-const PAGE_SIZE = 25;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
@@ -34,27 +31,15 @@ export default async function VatRatesPage({
   const rateMin = parseNumberParam(getParam(rawParams, "rate_min"));
   const rateMax = parseNumberParam(getParam(rawParams, "rate_max"));
 
-  const rawPage = Number(getParam(rawParams, "page"));
-  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
-
-  const listParams = { search, sort, dir, rateMin, rateMax };
-
-  let { vatRates, totalCount } = await getVatRatesList(supabase, {
-    ...listParams,
-    page: requestedPage,
-    pageSize: PAGE_SIZE,
+  // No paging anywhere in the app (2026-07) — the full matching list
+  // renders and scrolls.
+  const { vatRates, totalCount } = await getVatRatesList(supabase, {
+    search,
+    sort,
+    dir,
+    rateMin,
+    rateMax,
   });
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  let page = requestedPage;
-
-  if (requestedPage > totalPages) {
-    page = totalPages;
-    ({ vatRates, totalCount } = await getVatRatesList(supabase, {
-      ...listParams,
-      page,
-      pageSize: PAGE_SIZE,
-    }));
-  }
 
   return (
     <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
@@ -91,8 +76,6 @@ export default async function VatRatesPage({
           </table>
         </div>
       </div>
-
-      <TablePagination page={page} totalPages={totalPages} />
     </div>
   );
 }

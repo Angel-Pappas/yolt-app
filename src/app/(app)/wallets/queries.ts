@@ -66,8 +66,6 @@ export type WalletListParams = {
   dir?: WalletSortDir;
   balanceMin?: number;
   balanceMax?: number;
-  page?: number;
-  pageSize?: number;
 };
 
 export type WalletListResult = {
@@ -99,8 +97,6 @@ export async function getWalletsList(
 ): Promise<WalletListResult> {
   const sort = params.sort ?? "name";
   const dir = params.dir ?? "asc";
-  const page = params.page ?? 1;
-  const pageSize = params.pageSize ?? 25;
 
   let query = supabase
     .from("wallets")
@@ -137,9 +133,5 @@ export async function getWalletsList(
     return dir === "asc" ? cmp : -cmp;
   });
 
-  const totalCount = withBalance.length;
-  const from = (page - 1) * pageSize;
-  const wallets = withBalance.slice(from, from + pageSize);
-
-  return { wallets, totalCount };
+  return { wallets: withBalance, totalCount: withBalance.length };
 }

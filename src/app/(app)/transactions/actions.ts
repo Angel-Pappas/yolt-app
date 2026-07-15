@@ -8,7 +8,14 @@ import { parseOrThrow } from "@/lib/validation";
 import { round2 } from "@/lib/format";
 import { invoiceMonthSchema, reconcileSchema, transactionSchema } from "./schema";
 import { resolveInvoiceMonthInput } from "./invoice-month";
-import type { TransactionType } from "./queries";
+import { parseTransactionListQuery, toBalanceViewFilters } from "./list-params";
+import {
+  getActiveTransactions,
+  getWalletTransactionsWithBalance,
+  type Transaction,
+  type TransactionType,
+} from "./queries";
+import { getActiveWallets } from "../wallets/queries";
 
 /**
  * Loads every VAT rate's current percentage in one query, keyed by id.
@@ -423,6 +430,67 @@ export async function setInvoiceMonth(id: string, formData: FormData) {
   }
 
   revalidateAffectedPaths();
+}
+
+/**
+ * Fetches a span of the Transactions list under the filters currently in
+ * the URL — what backs load-as-you-scroll (see use-infinite-rows.ts).
+ *
+ * Takes the raw querystring rather than a parsed filter object for two
+ * reasons: it re-parses through the *same* `parseTransactionListQuery` the
+ * page's own render uses, so a scrolled-in chunk can never come from a
+ * subtly different filter set than the rows above it; and it means nothing
+ * client-side is trusted, since the querystring is re-validated here from
+ * scratch exactly as it is on a fresh page load.
+ *
+ * Reads only — no revalidation, no writes. It lives in this "use server"
+ * file because every export from one is a Server Action; that also means
+ * it inherits the same RLS-scoped client as everything else, so there's no
+ * separate auth path to get wrong.
+ */
+export async function loadMoreTransactions(
+  searchParamsString: string,
+  offset: number,
+  limit: number
+): Promise<Transaction[]> {
+  const supabase = await createClient();
+  const query = parseTransactionListQuery(new URLSearchParams(searchParamsString));
+
+  // Clamped so a manipulated argument can't ask for the whole table in one
+  // request; the client only ever asks for what it's about to render.
+  const safeOffset = Math.max(0, Math.floor(offset) || 0);
+  const safeLimit = Math.min(Math.max(1, Math.floor(limit) || 1), 500);
+
+  if (query.balanceWalletId) {
+    const { data: wallets } = await getActiveWallets(supabase);
+    const wallet = (wallets ?? []).find((w) => w.id === query.balanceWalletId);
+    // An unknown wallet id means balance view isn't really active; the page
+    // renders the normal list in that case, so match it rather than error.
+    if (wallet) {
+      const { transactions } = await getWalletTransactionsWithBalance(
+        supabase,
+        wallet.id,
+        {
+          filters: toBalanceViewFilters(query),
+          sort: query.sort,
+          dir: query.dir,
+          offset: safeOffset,
+          limit: safeLimit,
+          startingBalance: Number(wallet.starting_balance),
+        }
+      );
+      return transactions;
+    }
+  }
+
+  const { transactions } = await getActiveTransactions(supabase, {
+    filters: query.filters,
+    sort: query.sort,
+    dir: query.dir,
+    offset: safeOffset,
+    limit: safeLimit,
+  });
+  return transactions;
 }
 
 export async function deleteTransaction(id: string) {

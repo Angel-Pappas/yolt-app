@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ListPageHeader } from "@/components/table/list-page-header";
-import { TablePagination } from "@/components/table/pagination";
 import { parseSortParam } from "@/components/table/parse-sort-param";
 import { parseNumberParam } from "@/lib/parse-params";
 import {
@@ -12,7 +11,6 @@ import {
 import { VatTableHeader } from "./vat-table-header";
 import { VatRow } from "./vat-row";
 
-const PAGE_SIZE = 25;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -71,29 +69,10 @@ export default async function VatTaxPage({
   );
   const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
 
-  const rawPage = Number(getParam(rawParams, "page"));
-  const requestedPage = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
-
-  let { months, totalCount } = await getMonthlyVatList(supabase, {
-    filters,
-    sort,
-    dir,
-    page: requestedPage,
-    pageSize: PAGE_SIZE,
-  });
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  let page = requestedPage;
-
-  if (requestedPage > totalPages) {
-    page = totalPages;
-    ({ months, totalCount } = await getMonthlyVatList(supabase, {
-      filters,
-      sort,
-      dir,
-      page,
-      pageSize: PAGE_SIZE,
-    }));
-  }
+  // No paging anywhere in the app (2026-07) — every matching month
+  // renders and scrolls. One row per calendar month, so this list grows by
+  // twelve a year.
+  const { months, totalCount } = await getMonthlyVatList(supabase, { filters, sort, dir });
 
   return (
     <div className="flex w-full flex-1 flex-col gap-6 p-6">
@@ -128,8 +107,6 @@ export default async function VatTaxPage({
           </table>
         </div>
       </div>
-
-      <TablePagination page={page} totalPages={totalPages} />
     </div>
   );
 }
