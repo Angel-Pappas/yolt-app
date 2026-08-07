@@ -348,6 +348,13 @@ export async function getActiveTransactions(
     query = query.order("date", { ascending: true });
   }
   query = query.order("created_at", { ascending: true });
+  // Final, fully deterministic tie-breaker on the primary key. Without it,
+  // rows that tie on both the sort column and created_at (the bulk import
+  // inserts each chunk in one statement, so every row in it shares the same
+  // created_at) fall back to physical heap order — which an UPDATE such as
+  // reconciling shifts, making a reconciled row jump within its date. Ordering
+  // by id last pins every row's position so editing it never reorders the list.
+  query = query.order("id", { ascending: true });
   query = query.range(offset, offset + limit - 1);
 
   const { data, error, count } = await query.returns<TransactionsExpandedRow[]>();
@@ -416,6 +423,10 @@ export async function getWalletTransactionsWithBalance(
     .or(`wallet_id.eq.${walletId},to_wallet_id.eq.${walletId}`)
     .order("date", { ascending: true })
     .order("created_at", { ascending: true })
+    // Deterministic final tie-breaker so an UPDATE (e.g. reconciling) can't
+    // shift a row that ties on date+created_at — same reasoning as the normal
+    // list path above; the stable JS sort below then preserves this order.
+    .order("id", { ascending: true })
     .returns<TransactionsExpandedRow[]>();
 
   if (error) {

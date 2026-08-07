@@ -158,8 +158,16 @@ body {
   font-family: var(--font-body-family);
 }
 
+/*
+ * Text selection. Uses the accent / accent-ink pair (a deliberately
+ * contrasting foreground+background duo in both themes) rather than
+ * accent-soft — in dark mode accent-soft (#1e2d31) sits almost on top of the
+ * surface (#1c2430), so a selection was nearly invisible. Setting the text
+ * colour too keeps it readable on the stronger highlight.
+ */
 ::selection {
-  background: var(--accent-soft);
+  background-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /*
