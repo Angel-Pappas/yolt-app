@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { ModalShell } from "@/components/dialog/modal-shell";
 import { DateField } from "@/components/date-field";
 import { formFieldBoxClass, formInputClass, formLabelClass } from "@/components/form-styles";
+import { parseAmountInput, sanitizeAmountInput } from "@/lib/format";
 import type { Transaction } from "./queries";
 import type { Wallet } from "../wallets/queries";
 
@@ -22,6 +23,7 @@ export function ReconcileModal({
 }) {
   const uid = useId();
   const [date, setDate] = useState(transaction.date);
+  const [net, setNet] = useState(String(transaction.net));
   const [walletId, setWalletId] = useState(transaction.wallet.id);
   const [toWalletId, setToWalletId] = useState(transaction.to_wallet?.id ?? "");
 
@@ -61,14 +63,14 @@ export function ReconcileModal({
         </label>
         <input
           id={`${uid}-net`}
-          name="net"
-          type="number"
-          step="0.01"
-          min="0"
+          type="text"
+          inputMode="decimal"
           required
-          defaultValue={transaction.net}
+          value={net}
+          onChange={(e) => setNet(sanitizeAmountInput(e.target.value))}
           className={formInputClass}
         />
+        <input type="hidden" name="net" value={parseAmountInput(net)} />
       </div>
 
       {isTransfer ? (

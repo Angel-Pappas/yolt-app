@@ -46,6 +46,33 @@ export function formatAmount(value: number | string): string {
 }
 
 /**
+ * Strips anything that isn't a digit or a decimal separator from a typed
+ * amount, so the field accepts a Greek "," as readily as "." but rejects stray
+ * letters. Used by the amount inputs, which are plain text (not
+ * `<input type="number">`, whose accepted decimal separator Chrome ties to the
+ * OS/browser locale — a Greek locale then can't type ".", and often not "," either).
+ */
+export function sanitizeAmountInput(value: string): string {
+  return value.replace(/[^\d.,]/g, "");
+}
+
+/**
+ * Parses a typed amount that may use "," or "." as the decimal separator
+ * (Greek keyboards produce ",") into a finite number. With a comma present it
+ * is the decimal point and any "." are thousands separators (dropped); without
+ * a comma, "." is the decimal point. Empty or unparseable input is 0. This is
+ * the one place amount strings become numbers — use it wherever a typed amount
+ * is read for maths or submission.
+ */
+export function parseAmountInput(value: string): number {
+  const s = value.trim();
+  if (s === "") return 0;
+  const normalized = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
  * Total is never stored — it's always net + vat_amount, computed wherever
  * it's displayed so it can never drift from its inputs.
  */

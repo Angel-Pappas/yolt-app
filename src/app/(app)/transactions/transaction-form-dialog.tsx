@@ -1,7 +1,13 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { formatAmount, round2, todayLocalIsoDate } from "@/lib/format";
+import {
+  formatAmount,
+  parseAmountInput,
+  round2,
+  sanitizeAmountInput,
+  todayLocalIsoDate,
+} from "@/lib/format";
 import { ModalShell } from "@/components/dialog/modal-shell";
 import { DateField } from "@/components/date-field";
 import { formFieldBoxClass, formInputClass, formLabelClass } from "@/components/form-styles";
@@ -209,7 +215,7 @@ export function TransactionFormDialog({
   // actually stored on the transaction.
   const computedLines = lines.map((line) => {
     const r = rateFor(line.vatRateId);
-    const raw = Number(line.net || 0);
+    const raw = parseAmountInput(line.net);
     const net =
       amountMode === "net" ? raw : r ? round2(raw / (1 + r / 100)) : raw;
     const vatAmount =
@@ -218,7 +224,7 @@ export function TransactionFormDialog({
     return { ...line, net, vatAmount, total };
   });
 
-  const amountNum = Number(amountInput || 0);
+  const amountNum = parseAmountInput(amountInput);
   const netValue = isTransfer
     ? amountNum
     : round2(computedLines.reduce((sum, l) => sum + l.net, 0));
@@ -548,16 +554,15 @@ export function TransactionFormDialog({
             </label>
             <input
               id={`${uid}-amount`}
-              name="net"
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="decimal"
               required
               autoFocus
               value={amountInput}
-              onChange={(e) => setAmountInput(e.target.value)}
+              onChange={(e) => setAmountInput(sanitizeAmountInput(e.target.value))}
               className={formInputClass}
             />
+            <input type="hidden" name="net" value={netValue} />
           </div>
         ) : (
           <div className="sm:col-span-2">
@@ -590,15 +595,14 @@ export function TransactionFormDialog({
               {lines.map((line, i) => (
                 <div key={line.key} className="flex items-center gap-2">
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     required
                     autoFocus={i === 0}
                     placeholder="Amount"
                     aria-label="Amount"
                     value={line.net}
-                    onChange={(e) => updateLine(line.key, { net: e.target.value })}
+                    onChange={(e) => updateLine(line.key, { net: sanitizeAmountInput(e.target.value) })}
                     className={`${flexInputClass} min-w-0 flex-1`}
                   />
                   <select
