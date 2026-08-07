@@ -6,7 +6,7 @@ Direction 1: Always read all directions below and never skip reading or applying
 
 Direction 2: Always commit and push to main when you are done with your work.
 
-Direction 3: Don't visually check, make sure the code does not have any errors but let the visual check to user.
+Direction 3: Don't visually check, make sure the code does not have any errors but let the visual check to user. Do NOT keep restating this in replies — the user knows the visual check is his and will do it regardless. Just make the change and report that the code checks pass; never tack on "I can't eyeball this / this lands on you to verify" style caveats.
 
 Direction 4: Always check the Summary.md file in this project to see if you need to update anything.
 
