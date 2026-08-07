@@ -1,13 +1,7 @@
 "use client";
 
+import { toLocalIsoDate } from "@/lib/format";
 import { useListParams } from "./use-list-params";
-
-function isoDate(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function startOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -30,13 +24,13 @@ function presetRange(preset: DatePreset): { from: string | null; to: string | nu
   if (preset === "all-time") return { from: null, to: null };
   const now = new Date();
   if (preset === "this-month") {
-    return { from: isoDate(startOfMonth(now)), to: isoDate(endOfMonth(now)) };
+    return { from: toLocalIsoDate(startOfMonth(now)), to: toLocalIsoDate(endOfMonth(now)) };
   }
   if (preset === "last-month") {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     return {
-      from: isoDate(startOfMonth(lastMonth)),
-      to: isoDate(endOfMonth(lastMonth)),
+      from: toLocalIsoDate(startOfMonth(lastMonth)),
+      to: toLocalIsoDate(endOfMonth(lastMonth)),
     };
   }
   return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-12-31` };

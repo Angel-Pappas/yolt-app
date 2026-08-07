@@ -55,15 +55,21 @@ export function formatMonthYear(period: string): string {
 }
 
 /**
- * Today's date as "yyyy-mm-dd" in the browser's local timezone. Deliberately
- * not `new Date().toISOString().slice(0, 10)` — that converts to UTC first,
- * which lands on the wrong day for part of the day in any timezone ahead of
- * UTC (e.g. Greece), since local midnight is still "yesterday" in UTC.
+ * Formats a Date as "yyyy-mm-dd" in the browser's LOCAL timezone. Deliberately
+ * not `date.toISOString().slice(0, 10)` — that converts to UTC first, which
+ * lands on the wrong day for part of the day in any timezone ahead of UTC
+ * (e.g. Greece), since local midnight is still "yesterday" in UTC. This is the
+ * single source of truth for turning a Date into the ISO string our `date`
+ * columns and `<input type="date">` values use — don't re-implement it locally.
  */
-export function todayLocalIsoDate(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+export function toLocalIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+/** Today's date as "yyyy-mm-dd" in the browser's local timezone. */
+export function todayLocalIsoDate(): string {
+  return toLocalIsoDate(new Date());
 }
