@@ -44,7 +44,7 @@ const linesField = z
 const incomeExpenseFields = {
   date: z.iso.date("Invalid date"),
   invoice_date: z.iso.date("Invalid invoice date"),
-  description: z.string().trim().min(1, "Description is required"),
+  description: z.string().trim(),
   lines: linesField,
   entity_id: optionalUuid("Invalid entity"),
   category_id: optionalUuid("Invalid category"),
@@ -57,7 +57,7 @@ const transferSchema = z.object({
   type: z.literal("transfer"),
   date: z.iso.date("Invalid date"),
   invoice_date: z.iso.date("Invalid invoice date"),
-  description: z.string().trim().min(1, "Description is required"),
+  description: z.string().trim(),
   net: z.coerce.number().min(0, "Amount must be zero or greater"),
   wallet_id: z.uuid("Choose a from wallet"),
   to_wallet_id: z.uuid("Choose a to wallet"),

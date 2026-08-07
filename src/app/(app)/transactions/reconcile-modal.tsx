@@ -48,6 +48,7 @@ export function ReconcileModal({
           id={`${uid}-date`}
           name="date"
           required
+          showCalendar={false}
           value={date}
           onChange={setDate}
           className={formInputClass}

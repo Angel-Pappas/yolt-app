@@ -535,7 +535,6 @@ export function TransactionFormDialog({
             id={`${uid}-description`}
             name="description"
             type="text"
-            required
             autoComplete="off"
             defaultValue={defaultValues?.description}
             className={formInputClass}
