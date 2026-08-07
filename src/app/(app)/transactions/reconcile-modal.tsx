@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { ModalShell } from "@/components/dialog/modal-shell";
+import { DateField } from "@/components/date-field";
 import { formInputClass, formLabelClass } from "@/components/form-styles";
 import type { Transaction } from "./queries";
 import type { Wallet } from "../wallets/queries";
@@ -20,6 +21,7 @@ export function ReconcileModal({
   onDone: () => void;
 }) {
   const uid = useId();
+  const [date, setDate] = useState(transaction.date);
   const [walletId, setWalletId] = useState(transaction.wallet.id);
   const [toWalletId, setToWalletId] = useState(transaction.to_wallet?.id ?? "");
 
@@ -42,13 +44,13 @@ export function ReconcileModal({
         <label htmlFor={`${uid}-date`} className={formLabelClass}>
           Date
         </label>
-        <input
+        <DateField
           id={`${uid}-date`}
           name="date"
-          type="date"
           required
-          defaultValue={transaction.date}
-          className={`${formInputClass} [color-scheme:light]`}
+          value={date}
+          onChange={setDate}
+          className={formInputClass}
         />
       </div>
 

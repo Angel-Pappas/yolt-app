@@ -3,6 +3,7 @@
 import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { formatAmount, round2, todayLocalIsoDate } from "@/lib/format";
 import { ModalShell } from "@/components/dialog/modal-shell";
+import { DateField } from "@/components/date-field";
 import { formInputClass, formLabelClass } from "@/components/form-styles";
 import { TrashIcon } from "@/components/icons";
 import { addEntity } from "../entities/actions";
@@ -413,14 +414,14 @@ export function TransactionFormDialog({
           <label htmlFor={`${uid}-date`} className={formLabelClass}>
             Date
           </label>
-          <input
+          <DateField
             id={`${uid}-date`}
             name="date"
-            type="date"
             required
+            showCalendar={false}
             value={date}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className={`${formInputClass} [color-scheme:light]`}
+            onChange={handleDateChange}
+            className={formInputClass}
           />
         </div>
 
@@ -428,14 +429,14 @@ export function TransactionFormDialog({
           <label htmlFor={`${uid}-invoice-date`} className={formLabelClass}>
             Invoice date
           </label>
-          <input
+          <DateField
             id={`${uid}-invoice-date`}
             name="invoice_date"
-            type="date"
             required
+            showCalendar={false}
             value={invoiceDate}
-            onChange={(e) => handleInvoiceDateChange(e.target.value)}
-            className={`${formInputClass} [color-scheme:light]`}
+            onChange={handleInvoiceDateChange}
+            className={formInputClass}
           />
         </div>
 

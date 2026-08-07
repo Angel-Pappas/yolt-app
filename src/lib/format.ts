@@ -8,6 +8,44 @@ export function formatDate(isoDate: string): string {
 }
 
 /**
+ * ISO "yyyy-mm-dd" -> "dd/mm/yyyy" for the visible text of a `DateField`.
+ * Returns "" for an empty or non-ISO value so a blank field stays blank
+ * (this is the input-path counterpart to `formatDate`, which is for already-
+ * trusted stored dates and assumes valid input).
+ */
+export function isoToDisplay(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match) return "";
+  const [, year, month, day] = match;
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * "dd/mm/yyyy" (what the user types into a `DateField`) -> ISO "yyyy-mm-dd",
+ * or "" if it isn't a real calendar date. Strict on purpose: leading zeros
+ * are optional on input, but impossible dates (month > 12, 31/04, 29/02 in a
+ * non-leap year) are rejected by round-tripping through a Date, so the ISO
+ * value handed to a form or URL param is always either a genuine date or
+ * empty — never a plausible-looking lie.
+ */
+export function displayToIso(display: string): string {
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(display.trim());
+  if (!match) return "";
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return "";
+  }
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/**
  * Greek-style number formatting: "." for thousands, "," for decimals,
  * always rounded to exactly 2 decimal places.
  */

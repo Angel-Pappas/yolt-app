@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField } from "@/components/date-field";
 import { useListParams } from "./use-list-params";
 import { FilterPopoverShell } from "./filter-popover-shell";
 
@@ -10,7 +11,7 @@ import { FilterPopoverShell } from "./filter-popover-shell";
  * filter, not a second one that could disagree with it.
  */
 const dateInputClass =
-  "rounded-md border border-edge bg-surface px-2 py-1.5 text-sm font-normal tracking-normal normal-case text-ink [color-scheme:light] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
+  "w-32 rounded-md border border-edge bg-surface px-2 py-1.5 text-sm font-normal tracking-normal normal-case text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
 
 export function HeaderDateRangeFilterPopover({
   minParamKey = "from",
@@ -27,19 +28,17 @@ export function HeaderDateRangeFilterPopover({
     <FilterPopoverShell label="date" active={from !== "" || to !== ""}>
       {() => (
         <div className="flex items-center gap-1.5 p-2">
-          <input
-            type="date"
+          <DateField
             value={from}
             aria-label="From date"
-            onChange={(e) => setFilterParams({ [minParamKey]: e.target.value || null })}
+            onChange={(iso) => setFilterParams({ [minParamKey]: iso || null })}
             className={dateInputClass}
           />
           <span className="text-xs text-ink-faint">–</span>
-          <input
-            type="date"
+          <DateField
             value={to}
             aria-label="To date"
-            onChange={(e) => setFilterParams({ [maxParamKey]: e.target.value || null })}
+            onChange={(iso) => setFilterParams({ [maxParamKey]: iso || null })}
             className={dateInputClass}
           />
         </div>

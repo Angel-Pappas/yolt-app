@@ -1,6 +1,7 @@
 "use client";
 
 import { toLocalIsoDate } from "@/lib/format";
+import { DateField } from "@/components/date-field";
 import { useListParams } from "./use-list-params";
 
 function startOfMonth(d: Date): Date {
@@ -60,18 +61,18 @@ export function DateRangeFilter() {
   return (
     <>
       <div className="flex items-center gap-1.5 rounded-lg border border-edge bg-canvas p-0.5">
-        <input
-          type="date"
+        <DateField
+          aria-label="From date"
           value={currentFrom}
-          onChange={(e) => setFilterParams({ from: e.target.value || null })}
-          className="rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink [color-scheme:light]"
+          onChange={(iso) => setFilterParams({ from: iso || null })}
+          className="w-32 rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink outline-none"
         />
         <span className="text-xs text-ink-faint">–</span>
-        <input
-          type="date"
+        <DateField
+          aria-label="To date"
           value={currentTo}
-          onChange={(e) => setFilterParams({ to: e.target.value || null })}
-          className="rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink [color-scheme:light]"
+          onChange={(iso) => setFilterParams({ to: iso || null })}
+          className="w-32 rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink outline-none"
         />
       </div>
 
