@@ -62,9 +62,12 @@ export function sanitizeAmountInput(value: string): string {
  * is the decimal point and any "." are thousands separators (dropped); without
  * a comma, "." is the decimal point. Empty or unparseable input is 0. This is
  * the one place amount strings become numbers — use it wherever a typed amount
- * is read for maths or submission.
+ * is read for maths or submission. Accepts a number too (DB-seeded amounts
+ * arrive as JSON numbers, not strings), in which case it's returned as-is —
+ * a number never carries a locale separator to reinterpret.
  */
-export function parseAmountInput(value: string): number {
+export function parseAmountInput(value: string | number): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   const s = value.trim();
   if (s === "") return 0;
   const normalized = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
