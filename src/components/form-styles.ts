@@ -10,6 +10,15 @@ export const formInputClass =
 export const formLabelClass = "mb-1 block text-sm text-ink-muted";
 
 /**
+ * Like `formInputClass` but for a composite field whose real controls are
+ * children (e.g. `DateField`'s dd/mm/yyyy segments): the box carries the
+ * border/padding and lights up via `focus-within` when any inner segment is
+ * focused, since the box itself never is.
+ */
+export const formFieldBoxClass =
+  "w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-ink focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20";
+
+/**
  * A primary submit button outside of ModalShell's own (which is
  * identical plus `disabled:opacity-50` — ModalShell always has a
  * pending state to disable against, a plain page form like Account's

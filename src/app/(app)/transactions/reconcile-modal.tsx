@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { ModalShell } from "@/components/dialog/modal-shell";
 import { DateField } from "@/components/date-field";
-import { formInputClass, formLabelClass } from "@/components/form-styles";
+import { formFieldBoxClass, formInputClass, formLabelClass } from "@/components/form-styles";
 import type { Transaction } from "./queries";
 import type { Wallet } from "../wallets/queries";
 
@@ -51,7 +51,7 @@ export function ReconcileModal({
           showCalendar={false}
           value={date}
           onChange={setDate}
-          className={formInputClass}
+          className={formFieldBoxClass}
         />
       </div>
 

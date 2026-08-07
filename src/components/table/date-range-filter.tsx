@@ -65,14 +65,14 @@ export function DateRangeFilter() {
           aria-label="From date"
           value={currentFrom}
           onChange={(iso) => setFilterParams({ from: iso || null })}
-          className="w-32 rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink outline-none"
+          className="rounded-md px-1.5 py-1.5 text-sm text-ink"
         />
         <span className="text-xs text-ink-faint">–</span>
         <DateField
           aria-label="To date"
           value={currentTo}
           onChange={(iso) => setFilterParams({ to: iso || null })}
-          className="w-32 rounded-md border-none bg-transparent px-2 py-1.5 text-sm text-ink outline-none"
+          className="rounded-md px-1.5 py-1.5 text-sm text-ink"
         />
       </div>
 

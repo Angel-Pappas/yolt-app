@@ -4,7 +4,7 @@ import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { formatAmount, round2, todayLocalIsoDate } from "@/lib/format";
 import { ModalShell } from "@/components/dialog/modal-shell";
 import { DateField } from "@/components/date-field";
-import { formInputClass, formLabelClass } from "@/components/form-styles";
+import { formFieldBoxClass, formInputClass, formLabelClass } from "@/components/form-styles";
 import { TrashIcon } from "@/components/icons";
 import { addEntity } from "../entities/actions";
 import { EntityFormDialog } from "../entities/entity-form-dialog";
@@ -421,7 +421,7 @@ export function TransactionFormDialog({
             showCalendar={false}
             value={date}
             onChange={handleDateChange}
-            className={formInputClass}
+            className={formFieldBoxClass}
           />
         </div>
 
@@ -436,7 +436,7 @@ export function TransactionFormDialog({
             showCalendar={false}
             value={invoiceDate}
             onChange={handleInvoiceDateChange}
-            className={formInputClass}
+            className={formFieldBoxClass}
           />
         </div>
 

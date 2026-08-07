@@ -11,7 +11,7 @@ import { FilterPopoverShell } from "./filter-popover-shell";
  * filter, not a second one that could disagree with it.
  */
 const dateInputClass =
-  "w-32 rounded-md border border-edge bg-surface px-2 py-1.5 text-sm font-normal tracking-normal normal-case text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
+  "rounded-md border border-edge bg-surface px-2 py-1.5 text-sm font-normal tracking-normal normal-case text-ink focus-within:border-accent focus-within:outline-none focus-within:ring-2 focus-within:ring-accent/20";
 
 export function HeaderDateRangeFilterPopover({
   minParamKey = "from",
