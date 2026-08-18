@@ -45,7 +45,13 @@ export default async function LeadsPage({
 
   return (
     <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
-      <ListPageHeader title="Leads" addButton={<LeadAddModal />} searchPlaceholder="Search leads…" />
+      <ListPageHeader
+        title="Leads"
+        addButton={
+          <LeadAddModal origins={origins ?? []} statuses={statuses ?? []} />
+        }
+        searchPlaceholder="Search leads…"
+      />
 
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
         <div className="overflow-x-auto">

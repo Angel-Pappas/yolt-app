@@ -1,110 +1,72 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useDialog } from "@/components/dialog/use-dialog";
 import { AddButton } from "@/components/table/add-button";
-import { formInputClass, formLabelClass } from "@/components/form-styles";
+import { ModalShell } from "@/components/dialog/modal-shell";
+import { LeadFields } from "./lead-fields";
 import { addLead } from "./actions";
+import { LeadOriginFormDialog } from "../settings/lead-origins/lead-origin-form-dialog";
+import { addLeadOrigin } from "../settings/lead-origins/actions";
+import type { LeadOrigin } from "../settings/lead-origins/queries";
+import type { LeadStatus } from "../settings/lead-statuses/queries";
 
 /**
- * "Add lead" — captures just the name (the lead/company name), creates the lead,
- * and navigates to its edit page where everything else (origin, contact,
- * description, next step, actions, contacts) is filled in. Bespoke rather than
- * ModalShell because it needs the new id back to navigate.
+ * "Add lead" — the complete lead form (everything but the sub-tabs) in a modal
+ * on the list. Saving creates the lead and closes the modal (revalidating the
+ * list underneath), so you land back on the list. The origin picker's "+ Add"
+ * dialog is a sibling of the form (dialogChildren), same rule as the
+ * transaction form's nested entity dialog.
  */
-export function LeadAddModal() {
-  const { dialogRef, open, close } = useDialog();
-  const router = useRouter();
-  const uid = useId();
-  const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+export function LeadAddModal({
+  origins,
+  statuses,
+}: {
+  origins: LeadOrigin[];
+  statuses: LeadStatus[];
+}) {
+  const modal = useDialog();
+  const originDialog = useDialog();
+  // Bumped on each open so the uncontrolled fields reset to blank for a fresh add.
+  const [generation, setGeneration] = useState(0);
 
   function handleOpen() {
-    setName("");
-    setError(null);
-    open();
+    setGeneration((g) => g + 1);
+    modal.open();
   }
 
-  function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
-    if (e.target === e.currentTarget) close();
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.set("name", name);
-        const id = await addLead(formData);
-        close();
-        router.push(`/leads/${id}`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-      }
-    });
+  async function handleAdd(formData: FormData) {
+    await addLead(formData);
   }
 
   return (
     <>
       <AddButton trigger="Add lead" onClick={handleOpen} />
 
-      <dialog
-        ref={dialogRef}
-        onClick={handleBackdropClick}
-        onCancel={close}
-        className="w-full max-w-sm bg-transparent [&::backdrop]:bg-ink/40 [&::backdrop]:backdrop-blur-[2px]"
+      <ModalShell
+        dialogRef={modal.dialogRef}
+        title="Add lead"
+        submitLabel="Save"
+        action={handleAdd}
+        onDone={modal.close}
+        maxWidth="max-w-2xl"
+        dialogChildren={
+          <LeadOriginFormDialog
+            dialogRef={originDialog.dialogRef}
+            title="Add origin"
+            submitLabel="Add"
+            action={addLeadOrigin}
+            onDone={originDialog.close}
+          />
+        }
       >
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-xl border border-edge bg-surface p-6 shadow-[var(--shadow-pop)]"
-        >
-          <h2 className="font-display text-lg font-semibold text-ink">Add lead</h2>
-          <div>
-            <label htmlFor={`${uid}-name`} className={formLabelClass}>
-              Name
-            </label>
-            <input
-              id={`${uid}-name`}
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoFocus
-              placeholder="Lead or company name"
-              className={formInputClass}
-            />
-          </div>
-
-          {error && (
-            <p
-              className="rounded-lg bg-expense-soft px-3 py-2 text-sm text-expense"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-
-          <div className="flex justify-end gap-4 pt-1">
-            <button
-              type="button"
-              onClick={close}
-              className="text-sm text-ink-faint underline decoration-edge-strong underline-offset-4 hover:text-ink"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !name.trim()}
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:translate-y-px disabled:opacity-50"
-            >
-              {isPending ? "Creating…" : "Create"}
-            </button>
-          </div>
-        </form>
-      </dialog>
+        <LeadFields
+          key={generation}
+          origins={origins}
+          statuses={statuses}
+          onAddOrigin={originDialog.open}
+        />
+      </ModalShell>
     </>
   );
 }
