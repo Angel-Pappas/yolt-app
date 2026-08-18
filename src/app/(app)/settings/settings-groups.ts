@@ -35,4 +35,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       { label: "VAT rates", href: "/settings/vat-rates" },
     ],
   },
+  {
+    label: "Business",
+    access: "crm",
+    items: [{ label: "Lead statuses", href: "/settings/lead-statuses" }],
+  },
+  {
+    label: "Administration",
+    access: "admin",
+    items: [{ label: "Users", href: "/settings/users" }],
+  },
 ];

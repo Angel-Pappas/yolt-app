@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { login } from "@/app/auth/actions";
 import { formInputClass, formLabelClass } from "@/components/form-styles";
 
@@ -52,15 +51,6 @@ export default async function LoginPage({
           >
             Log in
           </button>
-          <p className="text-center text-sm text-ink-muted">
-            No account?{" "}
-            <Link
-              href="/signup"
-              className="text-ink underline decoration-edge-strong underline-offset-4 hover:text-accent hover:decoration-accent"
-            >
-              Sign up
-            </Link>
-          </p>
         </form>
       </div>
     </div>

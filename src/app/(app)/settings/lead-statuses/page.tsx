@@ -1,13 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
-import { requireCrm } from "../require-access";
-import { addLead } from "./actions";
-import { LEAD_SORT_KEYS, getLeadsList } from "./queries";
-import { getActiveLeadStatuses } from "../settings/lead-statuses/queries";
-import { LeadModal } from "./lead-modal";
-import { LeadRow } from "./lead-row";
-import { LeadTableHeader } from "./lead-table-header";
+import { requireCrm } from "../../require-access";
+import { addLeadStatus } from "./actions";
+import { LEAD_STATUS_SORT_KEYS, getLeadStatusesList } from "./queries";
+import { LeadStatusModal } from "./lead-status-modal";
+import { LeadStatusRow } from "./lead-status-row";
+import { LeadStatusTableHeader } from "./lead-status-table-header";
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
@@ -16,7 +15,7 @@ function getParam(searchParams: RawSearchParams, key: string): string | undefine
   return typeof value === "string" ? value : undefined;
 }
 
-export default async function LeadsPage({
+export default async function LeadStatusesPage({
   searchParams,
 }: {
   searchParams: Promise<RawSearchParams>;
@@ -25,33 +24,29 @@ export default async function LeadsPage({
   const supabase = await createClient();
   const rawParams = await searchParams;
   const search = getParam(rawParams, "q")?.trim();
-  const statusId = getParam(rawParams, "status");
   const { sort, dir } = parseSortParam(
     getParam(rawParams, "sort"),
     getParam(rawParams, "dir"),
-    LEAD_SORT_KEYS
+    LEAD_STATUS_SORT_KEYS
   );
 
-  const [{ leads, totalCount }, { data: statuses }] = await Promise.all([
-    getLeadsList(supabase, { search, statusId, sort, dir }),
-    getActiveLeadStatuses(supabase),
-  ]);
-
-  const statusList = statuses ?? [];
-  const statusOptions = statusList.map((s) => ({ value: s.id, label: s.name }));
+  const { statuses, totalCount } = await getLeadStatusesList(supabase, {
+    search,
+    sort,
+    dir,
+  });
 
   return (
     <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
       <ListPageHeader
-        title="Leads"
-        searchPlaceholder="Search leads…"
+        title="Lead statuses"
+        searchPlaceholder="Search statuses…"
         addButton={
-          <LeadModal
-            trigger="Add lead"
-            title="Add lead"
+          <LeadStatusModal
+            trigger="Add status"
+            title="Add status"
             submitLabel="Add"
-            statuses={statusList}
-            action={addLead}
+            action={addLeadStatus}
           />
         }
       />
@@ -59,20 +54,20 @@ export default async function LeadsPage({
       <div className="rounded-xl border border-edge bg-surface shadow-[var(--shadow-card)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <LeadTableHeader statusOptions={statusOptions} />
+            <LeadStatusTableHeader />
             <tbody>
-              {leads.map((lead) => (
-                <LeadRow key={lead.id} lead={lead} />
+              {statuses.map((s) => (
+                <LeadStatusRow key={s.id} status={s} />
               ))}
               {totalCount === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={2}
                     className="px-4 py-10 text-center text-sm text-ink-faint"
                   >
-                    {search || statusId
-                      ? "No leads match these filters."
-                      : "No leads yet."}
+                    {search
+                      ? "No statuses match this search."
+                      : "No statuses yet."}
                   </td>
                 </tr>
               )}

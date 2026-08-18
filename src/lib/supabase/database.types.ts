@@ -93,6 +93,127 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_activities: {
+        Row: {
+          author_name: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean
+          lead_id: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          lead_id: string
+          user_id?: string
+        }
+        Update: {
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          lead_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_statuses: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name: string
+          position?: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          email: string | null
+          id: string
+          is_deleted: boolean
+          name: string
+          needs: string | null
+          phone: string | null
+          status_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_deleted?: boolean
+          name: string
+          needs?: string | null
+          phone?: string | null
+          status_id?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_deleted?: boolean
+          name?: string
+          needs?: string | null
+          phone?: string | null
+          status_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "lead_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           can_access_crm: boolean
