@@ -2,29 +2,42 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AREAS, areaForPath } from "./areas";
 
-const LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/transactions", label: "Transactions" },
-  { href: "/entities", label: "Entities" },
-  { href: "/wallets", label: "Wallets" },
-  { href: "/taxes", label: "Taxes" },
-  { href: "/lists", label: "Lists" },
-];
-
-export function SideNav() {
+/**
+ * The main side nav, now area-aware: it shows the link set of whichever area
+ * the current path belongs to (Finance or Business). On area-neutral routes —
+ * the launcher "/" and Settings (which has its own sub-nav) — it renders
+ * nothing, letting those pages use the full width.
+ *
+ * The user's access flags are passed in so the nav never shows an area the
+ * user can't enter (belt-and-suspenders alongside the per-page guards).
+ */
+export function SideNav({
+  canAccessFinance,
+  canAccessCrm,
+}: {
+  canAccessFinance: boolean;
+  canAccessCrm: boolean;
+}) {
   const pathname = usePathname();
+  const areaId = areaForPath(pathname);
+  if (!areaId) return null;
+
+  const allowed =
+    (areaId === "finance" && canAccessFinance) ||
+    (areaId === "business" && canAccessCrm);
+  if (!allowed) return null;
+
+  const area = AREAS.find((a) => a.id === areaId);
+  if (!area) return null;
 
   return (
     <aside className="w-56 shrink-0 border-r border-edge bg-surface p-4">
       <nav className="flex flex-col gap-1">
-        {LINKS.map((link) => {
-          // Exact match for Home ("/") so it isn't "active" on every route;
-          // prefix match for everything else so a nested route (e.g. a
-          // wallet's ledger view) still highlights its section.
+        {area.links.map((link) => {
           const isActive =
-            link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-
+            pathname === link.href || pathname.startsWith(link.href + "/");
           return (
             <Link
               key={link.href}

@@ -9,7 +9,7 @@ import { HeaderDateRangeFilterPopover } from "@/components/table/header-date-ran
 import { useListParams } from "@/components/table/use-list-params";
 import { useSortState } from "@/components/table/use-sort-state";
 import type { Entity } from "../entities/queries";
-import type { Category } from "../lists/categories/queries";
+import type { Category } from "../settings/categories/queries";
 import type { Wallet } from "../wallets/queries";
 import { SORT_KEYS, BALANCE_SORT_KEYS, type SortKey } from "./queries";
 

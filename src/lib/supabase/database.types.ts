@@ -93,6 +93,39 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          can_access_crm: boolean
+          can_access_finance: boolean
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean
+          is_admin: boolean
+        }
+        Insert: {
+          can_access_crm?: boolean
+          can_access_finance?: boolean
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          is_active?: boolean
+          is_admin?: boolean
+        }
+        Update: {
+          can_access_crm?: boolean
+          can_access_finance?: boolean
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_admin?: boolean
+        }
+        Relationships: []
+      }
       transaction_vat_lines: {
         Row: {
           created_at: string

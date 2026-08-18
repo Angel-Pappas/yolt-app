@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import type { Category, CategoryType } from "../lists/categories/queries";
+import type { Category, CategoryType } from "../settings/categories/queries";
 
 type CategoryComboboxProps = {
   categories: Category[];

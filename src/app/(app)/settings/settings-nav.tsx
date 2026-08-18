@@ -4,35 +4,55 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronIcon } from "@/components/icons";
-import { LIST_GROUPS } from "./lists-groups";
+import { SETTINGS_GROUPS, type SettingsAccess } from "./settings-groups";
 
 /**
- * Grouped, collapsible navigation for the Lists section — same
- * active-link visual language as the app's main `side-nav.tsx`, plus a
- * per-group collapse toggle (local state only; the layout doesn't
- * remount while navigating within /lists/*, so it survives normally for
- * the session without needing URL/localStorage persistence).
+ * The Settings sub-nav — grouped and collapsible, same visual language as the
+ * app's other navs. Groups appear only when the user can access them (Account
+ * always; Finance/Business/Admin per flag), so a CRM-only user never sees the
+ * finance lists, etc. The database RLS + per-page guards are the real lock;
+ * this just decides what's offered.
  */
-export function ListsNav() {
+export function SettingsNav({
+  canAccessFinance,
+  canAccessCrm,
+  isAdmin,
+}: {
+  canAccessFinance: boolean;
+  canAccessCrm: boolean;
+  isAdmin: boolean;
+}) {
   const pathname = usePathname();
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  function canAccess(access: SettingsAccess): boolean {
+    switch (access) {
+      case "all":
+        return true;
+      case "finance":
+        return canAccessFinance;
+      case "crm":
+        return canAccessCrm;
+      case "admin":
+        return isAdmin;
+    }
+  }
 
   function toggleGroup(label: string) {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(label)) {
-        next.delete(label);
-      } else {
-        next.add(label);
-      }
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
       return next;
     });
   }
 
+  const groups = SETTINGS_GROUPS.filter((group) => canAccess(group.access));
+
   return (
     <aside className="w-48 shrink-0 border-r border-edge bg-surface p-4">
       <nav className="flex flex-col gap-4">
-        {LIST_GROUPS.map((group) => {
+        {groups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.label);
           return (
             <div key={group.label}>

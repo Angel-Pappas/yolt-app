@@ -6,8 +6,8 @@ import { AddButton } from "@/components/table/add-button";
 import { TransactionFormDialog, type TransactionSeed } from "./transaction-form-dialog";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../lists/vat-rates/vat-rate-queries";
-import type { Category } from "../lists/categories/queries";
+import type { VatRate } from "../settings/vat-rates/vat-rate-queries";
+import type { Category } from "../settings/categories/queries";
 
 type TransactionModalProps = {
   trigger: React.ReactNode;

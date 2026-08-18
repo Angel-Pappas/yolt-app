@@ -40,18 +40,11 @@ export function UserMenu({ name, email }: { name: string | undefined; email: str
           </div>
           <div className="my-1 border-t border-edge" />
           <Link
-            href="/account"
+            href="/settings"
             onClick={() => setOpen(false)}
             className="block rounded-md px-2.5 py-1.5 text-left text-sm text-ink hover:bg-canvas"
           >
-            Account
-          </Link>
-          <Link
-            href="/options"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-2.5 py-1.5 text-left text-sm text-ink hover:bg-canvas"
-          >
-            Options
+            Settings
           </Link>
           <div className="my-1 border-t border-edge" />
           <form action={logout}>

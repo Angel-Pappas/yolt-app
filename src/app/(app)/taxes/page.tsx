@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireFinance } from "../require-access";
 import { formatAmount, formatMonthYear } from "@/lib/format";
 import { getMonthlyVatLedger, currentPeriod } from "./queries";
 import { TAX_TYPES } from "./tax-types";
 
 export default async function TaxesPage() {
+  await requireFinance();
   const supabase = await createClient();
   const months = await getMonthlyVatLedger(supabase);
 

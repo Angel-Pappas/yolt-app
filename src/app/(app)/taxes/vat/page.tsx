@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireFinance } from "../../require-access";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
 import { parseNumberParam } from "@/lib/parse-params";
@@ -58,6 +59,7 @@ export default async function VatTaxPage({
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
+  await requireFinance();
   const supabase = await createClient();
   const rawParams = await searchParams;
 

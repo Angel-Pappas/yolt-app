@@ -6,9 +6,9 @@ import { TransactionRow } from "./transaction-row";
 import { loadMoreTransactions } from "./actions";
 import type { Transaction } from "./queries";
 import type { Entity } from "../entities/queries";
-import type { Category } from "../lists/categories/queries";
+import type { Category } from "../settings/categories/queries";
 import type { Wallet } from "../wallets/queries";
-import type { VatRate } from "../lists/vat-rates/vat-rate-queries";
+import type { VatRate } from "../settings/vat-rates/vat-rate-queries";
 
 /**
  * The Transactions table body: renders the rows and pulls in more as the

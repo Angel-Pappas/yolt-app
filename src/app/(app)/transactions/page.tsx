@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireFinance } from "../require-access";
 import { addTransaction } from "./actions";
 import {
   getActiveTransactions,
@@ -12,9 +13,9 @@ import {
   TRANSACTION_PAGE_SIZE,
 } from "./list-params";
 import { getActiveEntities } from "../entities/queries";
-import { getActiveCategories } from "../lists/categories/queries";
+import { getActiveCategories } from "../settings/categories/queries";
 import { getActiveWallets } from "../wallets/queries";
-import { getActiveVatRates } from "../lists/vat-rates/vat-rate-queries";
+import { getActiveVatRates } from "../settings/vat-rates/vat-rate-queries";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionRows } from "./transaction-rows";
 import { TransactionTableHeader } from "./transaction-table-header";
@@ -42,6 +43,7 @@ export default async function TransactionsPage({
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
+  await requireFinance();
   const supabase = await createClient();
   const rawParams = await searchParams;
   const params = toSearchParams(rawParams);

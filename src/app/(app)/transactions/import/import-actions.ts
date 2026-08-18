@@ -422,7 +422,7 @@ export async function commitImport(rows: ResolvedImportRow[]): Promise<{ importe
   revalidatePath("/wallets");
   revalidatePath("/taxes");
   revalidatePath("/entities");
-  revalidatePath("/lists/categories");
+  revalidatePath("/settings/categories");
 
   return { imported };
 }

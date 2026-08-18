@@ -17,19 +17,19 @@ export async function updateDisplayName(formData: FormData) {
   const name = (formData.get("name") as string | null)?.trim() ?? "";
 
   if (!name) {
-    redirect(`/account?message=${encodeURIComponent("Name is required")}`);
+    redirect(`/settings/account?message=${encodeURIComponent("Name is required")}`);
   }
   if (name.length > 80) {
-    redirect(`/account?message=${encodeURIComponent("Name is too long")}`);
+    redirect(`/settings/account?message=${encodeURIComponent("Name is too long")}`);
   }
 
   const { error } = await supabase.auth.updateUser({ data: { full_name: name } });
 
   if (error) {
-    redirect(`/account?message=${encodeURIComponent(error.message)}`);
+    redirect(`/settings/account?message=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/account?message=" + encodeURIComponent("Name updated"));
+  redirect("/settings/account?message=" + encodeURIComponent("Name updated"));
 }
 
 export async function updateEmail(formData: FormData) {
@@ -43,11 +43,11 @@ export async function updateEmail(formData: FormData) {
   );
 
   if (error) {
-    redirect(`/account?message=${encodeURIComponent(error.message)}`);
+    redirect(`/settings/account?message=${encodeURIComponent(error.message)}`);
   }
 
   redirect(
-    "/account?message=" +
+    "/settings/account?message=" +
       encodeURIComponent("Check your new email address to confirm the change")
   );
 }
@@ -59,15 +59,15 @@ export async function updatePassword(formData: FormData) {
 
   if (password !== confirmPassword) {
     redirect(
-      `/account?message=${encodeURIComponent("Passwords do not match")}`
+      `/settings/account?message=${encodeURIComponent("Passwords do not match")}`
     );
   }
 
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    redirect(`/account?message=${encodeURIComponent(error.message)}`);
+    redirect(`/settings/account?message=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/account?message=" + encodeURIComponent("Password updated"));
+  redirect("/settings/account?message=" + encodeURIComponent("Password updated"));
 }
