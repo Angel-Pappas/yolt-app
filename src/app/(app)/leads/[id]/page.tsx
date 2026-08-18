@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Tabs } from "@/components/tabs";
@@ -42,11 +41,6 @@ export default async function LeadEditPage({
 
   return (
     <div className="flex w-full max-w-4xl flex-1 flex-col gap-6 p-6">
-      <div>
-        <Link href="/leads" className="text-sm text-ink-muted hover:text-ink">
-          ← Leads
-        </Link>
-      </div>
       <h1 className="font-display text-3xl font-bold text-ink">{lead.name}</h1>
 
       <LeadEditForm
