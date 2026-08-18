@@ -6,6 +6,7 @@ export type LeadListItem = {
   origin_name: string | null;
   status_name: string | null;
   next_step: string | null;
+  description: string | null;
   created_at: string;
 };
 
@@ -66,6 +67,7 @@ type LeadListRow = {
   id: string;
   name: string;
   next_step: string | null;
+  description: string | null;
   created_at: string;
   lead_origins: { name: string } | null;
   lead_statuses: { name: string } | null;
@@ -78,7 +80,7 @@ export async function getLeadsList(
   let query = supabase
     .from("leads")
     .select(
-      "id, name, next_step, created_at, lead_origins(name), lead_statuses(name)",
+      "id, name, next_step, description, created_at, lead_origins(name), lead_statuses(name)",
       { count: "exact" }
     )
     .eq("is_deleted", false);
@@ -86,7 +88,7 @@ export async function getLeadsList(
   if (params.search) {
     const p = `%${escapeLikePattern(params.search)}%`;
     query = query.or(
-      `name.ilike.${p},contact_name.ilike.${p},contact_email.ilike.${p},contact_phone.ilike.${p}`
+      `name.ilike.${p},contact_name.ilike.${p},contact_email.ilike.${p},contact_phone.ilike.${p},next_step.ilike.${p},description.ilike.${p}`
     );
   }
   if (params.originId) query = query.eq("origin_id", params.originId);
@@ -108,6 +110,7 @@ export async function getLeadsList(
     id: r.id,
     name: r.name,
     next_step: r.next_step,
+    description: r.description,
     created_at: r.created_at,
     origin_name: r.lead_origins?.name ?? null,
     status_name: r.lead_statuses?.name ?? null,
