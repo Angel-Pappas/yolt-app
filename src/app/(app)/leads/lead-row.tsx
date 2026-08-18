@@ -7,6 +7,14 @@ import { tableRowClass } from "@/components/table/table-styles";
 import { deleteLead } from "./actions";
 import type { LeadListItem } from "./queries";
 
+function Pill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex rounded-full border border-edge bg-canvas px-2 py-0.5 text-xs font-medium text-ink-muted">
+      {label}
+    </span>
+  );
+}
+
 export function LeadRow({ lead }: { lead: LeadListItem }) {
   const router = useRouter();
 
@@ -16,17 +24,13 @@ export function LeadRow({ lead }: { lead: LeadListItem }) {
       className={tableRowClass({ interactive: true })}
     >
       <td className="px-4 py-3 text-sm font-medium text-ink">{lead.name}</td>
-      <td className="px-4 py-3 text-sm text-ink-muted">{lead.phone ?? "—"}</td>
-      <td className="px-4 py-3 text-sm text-ink-muted">{lead.email ?? "—"}</td>
       <td className="px-4 py-3 text-sm">
-        {lead.status_name ? (
-          <span className="inline-flex rounded-full border border-edge bg-canvas px-2 py-0.5 text-xs font-medium text-ink-muted">
-            {lead.status_name}
-          </span>
-        ) : (
-          <span className="text-ink-faint">—</span>
-        )}
+        {lead.origin_name ? <Pill label={lead.origin_name} /> : <span className="text-ink-faint">—</span>}
       </td>
+      <td className="px-4 py-3 text-sm">
+        {lead.status_name ? <Pill label={lead.status_name} /> : <span className="text-ink-faint">—</span>}
+      </td>
+      <td className="px-4 py-3 text-sm text-ink-muted">{lead.next_step ?? "—"}</td>
       <td className="px-4 py-3 text-sm text-ink-muted tabular-nums">
         {formatDate(lead.created_at.slice(0, 10))}
       </td>

@@ -8,10 +8,14 @@ import { useListParams } from "@/components/table/use-list-params";
 import { useSortState } from "@/components/table/use-sort-state";
 import { LEAD_SORT_KEYS, type LeadSortKey } from "./queries";
 
+type Option = { value: string; label: string };
+
 export function LeadTableHeader({
+  originOptions,
   statusOptions,
 }: {
-  statusOptions: { value: string; label: string }[];
+  originOptions: Option[];
+  statusOptions: Option[];
 }) {
   const { searchParams, setFilterParams } = useListParams();
   const { currentSort, currentDir, handleSort } =
@@ -31,16 +35,15 @@ export function LeadTableHeader({
         </th>
         <th className={thClass}>
           <TableHeaderCell
-            label="Phone"
-            filter={<HeaderTextFilterPopover label="phone" paramKey="q" />}
-          />
-        </th>
-        <th className={thClass}>
-          <TableHeaderCell
-            label="Email"
-            sortKey="email"
-            {...sort}
-            filter={<HeaderTextFilterPopover label="email" paramKey="q" />}
+            label="Origin"
+            filter={
+              <HeaderFilterPopover
+                label="origins"
+                value={searchParams.get("origin") ?? ""}
+                onChange={(v) => setFilterParams({ origin: v || null })}
+                options={originOptions}
+              />
+            }
           />
         </th>
         <th className={thClass}>
@@ -54,6 +57,12 @@ export function LeadTableHeader({
                 options={statusOptions}
               />
             }
+          />
+        </th>
+        <th className={thClass}>
+          <TableHeaderCell
+            label="Next step"
+            filter={<HeaderTextFilterPopover label="next step" paramKey="q" />}
           />
         </th>
         <th className={thClass}>

@@ -38,7 +38,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     label: "Business",
     access: "crm",
-    items: [{ label: "Lead statuses", href: "/settings/lead-statuses" }],
+    items: [
+      { label: "Lead statuses", href: "/settings/lead-statuses" },
+      { label: "Lead origins", href: "/settings/lead-origins" },
+    ],
   },
   {
     label: "Administration",

@@ -3,64 +3,74 @@ import type { TypedSupabaseClient } from "@/lib/supabase/types";
 export type LeadListItem = {
   id: string;
   name: string;
-  phone: string | null;
-  email: string | null;
-  status_id: string | null;
+  origin_name: string | null;
   status_name: string | null;
+  next_step: string | null;
   created_at: string;
 };
 
-export type LeadDetail = LeadListItem & {
-  needs: string | null;
+export type LeadDetail = {
+  id: string;
+  name: string;
+  origin_id: string | null;
+  status_id: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_landline: string | null;
+  contact_website: string | null;
+  contact_email: string | null;
   description: string | null;
+  next_step: string | null;
+  created_at: string;
 };
 
-export type LeadActivity = {
+export type LeadAction = {
   id: string;
   body: string;
   author_name: string | null;
+  user_id: string;
   created_at: string;
 };
 
-export type LeadSortKey = "name" | "email" | "created_at";
-export type LeadSortDir = "asc" | "desc";
+export type LeadContact = {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  landline: string | null;
+  website: string | null;
+  email: string | null;
+};
 
-export const LEAD_SORT_KEYS: LeadSortKey[] = ["name", "email", "created_at"];
+export type UserOption = { id: string; name: string };
+
+export type LeadSortKey = "name" | "created_at";
+export type LeadSortDir = "asc" | "desc";
+export const LEAD_SORT_KEYS: LeadSortKey[] = ["name", "created_at"];
 
 export type LeadListParams = {
-  /** Matched against name OR phone OR email. */
+  /** Matched against name / contact name / contact email / contact phone. */
   search?: string;
+  originId?: string;
   statusId?: string;
   sort?: LeadSortKey;
   dir?: LeadSortDir;
 };
 
-export type LeadListResult = {
-  leads: LeadListItem[];
-  totalCount: number;
-};
+export type LeadListResult = { leads: LeadListItem[]; totalCount: number };
 
-/** Escapes ILIKE wildcards so a literal "%"/"_" isn't treated as a pattern. */
 function escapeLikePattern(value: string): string {
   return value.replace(/[%_]/g, (match) => `\\${match}`);
 }
 
-// Shape PostgREST returns with the status name embedded (a to-one join).
-type LeadRow = {
+type LeadListRow = {
   id: string;
   name: string;
-  phone: string | null;
-  email: string | null;
-  status_id: string | null;
+  next_step: string | null;
   created_at: string;
+  lead_origins: { name: string } | null;
   lead_statuses: { name: string } | null;
 };
 
-/**
- * The Leads list view: DB-level search/filter/sort. Status is filterable but
- * not sortable (it's a joined name; ordering by it would need a flattening view
- * like transactions_expanded — not worth it here). Defaults to newest-first.
- */
 export async function getLeadsList(
   supabase: TypedSupabaseClient,
   params: LeadListParams = {}
@@ -68,32 +78,28 @@ export async function getLeadsList(
   let query = supabase
     .from("leads")
     .select(
-      "id, name, phone, email, status_id, created_at, lead_statuses(name)",
+      "id, name, next_step, created_at, lead_origins(name), lead_statuses(name)",
       { count: "exact" }
     )
     .eq("is_deleted", false);
 
   if (params.search) {
-    const pattern = `%${escapeLikePattern(params.search)}%`;
+    const p = `%${escapeLikePattern(params.search)}%`;
     query = query.or(
-      `name.ilike.${pattern},phone.ilike.${pattern},email.ilike.${pattern}`
+      `name.ilike.${p},contact_name.ilike.${p},contact_email.ilike.${p},contact_phone.ilike.${p}`
     );
   }
-
-  if (params.statusId) {
-    query = query.eq("status_id", params.statusId);
-  }
+  if (params.originId) query = query.eq("origin_id", params.originId);
+  if (params.statusId) query = query.eq("status_id", params.statusId);
 
   if (params.sort) {
     query = query.order(params.sort, { ascending: params.dir === "asc" });
-    if (params.sort !== "name") {
-      query = query.order("name", { ascending: true });
-    }
+    if (params.sort !== "name") query = query.order("name", { ascending: true });
   } else {
     query = query.order("created_at", { ascending: false });
   }
 
-  const { data, error, count } = await query.returns<LeadRow[]>();
+  const { data, error, count } = await query.returns<LeadListRow[]>();
   if (error) {
     throw new Error(error.message);
   }
@@ -101,17 +107,15 @@ export async function getLeadsList(
   const leads: LeadListItem[] = (data ?? []).map((r) => ({
     id: r.id,
     name: r.name,
-    phone: r.phone,
-    email: r.email,
-    status_id: r.status_id,
-    status_name: r.lead_statuses?.name ?? null,
+    next_step: r.next_step,
     created_at: r.created_at,
+    origin_name: r.lead_origins?.name ?? null,
+    status_name: r.lead_statuses?.name ?? null,
   }));
 
   return { leads, totalCount: count ?? 0 };
 }
 
-/** A single lead with its status name, or null if not found / deleted. */
 export async function getLead(
   supabase: TypedSupabaseClient,
   id: string
@@ -119,7 +123,7 @@ export async function getLead(
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, name, phone, email, needs, description, status_id, created_at, lead_statuses(name)"
+      "id, name, origin_id, status_id, contact_name, contact_phone, contact_landline, contact_website, contact_email, description, next_step, created_at"
     )
     .eq("id", id)
     .eq("is_deleted", false)
@@ -128,41 +132,65 @@ export async function getLead(
   if (error) {
     throw new Error(error.message);
   }
-  if (!data) return null;
-
-  const row = data as LeadRow & {
-    needs: string | null;
-    description: string | null;
-  };
-
-  return {
-    id: row.id,
-    name: row.name,
-    phone: row.phone,
-    email: row.email,
-    needs: row.needs,
-    description: row.description,
-    status_id: row.status_id,
-    status_name: row.lead_statuses?.name ?? null,
-    created_at: row.created_at,
-  };
+  return (data as LeadDetail | null) ?? null;
 }
 
-/** A lead's activity log, newest first. */
-export async function getLeadActivities(
+/** A lead's actions (the History sub-tab), newest first. */
+export async function getLeadActions(
   supabase: TypedSupabaseClient,
   leadId: string
-): Promise<LeadActivity[]> {
+): Promise<LeadAction[]> {
   const { data, error } = await supabase
-    .from("lead_activities")
-    .select("id, body, author_name, created_at")
+    .from("lead_actions")
+    .select("id, body, author_name, user_id, created_at")
     .eq("lead_id", leadId)
     .eq("is_deleted", false)
     .order("created_at", { ascending: false })
-    .returns<LeadActivity[]>();
+    .returns<LeadAction[]>();
 
   if (error) {
     throw new Error(error.message);
   }
   return data ?? [];
+}
+
+/** A lead's additional contacts (the Contacts sub-tab), oldest first. */
+export async function getLeadContacts(
+  supabase: TypedSupabaseClient,
+  leadId: string
+): Promise<LeadContact[]> {
+  const { data, error } = await supabase
+    .from("lead_contacts")
+    .select("id, name, phone, landline, website, email")
+    .eq("lead_id", leadId)
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: true })
+    .returns<LeadContact[]>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data ?? [];
+}
+
+/**
+ * Active users for the action's actor picker. Only meaningful for admins — the
+ * profiles RLS returns just the caller's own row to a non-admin (who doesn't use
+ * the picker anyway).
+ */
+export async function getUsersForPicker(
+  supabase: TypedSupabaseClient
+): Promise<UserOption[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("is_active", true);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? [])
+    .map((p) => ({ id: p.id, name: p.full_name || p.email || "User" }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

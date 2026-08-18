@@ -93,7 +93,7 @@ export type Database = {
         }
         Relationships: []
       }
-      lead_activities: {
+      lead_actions: {
         Row: {
           author_name: string | null
           body: string
@@ -134,6 +134,86 @@ export type Database = {
           },
         ]
       }
+      lead_contacts: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          id: string
+          is_deleted: boolean
+          landline: string | null
+          lead_id: string
+          name: string | null
+          phone: string | null
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          is_deleted?: boolean
+          landline?: string | null
+          lead_id: string
+          name?: string | null
+          phone?: string | null
+          user_id?: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          is_deleted?: boolean
+          landline?: string | null
+          lead_id?: string
+          name?: string | null
+          phone?: string | null
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contacts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_origins: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name: string
+          position?: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_statuses: {
         Row: {
           created_at: string
@@ -166,45 +246,64 @@ export type Database = {
       }
       leads: {
         Row: {
+          contact_email: string | null
+          contact_landline: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_website: string | null
           created_at: string
           deleted_at: string | null
           description: string | null
-          email: string | null
           id: string
           is_deleted: boolean
           name: string
-          needs: string | null
-          phone: string | null
+          next_step: string | null
+          origin_id: string | null
           status_id: string | null
           user_id: string
         }
         Insert: {
+          contact_email?: string | null
+          contact_landline?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_website?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
-          email?: string | null
           id?: string
           is_deleted?: boolean
           name: string
-          needs?: string | null
-          phone?: string | null
+          next_step?: string | null
+          origin_id?: string | null
           status_id?: string | null
           user_id?: string
         }
         Update: {
+          contact_email?: string | null
+          contact_landline?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_website?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
-          email?: string | null
           id?: string
           is_deleted?: boolean
           name?: string
-          needs?: string | null
-          phone?: string | null
+          next_step?: string | null
+          origin_id?: string | null
           status_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_origin_id_fkey"
+            columns: ["origin_id"]
+            isOneToOne: false
+            referencedRelation: "lead_origins"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_status_id_fkey"
             columns: ["status_id"]

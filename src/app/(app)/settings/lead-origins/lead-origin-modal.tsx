@@ -2,32 +2,29 @@
 
 import { useDialog } from "@/components/dialog/use-dialog";
 import { AddButton } from "@/components/table/add-button";
-import { LeadFormDialog, type LeadDefaultValues } from "./lead-form-dialog";
-import type { LeadStatus } from "../settings/lead-statuses/queries";
+import { LeadOriginFormDialog } from "./lead-origin-form-dialog";
 
-type LeadModalProps = {
+type LeadOriginModalProps = {
   trigger: React.ReactNode;
   triggerClassName?: string;
   triggerLabel?: string;
   title: string;
   submitLabel: string;
-  statuses: LeadStatus[];
-  defaultValues?: LeadDefaultValues;
+  defaultValues?: { name: string };
   action: (formData: FormData) => Promise<void>;
   onDone?: () => void;
 };
 
-export function LeadModal({
+export function LeadOriginModal({
   trigger,
   triggerClassName,
   triggerLabel,
   title,
   submitLabel,
-  statuses,
   defaultValues,
   action,
   onDone,
-}: LeadModalProps) {
+}: LeadOriginModalProps) {
   const { dialogRef, open, close } = useDialog();
 
   function handleDone() {
@@ -44,11 +41,10 @@ export function LeadModal({
         onClick={open}
       />
 
-      <LeadFormDialog
+      <LeadOriginFormDialog
         dialogRef={dialogRef}
         title={title}
         submitLabel={submitLabel}
-        statuses={statuses}
         defaultValues={defaultValues}
         action={action}
         onDone={handleDone}
