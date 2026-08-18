@@ -2,7 +2,7 @@
 
 import { useDialog } from "@/components/dialog/use-dialog";
 import { AddButton } from "@/components/table/add-button";
-import { ActionFormDialog } from "./action-form-dialog";
+import { ActionFormDialog } from "../action-form-dialog";
 import { addLeadAction } from "../actions";
 import type { UserOption } from "../queries";
 

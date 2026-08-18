@@ -72,7 +72,16 @@ export function LeadTableHeader({
           />
         </th>
         <th className={thClass}>
-          <TableHeaderCell label="Added" sortKey="created_at" {...sort} />
+          <TableHeaderCell
+            label="Email"
+            filter={<HeaderTextFilterPopover label="email" paramKey="q" />}
+          />
+        </th>
+        <th className={thClass}>
+          <TableHeaderCell
+            label="Phone"
+            filter={<HeaderTextFilterPopover label="phone" paramKey="q" />}
+          />
         </th>
         <th className={thClass}></th>
       </tr>

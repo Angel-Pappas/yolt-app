@@ -4,7 +4,7 @@ import { useDialog } from "@/components/dialog/use-dialog";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
 import { formatDate } from "@/lib/format";
-import { ActionFormDialog } from "./action-form-dialog";
+import { ActionFormDialog } from "../action-form-dialog";
 import { updateLeadAction, deleteLeadAction } from "../actions";
 import type { LeadAction, UserOption } from "../queries";
 

@@ -7,6 +7,8 @@ export type LeadListItem = {
   status_name: string | null;
   next_step: string | null;
   description: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
   created_at: string;
 };
 
@@ -44,9 +46,9 @@ export type LeadContact = {
 
 export type UserOption = { id: string; name: string };
 
-export type LeadSortKey = "name" | "created_at";
+export type LeadSortKey = "name";
 export type LeadSortDir = "asc" | "desc";
-export const LEAD_SORT_KEYS: LeadSortKey[] = ["name", "created_at"];
+export const LEAD_SORT_KEYS: LeadSortKey[] = ["name"];
 
 export type LeadListParams = {
   /** Matched against name / contact name / contact email / contact phone. */
@@ -68,6 +70,8 @@ type LeadListRow = {
   name: string;
   next_step: string | null;
   description: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
   created_at: string;
   lead_origins: { name: string } | null;
   lead_statuses: { name: string } | null;
@@ -80,7 +84,7 @@ export async function getLeadsList(
   let query = supabase
     .from("leads")
     .select(
-      "id, name, next_step, description, created_at, lead_origins(name), lead_statuses(name)",
+      "id, name, next_step, description, contact_email, contact_phone, created_at, lead_origins(name), lead_statuses(name)",
       { count: "exact" }
     )
     .eq("is_deleted", false);
@@ -111,6 +115,8 @@ export async function getLeadsList(
     name: r.name,
     next_step: r.next_step,
     description: r.description,
+    contact_email: r.contact_email,
+    contact_phone: r.contact_phone,
     created_at: r.created_at,
     origin_name: r.lead_origins?.name ?? null,
     status_name: r.lead_statuses?.name ?? null,

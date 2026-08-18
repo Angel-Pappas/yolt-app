@@ -3,6 +3,7 @@
 import { useDialog } from "@/components/dialog/use-dialog";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
+import { formatPhone } from "@/lib/format";
 import { ContactFormDialog } from "./contact-form-dialog";
 import { updateLeadContact, deleteLeadContact } from "../actions";
 import type { LeadContact } from "../queries";
@@ -21,9 +22,11 @@ export function ContactRow({
       <td className="px-4 py-3 text-sm font-medium text-ink">
         {contact.name ?? "—"}
       </td>
-      <td className="px-4 py-3 text-sm text-ink-muted">{contact.phone ?? "—"}</td>
-      <td className="px-4 py-3 text-sm text-ink-muted">
-        {contact.landline ?? "—"}
+      <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted tabular-nums">
+        {contact.phone ? formatPhone(contact.phone) : "—"}
+      </td>
+      <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted tabular-nums">
+        {contact.landline ? formatPhone(contact.landline) : "—"}
       </td>
       <td className="px-4 py-3 text-sm text-ink-muted">
         {contact.website ?? "—"}

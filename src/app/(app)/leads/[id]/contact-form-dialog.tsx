@@ -31,6 +31,10 @@ export function ContactFormDialog({
 }: ContactFormDialogProps) {
   const uid = useId();
 
+  function digitsOnly(e: React.FormEvent<HTMLInputElement>) {
+    e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+  }
+
   return (
     <ModalShell
       dialogRef={dialogRef}
@@ -75,6 +79,8 @@ export function ContactFormDialog({
             id={`${uid}-phone`}
             name="phone"
             type="text"
+            inputMode="numeric"
+            onInput={digitsOnly}
             defaultValue={defaultValues?.phone ?? ""}
             className={formInputClass}
           />
@@ -87,6 +93,8 @@ export function ContactFormDialog({
             id={`${uid}-landline`}
             name="landline"
             type="text"
+            inputMode="numeric"
+            onInput={digitsOnly}
             defaultValue={defaultValues?.landline ?? ""}
             className={formInputClass}
           />

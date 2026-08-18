@@ -43,6 +43,11 @@ export function LeadFields({
   const currentOrigin =
     origins.find((o) => o.id === defaultValues?.origin_id) ?? null;
 
+  // Phone fields accept digits only.
+  function digitsOnly(e: React.FormEvent<HTMLInputElement>) {
+    e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -121,6 +126,8 @@ export function LeadFields({
             id={`${uid}-cphone`}
             name="contact_phone"
             type="text"
+            inputMode="numeric"
+            onInput={digitsOnly}
             defaultValue={defaultValues?.contact_phone ?? ""}
             className={formInputClass}
           />
@@ -133,6 +140,8 @@ export function LeadFields({
             id={`${uid}-clandline`}
             name="contact_landline"
             type="text"
+            inputMode="numeric"
+            onInput={digitsOnly}
             defaultValue={defaultValues?.contact_landline ?? ""}
             className={formInputClass}
           />

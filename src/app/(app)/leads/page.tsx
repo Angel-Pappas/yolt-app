@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
 import { requireCrm } from "../require-access";
-import { LEAD_SORT_KEYS, getLeadsList } from "./queries";
+import { LEAD_SORT_KEYS, getLeadsList, getUsersForPicker } from "./queries";
 import { getActiveLeadOrigins } from "../settings/lead-origins/queries";
 import { getActiveLeadStatuses } from "../settings/lead-statuses/queries";
 import { LeadAddModal } from "./lead-add-modal";
@@ -21,7 +21,7 @@ export default async function LeadsPage({
 }: {
   searchParams: Promise<RawSearchParams>;
 }) {
-  await requireCrm();
+  const profile = await requireCrm();
   const supabase = await createClient();
   const rawParams = await searchParams;
   const search = getParam(rawParams, "q")?.trim();
@@ -33,18 +33,23 @@ export default async function LeadsPage({
     LEAD_SORT_KEYS
   );
 
-  const [{ leads, totalCount }, { data: origins }, { data: statuses }] =
+  const [{ leads, totalCount }, { data: origins }, { data: statuses }, users] =
     await Promise.all([
       getLeadsList(supabase, { search, originId, statusId, sort, dir }),
       getActiveLeadOrigins(supabase),
       getActiveLeadStatuses(supabase),
+      profile.isAdmin
+        ? getUsersForPicker(supabase)
+        : Promise.resolve([
+            { id: profile.id, name: profile.name || profile.email || "Me" },
+          ]),
     ]);
 
   const originOptions = (origins ?? []).map((o) => ({ value: o.id, label: o.name }));
   const statusOptions = (statuses ?? []).map((s) => ({ value: s.id, label: s.name }));
 
   return (
-    <div className="flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
+    <div className="flex w-full flex-1 flex-col gap-6 p-6">
       <ListPageHeader
         title="Leads"
         addButton={
@@ -62,12 +67,18 @@ export default async function LeadsPage({
             />
             <tbody>
               {leads.map((lead) => (
-                <LeadRow key={lead.id} lead={lead} />
+                <LeadRow
+                  key={lead.id}
+                  lead={lead}
+                  users={users}
+                  isAdmin={profile.isAdmin}
+                  currentUserId={profile.id}
+                />
               ))}
               {totalCount === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-10 text-center text-sm text-ink-faint"
                   >
                     {search || originId || statusId

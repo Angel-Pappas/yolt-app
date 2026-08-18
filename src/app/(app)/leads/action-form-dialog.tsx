@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { ModalShell } from "@/components/dialog/modal-shell";
 import { formInputClass, formLabelClass } from "@/components/form-styles";
-import type { UserOption } from "../queries";
+import type { UserOption } from "./queries";
 
 type ActionFormDialogProps = {
   dialogRef: React.RefObject<HTMLDialogElement | null>;

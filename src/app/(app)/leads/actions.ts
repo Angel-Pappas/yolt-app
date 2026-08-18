@@ -55,6 +55,23 @@ export async function deleteLead(id: string) {
   revalidatePath("/leads");
 }
 
+/** Update just the next step — used by the inline edit on the leads list. */
+export async function updateLeadNextStep(leadId: string, value: string) {
+  const supabase = await createClient();
+  const next = value.trim() || null;
+
+  const { error } = await supabase
+    .from("leads")
+    .update({ next_step: next })
+    .eq("id", leadId);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/leads");
+  revalidatePath(`/leads/${leadId}`);
+}
+
 // ---- actions (the History sub-tab) -----------------------------------------
 
 /**

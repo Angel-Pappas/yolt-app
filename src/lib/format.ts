@@ -8,6 +8,22 @@ export function formatDate(isoDate: string): string {
 }
 
 /**
+ * Groups a phone number's digits for readability — "XXX XXX XXXX" style (first
+ * three, next three, then the rest). Non-digits are stripped; empty → "".
+ */
+export function formatPhone(value: string | null | undefined): string {
+  if (!value) return "";
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return value;
+  const parts = [
+    digits.slice(0, 3),
+    digits.slice(3, 6),
+    digits.slice(6),
+  ].filter(Boolean);
+  return parts.join(" ");
+}
+
+/**
  * "dd/mm/yyyy" (what the user types into a `DateField`) -> ISO "yyyy-mm-dd",
  * or "" if it isn't a real calendar date. Strict on purpose: leading zeros
  * are optional on input, but impossible dates (month > 12, 31/04, 29/02 in a
