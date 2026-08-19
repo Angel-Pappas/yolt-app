@@ -27,14 +27,6 @@ export function LeadTableHeader({
       <tr className={tableHeadRowClass}>
         <th className={thClass}>
           <TableHeaderCell
-            label="Name"
-            sortKey="name"
-            {...sort}
-            filter={<HeaderTextFilterPopover label="name" paramKey="q" />}
-          />
-        </th>
-        <th className={thClass}>
-          <TableHeaderCell
             label="Origin"
             filter={
               <HeaderFilterPopover
@@ -48,27 +40,10 @@ export function LeadTableHeader({
         </th>
         <th className={thClass}>
           <TableHeaderCell
-            label="Status"
-            filter={
-              <HeaderFilterPopover
-                label="statuses"
-                value={searchParams.get("status") ?? ""}
-                onChange={(v) => setFilterParams({ status: v || null })}
-                options={statusOptions}
-              />
-            }
-          />
-        </th>
-        <th className={thClass}>
-          <TableHeaderCell
-            label="Next step"
-            filter={<HeaderTextFilterPopover label="next step" paramKey="q" />}
-          />
-        </th>
-        <th className={thClass}>
-          <TableHeaderCell
-            label="Description"
-            filter={<HeaderTextFilterPopover label="description" paramKey="q" />}
+            label="Name"
+            sortKey="name"
+            {...sort}
+            filter={<HeaderTextFilterPopover label="name" paramKey="q" />}
           />
         </th>
         <th className={thClass}>
@@ -81,6 +56,31 @@ export function LeadTableHeader({
           <TableHeaderCell
             label="Phone"
             filter={<HeaderTextFilterPopover label="phone" paramKey="q" />}
+          />
+        </th>
+        <th className={thClass}>
+          <TableHeaderCell
+            label="Description"
+            filter={<HeaderTextFilterPopover label="description" paramKey="q" />}
+          />
+        </th>
+        <th className={thClass}>
+          <TableHeaderCell
+            label="Next step"
+            filter={<HeaderTextFilterPopover label="next step" paramKey="q" />}
+          />
+        </th>
+        <th className={thClass}>
+          <TableHeaderCell
+            label="Status"
+            filter={
+              <HeaderFilterPopover
+                label="statuses"
+                value={searchParams.get("status") ?? ""}
+                onChange={(v) => setFilterParams({ status: v || null })}
+                options={statusOptions}
+              />
+            }
           />
         </th>
         <th className={thClass}></th>

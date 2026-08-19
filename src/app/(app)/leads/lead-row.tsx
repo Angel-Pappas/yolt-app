@@ -35,17 +35,17 @@ export function LeadRow({
       onClick={() => router.push(`/leads/${lead.id}`)}
       className={tableRowClass({ interactive: true })}
     >
-      <td className="px-4 py-3 align-middle text-sm font-medium text-ink">
-        {lead.name}
-      </td>
       <td className="px-4 py-3 align-middle text-sm">
         {lead.origin_name ? <Pill label={lead.origin_name} /> : <span className="text-ink-faint">—</span>}
       </td>
-      <td className="px-4 py-3 align-middle text-sm">
-        {lead.status_name ? <Pill label={lead.status_name} /> : <span className="text-ink-faint">—</span>}
+      <td className="px-4 py-3 align-middle text-sm font-medium text-ink">
+        {lead.name}
       </td>
       <td className="px-4 py-3 align-middle text-sm text-ink-muted">
-        <EditableNextStep leadId={lead.id} value={lead.next_step} />
+        {lead.contact_email ?? "—"}
+      </td>
+      <td className="px-4 py-3 align-middle text-sm whitespace-nowrap text-ink-muted tabular-nums">
+        {lead.contact_phone ? formatPhone(lead.contact_phone) : "—"}
       </td>
       <td className="px-4 py-3 align-middle text-sm text-ink-muted">
         <div className="max-w-[20rem] break-words whitespace-normal">
@@ -53,10 +53,10 @@ export function LeadRow({
         </div>
       </td>
       <td className="px-4 py-3 align-middle text-sm text-ink-muted">
-        {lead.contact_email ?? "—"}
+        <EditableNextStep leadId={lead.id} value={lead.next_step} />
       </td>
-      <td className="px-4 py-3 align-middle text-sm whitespace-nowrap text-ink-muted tabular-nums">
-        {lead.contact_phone ? formatPhone(lead.contact_phone) : "—"}
+      <td className="px-4 py-3 align-middle text-sm">
+        {lead.status_name ? <Pill label={lead.status_name} /> : <span className="text-ink-faint">—</span>}
       </td>
       <td className="px-4 py-3 text-right align-middle" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end">
