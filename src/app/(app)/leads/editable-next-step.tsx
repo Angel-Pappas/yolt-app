@@ -65,6 +65,11 @@ export function EditableNextStep({
         autoFocus
         onKeyDown={(e) => {
           if (e.key === "Escape") cancel();
+          // Enter saves; Shift+Enter still inserts a newline.
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            save();
+          }
         }}
         className={formInputClass}
       />
