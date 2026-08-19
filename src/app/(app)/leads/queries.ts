@@ -4,6 +4,7 @@ export type LeadListItem = {
   id: string;
   name: string;
   origin_name: string | null;
+  status_id: string | null;
   status_name: string | null;
   next_step: string | null;
   description: string | null;
@@ -70,6 +71,7 @@ function escapeLikePattern(value: string): string {
 type LeadListRow = {
   id: string;
   name: string;
+  status_id: string | null;
   next_step: string | null;
   description: string | null;
   contact_email: string | null;
@@ -86,7 +88,7 @@ export async function getLeadsList(
   let query = supabase
     .from("leads")
     .select(
-      "id, name, next_step, description, contact_email, contact_phone, created_at, lead_origins(name), lead_statuses(name)",
+      "id, name, status_id, next_step, description, contact_email, contact_phone, created_at, lead_origins(name), lead_statuses(name)",
       { count: "exact" }
     )
     .eq("is_deleted", false);
@@ -115,6 +117,7 @@ export async function getLeadsList(
   const leads: LeadListItem[] = (data ?? []).map((r) => ({
     id: r.id,
     name: r.name,
+    status_id: r.status_id,
     next_step: r.next_step,
     description: r.description,
     contact_email: r.contact_email,

@@ -73,6 +73,7 @@ export default async function LeadsPage({
                   users={users}
                   isAdmin={profile.isAdmin}
                   currentUserId={profile.id}
+                  statusOptions={statusOptions}
                 />
               ))}
               {totalCount === 0 && (
