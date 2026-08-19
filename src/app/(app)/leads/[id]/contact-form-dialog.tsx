@@ -6,6 +6,7 @@ import { formInputClass, formLabelClass } from "@/components/form-styles";
 
 export type ContactDefaultValues = {
   name: string;
+  position: string | null;
   phone: string | null;
   landline: string | null;
   website: string | null;
@@ -56,6 +57,18 @@ export function ContactFormDialog({
             required
             autoFocus
             defaultValue={defaultValues?.name}
+            className={formInputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${uid}-position`} className={formLabelClass}>
+            Position
+          </label>
+          <input
+            id={`${uid}-position`}
+            name="position"
+            type="text"
+            defaultValue={defaultValues?.position ?? ""}
             className={formInputClass}
           />
         </div>

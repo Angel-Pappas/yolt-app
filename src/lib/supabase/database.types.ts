@@ -29,7 +29,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -145,6 +145,7 @@ export type Database = {
           lead_id: string
           name: string | null
           phone: string | null
+          position: string | null
           user_id: string
           website: string | null
         }
@@ -158,6 +159,7 @@ export type Database = {
           lead_id: string
           name?: string | null
           phone?: string | null
+          position?: string | null
           user_id?: string
           website?: string | null
         }
@@ -171,6 +173,7 @@ export type Database = {
           lead_id?: string
           name?: string | null
           phone?: string | null
+          position?: string | null
           user_id?: string
           website?: string | null
         }
@@ -250,7 +253,7 @@ export type Database = {
           contact_landline: string | null
           contact_name: string | null
           contact_phone: string | null
-          contact_website: string | null
+          contact_position: string | null
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -261,13 +264,14 @@ export type Database = {
           origin_id: string | null
           status_id: string | null
           user_id: string
+          website: string | null
         }
         Insert: {
           contact_email?: string | null
           contact_landline?: string | null
           contact_name?: string | null
           contact_phone?: string | null
-          contact_website?: string | null
+          contact_position?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -278,13 +282,14 @@ export type Database = {
           origin_id?: string | null
           status_id?: string | null
           user_id?: string
+          website?: string | null
         }
         Update: {
           contact_email?: string | null
           contact_landline?: string | null
           contact_name?: string | null
           contact_phone?: string | null
-          contact_website?: string | null
+          contact_position?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -295,6 +300,7 @@ export type Database = {
           origin_id?: string | null
           status_id?: string | null
           user_id?: string
+          website?: string | null
         }
         Relationships: [
           {

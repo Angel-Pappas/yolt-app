@@ -10,10 +10,11 @@ export type LeadFieldValues = {
   name?: string;
   origin_id?: string | null;
   status_id?: string | null;
+  website?: string | null;
   contact_name?: string | null;
+  contact_position?: string | null;
   contact_phone?: string | null;
   contact_landline?: string | null;
-  contact_website?: string | null;
   contact_email?: string | null;
   description?: string | null;
   next_step?: string | null;
@@ -90,6 +91,18 @@ export function LeadFields({
             onAddNew={onAddOrigin}
           />
         </div>
+        <div className="sm:col-span-2">
+          <label htmlFor={`${uid}-website`} className={formLabelClass}>
+            Website
+          </label>
+          <input
+            id={`${uid}-website`}
+            name="website"
+            type="text"
+            defaultValue={defaultValues?.website ?? ""}
+            className={formInputClass}
+          />
+        </div>
       </div>
 
       <fieldset className="grid gap-4 rounded-lg border border-edge bg-canvas p-4 sm:grid-cols-2">
@@ -103,6 +116,18 @@ export function LeadFields({
             name="contact_name"
             type="text"
             defaultValue={defaultValues?.contact_name ?? ""}
+            className={formInputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${uid}-cposition`} className={formLabelClass}>
+            Position
+          </label>
+          <input
+            id={`${uid}-cposition`}
+            name="contact_position"
+            type="text"
+            defaultValue={defaultValues?.contact_position ?? ""}
             className={formInputClass}
           />
         </div>
@@ -143,18 +168,6 @@ export function LeadFields({
             inputMode="numeric"
             onInput={digitsOnly}
             defaultValue={defaultValues?.contact_landline ?? ""}
-            className={formInputClass}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor={`${uid}-cwebsite`} className={formLabelClass}>
-            Website
-          </label>
-          <input
-            id={`${uid}-cwebsite`}
-            name="contact_website"
-            type="text"
-            defaultValue={defaultValues?.contact_website ?? ""}
             className={formInputClass}
           />
         </div>

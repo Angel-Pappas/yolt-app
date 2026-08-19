@@ -16,10 +16,11 @@ export const leadSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   origin_id: optionalUuid,
   status_id: optionalUuid,
+  website: optionalText,
   contact_name: optionalText,
+  contact_position: optionalText,
   contact_phone: optionalText,
   contact_landline: optionalText,
-  contact_website: optionalText,
   contact_email: optionalText,
   description: optionalText,
   next_step: optionalText,
@@ -28,6 +29,7 @@ export type LeadInput = z.infer<typeof leadSchema>;
 
 export const leadContactSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
+  position: optionalText,
   phone: optionalText,
   landline: optionalText,
   website: optionalText,

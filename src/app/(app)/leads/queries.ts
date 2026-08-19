@@ -17,10 +17,11 @@ export type LeadDetail = {
   name: string;
   origin_id: string | null;
   status_id: string | null;
+  website: string | null;
   contact_name: string | null;
+  contact_position: string | null;
   contact_phone: string | null;
   contact_landline: string | null;
-  contact_website: string | null;
   contact_email: string | null;
   description: string | null;
   next_step: string | null;
@@ -38,6 +39,7 @@ export type LeadAction = {
 export type LeadContact = {
   id: string;
   name: string | null;
+  position: string | null;
   phone: string | null;
   landline: string | null;
   website: string | null;
@@ -132,7 +134,7 @@ export async function getLead(
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, name, origin_id, status_id, contact_name, contact_phone, contact_landline, contact_website, contact_email, description, next_step, created_at"
+      "id, name, origin_id, status_id, website, contact_name, contact_position, contact_phone, contact_landline, contact_email, description, next_step, created_at"
     )
     .eq("id", id)
     .eq("is_deleted", false)
@@ -170,7 +172,7 @@ export async function getLeadContacts(
 ): Promise<LeadContact[]> {
   const { data, error } = await supabase
     .from("lead_contacts")
-    .select("id, name, phone, landline, website, email")
+    .select("id, name, position, phone, landline, website, email")
     .eq("lead_id", leadId)
     .eq("is_deleted", false)
     .order("created_at", { ascending: true })

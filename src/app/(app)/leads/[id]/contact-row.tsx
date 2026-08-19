@@ -22,6 +22,9 @@ export function ContactRow({
       <td className="px-4 py-3 text-sm font-medium text-ink">
         {contact.name ?? "—"}
       </td>
+      <td className="px-4 py-3 text-sm text-ink-muted">
+        {contact.position ?? "—"}
+      </td>
       <td className="px-4 py-3 text-sm whitespace-nowrap text-ink-muted tabular-nums">
         {contact.phone ? formatPhone(contact.phone) : "—"}
       </td>
@@ -45,6 +48,7 @@ export function ContactRow({
           submitLabel="Save"
           defaultValues={{
             name: contact.name ?? "",
+            position: contact.position,
             phone: contact.phone,
             landline: contact.landline,
             website: contact.website,

@@ -26,6 +26,7 @@ export function ContactsPanel({
             <thead>
               <tr className={tableHeadRowClass}>
                 <th className={thClass}>Name</th>
+                <th className={thClass}>Position</th>
                 <th className={thClass}>Phone</th>
                 <th className={thClass}>Landline</th>
                 <th className={thClass}>Website</th>
@@ -40,7 +41,7 @@ export function ContactsPanel({
               {contacts.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-10 text-center text-sm text-ink-faint"
                   >
                     No additional contacts yet.
