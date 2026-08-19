@@ -107,7 +107,12 @@ export async function getLeadsList(
     );
   }
   if (params.originId) query = query.eq("origin_id", params.originId);
-  if (params.statusId) query = query.eq("status_id", params.statusId);
+  // "none" is the sentinel for the "No status" filter option.
+  if (params.statusId === "none") {
+    query = query.is("status_id", null);
+  } else if (params.statusId) {
+    query = query.eq("status_id", params.statusId);
+  }
 
   if (params.sort) {
     query = query.order(params.sort, { ascending: params.dir === "asc" });

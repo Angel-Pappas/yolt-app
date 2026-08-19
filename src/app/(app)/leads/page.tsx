@@ -46,7 +46,13 @@ export default async function LeadsPage({
     ]);
 
   const originOptions = (origins ?? []).map((o) => ({ value: o.id, label: o.name }));
+  // Real statuses — used by the inline status editor on each row.
   const statusOptions = (statuses ?? []).map((s) => ({ value: s.id, label: s.name }));
+  // The header filter also offers "No status" (leads with no status set).
+  const statusFilterOptions = [
+    { value: "none", label: "No status" },
+    ...statusOptions,
+  ];
 
   return (
     <div className="flex w-full flex-1 flex-col gap-6 p-6">
@@ -63,7 +69,7 @@ export default async function LeadsPage({
           <table className="w-full text-sm">
             <LeadTableHeader
               originOptions={originOptions}
-              statusOptions={statusOptions}
+              statusOptions={statusFilterOptions}
             />
             <tbody>
               {leads.map((lead) => (
