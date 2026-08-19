@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useDialog } from "@/components/dialog/use-dialog";
 import { PlusIcon } from "@/components/icons";
 import { ActionFormDialog } from "./action-form-dialog";
@@ -23,12 +24,19 @@ export function RowAddAction({
   currentUserId: string;
 }) {
   const { dialogRef, open, close } = useDialog();
+  // Bumped on each open so the reused dialog resets to a blank form dated today.
+  const [resetKey, setResetKey] = useState(0);
+
+  function handleOpen() {
+    setResetKey((k) => k + 1);
+    open();
+  }
 
   return (
     <>
       <button
         type="button"
-        onClick={open}
+        onClick={handleOpen}
         aria-label="Add action"
         title="Add action"
         className="rounded-lg p-2 text-ink-faint transition-colors hover:bg-canvas hover:text-ink"
@@ -43,6 +51,7 @@ export function RowAddAction({
         users={users}
         isAdmin={isAdmin}
         currentUserId={currentUserId}
+        resetKey={resetKey}
         action={addLeadAction.bind(null, leadId)}
         onDone={close}
       />

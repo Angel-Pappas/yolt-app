@@ -19,6 +19,13 @@ type ActionFormDialogProps = {
   users: UserOption[];
   isAdmin: boolean;
   currentUserId: string;
+  /**
+   * Bumped by the Add wrappers on every open so a fresh "Add action" resets to
+   * a blank form dated today — the dialog instance is reused across opens, so
+   * without this the previous entry's text/date would linger. Left at its
+   * default for the edit dialog, which should keep the action's own values.
+   */
+  resetKey?: number;
   action: (formData: FormData) => Promise<void>;
   onDone: () => void;
 };
@@ -31,6 +38,7 @@ export function ActionFormDialog({
   users,
   isAdmin,
   currentUserId,
+  resetKey = 0,
   action,
   onDone,
 }: ActionFormDialogProps) {
@@ -39,6 +47,16 @@ export function ActionFormDialog({
   const [date, setDate] = useState(
     defaultValues?.action_date ?? todayLocalIsoDate()
   );
+
+  // Reset the date to today (or the edited action's date) each time the Add
+  // wrapper bumps resetKey. Adjusted during render, not in an effect, per the
+  // codebase's set-state-in-effect rule. The uncontrolled fields below reset
+  // via key={resetKey}.
+  const [lastReset, setLastReset] = useState(resetKey);
+  if (resetKey !== lastReset) {
+    setLastReset(resetKey);
+    setDate(defaultValues?.action_date ?? todayLocalIsoDate());
+  }
 
   return (
     <ModalShell
@@ -57,6 +75,7 @@ export function ActionFormDialog({
           id={`${uid}-date`}
           name="action_date"
           required
+          showCalendar={false}
           value={date}
           onChange={setDate}
           className={formFieldBoxClass}
@@ -71,6 +90,7 @@ export function ActionFormDialog({
             User
           </label>
           <select
+            key={resetKey}
             id={`${uid}-user`}
             name="user_id"
             defaultValue={defaultValues?.user_id ?? currentUserId}
@@ -90,6 +110,7 @@ export function ActionFormDialog({
           Action
         </label>
         <textarea
+          key={resetKey}
           id={`${uid}-body`}
           name="body"
           rows={3}
