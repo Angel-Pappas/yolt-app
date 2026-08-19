@@ -128,7 +128,7 @@ async function requireCrmProfile(
 export async function addLeadAction(leadId: string, formData: FormData) {
   const supabase = await createClient();
   const profile = await requireCrmProfile(supabase);
-  const { body, user_id } = parseOrThrow(
+  const { body, action_date, user_id } = parseOrThrow(
     leadActionSchema,
     formDataToRecord(formData)
   );
@@ -137,6 +137,7 @@ export async function addLeadAction(leadId: string, formData: FormData) {
   const { error } = await supabase.from("lead_actions").insert({
     lead_id: leadId,
     body,
+    action_date,
     user_id: actor.userId,
     author_name: actor.name,
   });
@@ -154,13 +155,19 @@ export async function updateLeadAction(
 ) {
   const supabase = await createClient();
   const profile = await requireCrmProfile(supabase);
-  const { body, user_id } = parseOrThrow(
+  const { body, action_date, user_id } = parseOrThrow(
     leadActionSchema,
     formDataToRecord(formData)
   );
 
-  const update: { body: string; user_id?: string; author_name?: string | null } = {
+  const update: {
+    body: string;
+    action_date: string;
+    user_id?: string;
+    author_name?: string | null;
+  } = {
     body,
+    action_date,
   };
   // Only admins can reassign the actor.
   if (profile.isAdmin && user_id) {

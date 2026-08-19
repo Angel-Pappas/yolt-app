@@ -8,8 +8,8 @@ import type { UserOption } from "./queries";
 
 /**
  * Per-row "add action" — a small icon button that opens the same action modal
- * used on the lead's History tab. The action's date/time is its creation moment
- * (set by the DB); the user types the text. Admins get the actor picker.
+ * used on the lead's History tab. The action's date defaults to today but is
+ * editable; the user types the text. Admins get the actor picker.
  */
 export function RowAddAction({
   leadId,

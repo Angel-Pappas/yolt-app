@@ -1,15 +1,21 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { ModalShell } from "@/components/dialog/modal-shell";
-import { formInputClass, formLabelClass } from "@/components/form-styles";
+import { DateField } from "@/components/date-field";
+import {
+  formFieldBoxClass,
+  formInputClass,
+  formLabelClass,
+} from "@/components/form-styles";
+import { todayLocalIsoDate } from "@/lib/format";
 import type { UserOption } from "./queries";
 
 type ActionFormDialogProps = {
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   title: string;
   submitLabel: string;
-  defaultValues?: { body: string; user_id: string };
+  defaultValues?: { body: string; action_date: string; user_id: string };
   users: UserOption[];
   isAdmin: boolean;
   currentUserId: string;
@@ -29,6 +35,10 @@ export function ActionFormDialog({
   onDone,
 }: ActionFormDialogProps) {
   const uid = useId();
+  // Defaults to today for a new action; editable, and pre-filled on edit.
+  const [date, setDate] = useState(
+    defaultValues?.action_date ?? todayLocalIsoDate()
+  );
 
   return (
     <ModalShell
@@ -39,6 +49,20 @@ export function ActionFormDialog({
       onDone={onDone}
       maxWidth="max-w-md"
     >
+      <div>
+        <label htmlFor={`${uid}-date`} className={formLabelClass}>
+          Date
+        </label>
+        <DateField
+          id={`${uid}-date`}
+          name="action_date"
+          required
+          value={date}
+          onChange={setDate}
+          className={formFieldBoxClass}
+        />
+      </div>
+
       {/* Only admins can attribute an action to another user; everyone else's
           actions are always their own (no picker, resolved server-side). */}
       {isAdmin && (

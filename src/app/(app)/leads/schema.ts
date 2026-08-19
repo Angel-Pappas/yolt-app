@@ -39,6 +39,7 @@ export type LeadContactInput = z.infer<typeof leadContactSchema>;
 
 export const leadActionSchema = z.object({
   body: z.string().trim().min(1, "Write what happened"),
+  action_date: z.iso.date("Invalid date"),
   // The actor. Only honored server-side when the current user is an admin.
   user_id: optionalUuid,
 });

@@ -32,6 +32,7 @@ export type LeadDetail = {
 export type LeadAction = {
   id: string;
   body: string;
+  action_date: string;
   author_name: string | null;
   user_id: string;
   created_at: string;
@@ -156,9 +157,10 @@ export async function getLeadActions(
 ): Promise<LeadAction[]> {
   const { data, error } = await supabase
     .from("lead_actions")
-    .select("id, body, author_name, user_id, created_at")
+    .select("id, body, action_date, author_name, user_id, created_at")
     .eq("lead_id", leadId)
     .eq("is_deleted", false)
+    .order("action_date", { ascending: false })
     .order("created_at", { ascending: false })
     .returns<LeadAction[]>();
 

@@ -26,7 +26,7 @@ export function ActionRow({
   return (
     <tr onClick={open} className={tableRowClass({ interactive: true })}>
       <td className="px-4 py-3 align-top text-sm whitespace-nowrap text-ink-muted tabular-nums">
-        {formatDate(action.created_at.slice(0, 10))}
+        {formatDate(action.action_date)}
       </td>
       <td className="px-4 py-3 align-top text-sm whitespace-nowrap text-ink-muted">
         {action.author_name ?? "—"}
@@ -48,7 +48,11 @@ export function ActionRow({
           dialogRef={dialogRef}
           title="Edit action"
           submitLabel="Save"
-          defaultValues={{ body: action.body, user_id: action.user_id }}
+          defaultValues={{
+            body: action.body,
+            action_date: action.action_date,
+            user_id: action.user_id,
+          }}
           users={users}
           isAdmin={isAdmin}
           currentUserId={currentUserId}

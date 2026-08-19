@@ -95,6 +95,7 @@ export type Database = {
       }
       lead_actions: {
         Row: {
+          action_date: string
           author_name: string | null
           body: string
           created_at: string
@@ -105,6 +106,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          action_date?: string
           author_name?: string | null
           body: string
           created_at?: string
@@ -115,6 +117,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          action_date?: string
           author_name?: string | null
           body?: string
           created_at?: string
