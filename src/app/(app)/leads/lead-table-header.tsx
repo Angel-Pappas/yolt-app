@@ -26,6 +26,9 @@ export function LeadTableHeader({
     <thead>
       <tr className={tableHeadRowClass}>
         <th className={thClass}>
+          <TableHeaderCell label="Order" />
+        </th>
+        <th className={thClass}>
           <TableHeaderCell
             label="Origin"
             filter={

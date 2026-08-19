@@ -6,6 +6,7 @@ import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
 import { deleteLead } from "./actions";
 import { EditableNextStep } from "./editable-next-step";
+import { EditableOrder } from "./editable-order";
 import { EditableStatus } from "./editable-status";
 import { RowAddAction } from "./row-add-action";
 import type { LeadListItem, UserOption } from "./queries";
@@ -40,6 +41,12 @@ export function LeadRow({
       onClick={() => router.push(`/leads/${lead.id}`)}
       className={tableRowClass({ interactive: true })}
     >
+      <td
+        className="px-4 py-3 align-middle text-sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <EditableOrder leadId={lead.id} value={lead.sort_order} />
+      </td>
       <td className="px-4 py-3 align-middle text-sm">
         {lead.origin_name ? <Pill label={lead.origin_name} /> : <span className="text-ink-faint">—</span>}
       </td>

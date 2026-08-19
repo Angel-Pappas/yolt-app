@@ -79,7 +79,7 @@ export default async function LeadsPage({
               {totalCount === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-10 text-center text-sm text-ink-faint"
                   >
                     {search || originId || statusId

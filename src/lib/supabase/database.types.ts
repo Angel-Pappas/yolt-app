@@ -265,6 +265,7 @@ export type Database = {
           name: string
           next_step: string | null
           origin_id: string | null
+          sort_order: number | null
           status_id: string | null
           user_id: string
           website: string | null
@@ -283,6 +284,7 @@ export type Database = {
           name: string
           next_step?: string | null
           origin_id?: string | null
+          sort_order?: number | null
           status_id?: string | null
           user_id?: string
           website?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           name?: string
           next_step?: string | null
           origin_id?: string | null
+          sort_order?: number | null
           status_id?: string | null
           user_id?: string
           website?: string | null

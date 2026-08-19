@@ -72,6 +72,22 @@ export async function updateLeadNextStep(leadId: string, value: string) {
   revalidatePath(`/leads/${leadId}`);
 }
 
+/** Update just the sort order — used by the inline edit on the leads list. */
+export async function updateLeadSortOrder(leadId: string, value: number | null) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("leads")
+    .update({ sort_order: value })
+    .eq("id", leadId);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/leads");
+  revalidatePath(`/leads/${leadId}`);
+}
+
 /** Update just the status — used by the inline dropdown on the leads list. */
 export async function updateLeadStatus(leadId: string, statusId: string | null) {
   const supabase = await createClient();
