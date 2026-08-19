@@ -53,7 +53,7 @@ export function LeadFields({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <span className={formLabelClass}>Order</span>
+        <span className={formLabelClass}>No.</span>
         {/* Read-only: the number is auto-assigned by the DB when the lead is
             saved (a sequence, never reused). Blank on the Add form. */}
         <p className="w-full rounded-lg border border-edge bg-canvas px-3 py-2 text-sm text-ink-muted tabular-nums">

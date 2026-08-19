@@ -26,7 +26,7 @@ export function LeadTableHeader({
     <thead>
       <tr className={tableHeadRowClass}>
         <th className={thClass}>
-          <TableHeaderCell label="Order" />
+          <TableHeaderCell label="No." />
         </th>
         <th className={thClass}>
           <TableHeaderCell
