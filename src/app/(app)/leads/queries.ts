@@ -109,7 +109,11 @@ export async function getLeadsList(
     query = query.order(params.sort, { ascending: params.dir === "asc" });
     if (params.sort !== "name") query = query.order("name", { ascending: true });
   } else {
-    query = query.order("created_at", { ascending: false });
+    // Default: the manual Order number, smallest first, with the empty
+    // (never-numbered) leads last; newest-first as a stable tiebreak.
+    query = query
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false });
   }
 
   const { data, error, count } = await query.returns<LeadListRow[]>();
