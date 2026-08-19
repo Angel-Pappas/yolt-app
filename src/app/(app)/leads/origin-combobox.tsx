@@ -8,6 +8,9 @@ type OriginComboboxProps = {
   origins: LeadOrigin[];
   defaultValue?: { id: string; name: string } | null;
   onAddNew: () => void;
+  /** Notified with the selected origin id ("" when cleared) so the parent can
+   *  show origin-dependent fields. */
+  onChange?: (originId: string) => void;
 };
 
 /**
@@ -20,6 +23,7 @@ export function OriginCombobox({
   origins,
   defaultValue,
   onAddNew,
+  onChange,
 }: OriginComboboxProps) {
   const uid = useId();
   const [query, setQuery] = useState(defaultValue?.name ?? "");
@@ -38,6 +42,7 @@ export function OriginCombobox({
     setSelectedId(origin.id);
     setQuery(origin.name);
     setIsOpen(false);
+    onChange?.(origin.id);
   }
 
   return (
@@ -54,6 +59,7 @@ export function OriginCombobox({
             setQuery(e.target.value);
             setSelectedId("");
             setIsOpen(true);
+            onChange?.("");
           }}
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 150)}

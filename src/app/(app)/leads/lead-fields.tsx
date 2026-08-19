@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { formInputClass, formLabelClass } from "@/components/form-styles";
 import { OriginCombobox } from "./origin-combobox";
 import type { LeadOrigin } from "../settings/lead-origins/queries";
@@ -19,6 +19,9 @@ export type LeadFieldValues = {
   contact_email?: string | null;
   description?: string | null;
   next_step?: string | null;
+  campaign_platform?: string | null;
+  campaign_we_are?: string | null;
+  campaign_we_want?: string | null;
 };
 
 const fieldsetLegendClass =
@@ -44,6 +47,16 @@ export function LeadFields({
   const uid = useId();
   const currentOrigin =
     origins.find((o) => o.id === defaultValues?.origin_id) ?? null;
+
+  // The Campaign origin, if it exists — its extra fields (Platform / We are /
+  // We want) show only while it's the selected origin.
+  const campaignOriginId =
+    origins.find((o) => o.name.trim().toLowerCase() === "campaign")?.id ?? null;
+  const [selectedOriginId, setSelectedOriginId] = useState(
+    defaultValues?.origin_id ?? ""
+  );
+  const showCampaign =
+    campaignOriginId !== null && selectedOriginId === campaignOriginId;
 
   // Phone fields accept digits only.
   function digitsOnly(e: React.FormEvent<HTMLInputElement>) {
@@ -101,6 +114,7 @@ export function LeadFields({
             origins={origins}
             defaultValue={currentOrigin}
             onAddNew={onAddOrigin}
+            onChange={setSelectedOriginId}
           />
         </div>
         <div className="sm:col-span-2">
@@ -116,6 +130,55 @@ export function LeadFields({
           />
         </div>
       </div>
+
+      {/* Campaign-only fields — visible only while the origin is Campaign. When
+          hidden they aren't submitted, so switching away from Campaign and
+          saving clears them (schema turns the missing fields into null). */}
+      {showCampaign && (
+        <fieldset className="grid gap-4 rounded-lg border border-edge bg-canvas p-4 sm:grid-cols-2">
+          <legend className={`${fieldsetLegendClass} px-1`}>Campaign</legend>
+          <div>
+            <label htmlFor={`${uid}-cplatform`} className={formLabelClass}>
+              Platform
+            </label>
+            <select
+              id={`${uid}-cplatform`}
+              name="campaign_platform"
+              defaultValue={defaultValues?.campaign_platform ?? ""}
+              className={formInputClass}
+            >
+              <option value="">— None —</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+            </select>
+          </div>
+          <div className="hidden sm:block" aria-hidden />
+          <div>
+            <label htmlFor={`${uid}-weare`} className={formLabelClass}>
+              We are
+            </label>
+            <input
+              id={`${uid}-weare`}
+              name="campaign_we_are"
+              type="text"
+              defaultValue={defaultValues?.campaign_we_are ?? ""}
+              className={formInputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor={`${uid}-wewant`} className={formLabelClass}>
+              We want
+            </label>
+            <input
+              id={`${uid}-wewant`}
+              name="campaign_we_want"
+              type="text"
+              defaultValue={defaultValues?.campaign_we_want ?? ""}
+              className={formInputClass}
+            />
+          </div>
+        </fieldset>
+      )}
 
       <fieldset className="grid gap-4 rounded-lg border border-edge bg-canvas p-4 sm:grid-cols-2">
         <legend className={`${fieldsetLegendClass} px-1`}>Main contact</legend>

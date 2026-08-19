@@ -28,6 +28,9 @@ export type LeadDetail = {
   contact_email: string | null;
   description: string | null;
   next_step: string | null;
+  campaign_platform: string | null;
+  campaign_we_are: string | null;
+  campaign_we_want: string | null;
   created_at: string;
 };
 
@@ -146,7 +149,7 @@ export async function getLead(
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, name, sort_order, origin_id, status_id, website, contact_name, contact_position, contact_phone, contact_landline, contact_email, description, next_step, created_at"
+      "id, name, sort_order, origin_id, status_id, website, contact_name, contact_position, contact_phone, contact_landline, contact_email, description, next_step, campaign_platform, campaign_we_are, campaign_we_want, created_at"
     )
     .eq("id", id)
     .eq("is_deleted", false)

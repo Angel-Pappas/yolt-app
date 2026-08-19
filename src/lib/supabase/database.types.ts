@@ -252,6 +252,9 @@ export type Database = {
       }
       leads: {
         Row: {
+          campaign_platform: string | null
+          campaign_we_are: string | null
+          campaign_we_want: string | null
           contact_email: string | null
           contact_landline: string | null
           contact_name: string | null
@@ -271,6 +274,9 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          campaign_platform?: string | null
+          campaign_we_are?: string | null
+          campaign_we_want?: string | null
           contact_email?: string | null
           contact_landline?: string | null
           contact_name?: string | null
@@ -290,6 +296,9 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          campaign_platform?: string | null
+          campaign_we_are?: string | null
+          campaign_we_want?: string | null
           contact_email?: string | null
           contact_landline?: string | null
           contact_name?: string | null

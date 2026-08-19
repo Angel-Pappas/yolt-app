@@ -24,6 +24,10 @@ export const leadSchema = z.object({
   contact_email: optionalText,
   description: optionalText,
   next_step: optionalText,
+  // Campaign-only fields (shown in the form only when origin is Campaign).
+  campaign_platform: optionalText,
+  campaign_we_are: optionalText,
+  campaign_we_want: optionalText,
 });
 export type LeadInput = z.infer<typeof leadSchema>;
 
