@@ -17,6 +17,7 @@ export type LeadListItem = {
 export type LeadDetail = {
   id: string;
   name: string;
+  sort_order: number | null;
   origin_id: string | null;
   status_id: string | null;
   website: string | null;
@@ -145,7 +146,7 @@ export async function getLead(
   const { data, error } = await supabase
     .from("leads")
     .select(
-      "id, name, origin_id, status_id, website, contact_name, contact_position, contact_phone, contact_landline, contact_email, description, next_step, created_at"
+      "id, name, sort_order, origin_id, status_id, website, contact_name, contact_position, contact_phone, contact_landline, contact_email, description, next_step, created_at"
     )
     .eq("id", id)
     .eq("is_deleted", false)

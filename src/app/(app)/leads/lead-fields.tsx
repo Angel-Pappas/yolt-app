@@ -8,6 +8,7 @@ import type { LeadStatus } from "../settings/lead-statuses/queries";
 
 export type LeadFieldValues = {
   name?: string;
+  sort_order?: number | null;
   origin_id?: string | null;
   status_id?: string | null;
   website?: string | null;
@@ -51,6 +52,17 @@ export function LeadFields({
 
   return (
     <div className="flex flex-col gap-5">
+      <div>
+        <span className={formLabelClass}>Order</span>
+        {/* Read-only: the number is auto-assigned by the DB when the lead is
+            saved (a sequence, never reused). Blank on the Add form. */}
+        <p className="w-full rounded-lg border border-edge bg-canvas px-3 py-2 text-sm text-ink-muted tabular-nums">
+          {defaultValues?.sort_order != null
+            ? defaultValues.sort_order
+            : "Auto-assigned"}
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor={`${uid}-name`} className={formLabelClass}>
