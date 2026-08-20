@@ -62,8 +62,10 @@ export const LEAD_SORT_KEYS: LeadSortKey[] = ["name"];
 export type LeadListParams = {
   /** Matched against name / contact name / contact email / contact phone. */
   search?: string;
-  originId?: string;
-  statusId?: string;
+  /** Multi-select origin ids; any of them. */
+  originIds?: string[];
+  /** Multi-select status ids; any of them. The sentinel "none" matches leads with no status set, and may be combined with real ids. */
+  statusIds?: string[];
   sort?: LeadSortKey;
   dir?: LeadSortDir;
 };
@@ -106,12 +108,19 @@ export async function getLeadsList(
       `name.ilike.${p},contact_name.ilike.${p},contact_email.ilike.${p},contact_phone.ilike.${p},next_step.ilike.${p},description.ilike.${p}`
     );
   }
-  if (params.originId) query = query.eq("origin_id", params.originId);
-  // "none" is the sentinel for the "No status" filter option.
-  if (params.statusId === "none") {
-    query = query.is("status_id", null);
-  } else if (params.statusId) {
-    query = query.eq("status_id", params.statusId);
+  if (params.originIds?.length) query = query.in("origin_id", params.originIds);
+  // "none" is the sentinel for the "No status" filter option; it can be
+  // ticked alongside real statuses, so the two combine into an OR.
+  if (params.statusIds?.length) {
+    const hasNone = params.statusIds.includes("none");
+    const realIds = params.statusIds.filter((s) => s !== "none");
+    if (hasNone && realIds.length) {
+      query = query.or(`status_id.is.null,status_id.in.(${realIds.join(",")})`);
+    } else if (hasNone) {
+      query = query.is("status_id", null);
+    } else {
+      query = query.in("status_id", realIds);
+    }
   }
 
   if (params.sort) {

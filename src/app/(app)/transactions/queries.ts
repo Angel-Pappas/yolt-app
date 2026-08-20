@@ -50,11 +50,12 @@ export type Transaction = {
 export type TransactionFilters = {
   /** Matched against description only (Entity/Wallet/Category each have their own dedicated filter). */
   search?: string;
-  type?: TransactionType;
-  entityId?: string;
-  categoryId?: string;
-  /** Matches transactions where this wallet is either side — the single wallet (income/expense) or either the "from" or "to" wallet (transfer). */
-  walletId?: string;
+  /** Multi-select: any of these types. Undefined/empty means no type filter. */
+  types?: TransactionType[];
+  entityIds?: string[];
+  categoryIds?: string[];
+  /** Multi-select: matches a transaction where any of these wallets is on either side — the single wallet (income/expense) or the "from"/"to" wallet (transfer). */
+  walletIds?: string[];
   /** Inclusive, ISO "yyyy-mm-dd". */
   dateFrom?: string;
   dateTo?: string;
@@ -292,19 +293,18 @@ export async function getActiveTransactions(
   if (filters.search) {
     query = query.ilike("description", `%${escapeLikePattern(filters.search)}%`);
   }
-  if (filters.type) {
-    query = query.eq("type", filters.type);
+  if (filters.types?.length) {
+    query = query.in("type", filters.types);
   }
-  if (filters.entityId) {
-    query = query.eq("entity_id", filters.entityId);
+  if (filters.entityIds?.length) {
+    query = query.in("entity_id", filters.entityIds);
   }
-  if (filters.walletId) {
-    query = query.or(
-      `wallet_id.eq.${filters.walletId},to_wallet_id.eq.${filters.walletId}`
-    );
+  if (filters.walletIds?.length) {
+    const ids = filters.walletIds.join(",");
+    query = query.or(`wallet_id.in.(${ids}),to_wallet_id.in.(${ids})`);
   }
-  if (filters.categoryId) {
-    query = query.eq("category_id", filters.categoryId);
+  if (filters.categoryIds?.length) {
+    query = query.in("category_id", filters.categoryIds);
   }
   if (filters.dateFrom) {
     query = query.gte("date", filters.dateFrom);
@@ -369,7 +369,7 @@ export async function getActiveTransactions(
   };
 }
 
-export type WalletTransactionFilters = Omit<TransactionFilters, "walletId"> & {
+export type WalletTransactionFilters = Omit<TransactionFilters, "walletIds"> & {
   balanceMin?: number;
   balanceMax?: number;
 };
@@ -453,14 +453,17 @@ export async function getWalletTransactionsWithBalance(
     const needle = filters.search.toLowerCase();
     filtered = filtered.filter((t) => t.description.toLowerCase().includes(needle));
   }
-  if (filters.type) {
-    filtered = filtered.filter((t) => t.type === filters.type);
+  if (filters.types?.length) {
+    const set = new Set(filters.types);
+    filtered = filtered.filter((t) => set.has(t.type));
   }
-  if (filters.entityId) {
-    filtered = filtered.filter((t) => t.entity?.id === filters.entityId);
+  if (filters.entityIds?.length) {
+    const set = new Set(filters.entityIds);
+    filtered = filtered.filter((t) => (t.entity ? set.has(t.entity.id) : false));
   }
-  if (filters.categoryId) {
-    filtered = filtered.filter((t) => t.category?.id === filters.categoryId);
+  if (filters.categoryIds?.length) {
+    const set = new Set(filters.categoryIds);
+    filtered = filtered.filter((t) => (t.category ? set.has(t.category.id) : false));
   }
   if (filters.dateFrom) {
     filtered = filtered.filter((t) => t.date >= filters.dateFrom!);

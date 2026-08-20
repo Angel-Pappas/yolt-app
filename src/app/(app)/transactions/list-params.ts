@@ -1,4 +1,4 @@
-import { parseNumberParam } from "@/lib/parse-params";
+import { parseNumberParam, parseListParam } from "@/lib/parse-params";
 import { parseSortParam } from "@/components/table/parse-sort-param";
 import {
   SORT_KEYS,
@@ -51,10 +51,6 @@ export function parseTransactionListQuery(
   const get = (key: string) => searchParams.get(key) ?? undefined;
 
   const search = get("q")?.trim();
-  const type = get("type");
-  const entity = get("entity");
-  const wallet = get("wallet");
-  const category = get("category");
   const from = get("from");
   const to = get("to");
   const invoiceFrom = get("invoice_from");
@@ -63,15 +59,23 @@ export function parseTransactionListQuery(
 
   const balanceWalletId = balance && UUID_RE.test(balance) ? balance : null;
 
+  // Categorical filters are multi-select: a comma-separated list of values.
+  // Each element is validated (enum / UUID) and invalid ones dropped, same as
+  // the single-value params were; an empty result becomes `undefined` so
+  // hasActiveTransactionFilters and the query builders treat it as "no filter".
+  const types = parseListParam(get("type")).filter((t): t is TransactionType =>
+    TRANSACTION_TYPES.includes(t as TransactionType)
+  );
+  const entityIds = parseListParam(get("entity")).filter((v) => UUID_RE.test(v));
+  const walletIds = parseListParam(get("wallet")).filter((v) => UUID_RE.test(v));
+  const categoryIds = parseListParam(get("category")).filter((v) => UUID_RE.test(v));
+
   const filters: TransactionFilters = {
     search: search || undefined,
-    type:
-      type && TRANSACTION_TYPES.includes(type as TransactionType)
-        ? (type as TransactionType)
-        : undefined,
-    entityId: entity && UUID_RE.test(entity) ? entity : undefined,
-    walletId: wallet && UUID_RE.test(wallet) ? wallet : undefined,
-    categoryId: category && UUID_RE.test(category) ? category : undefined,
+    types: types.length ? types : undefined,
+    entityIds: entityIds.length ? entityIds : undefined,
+    walletIds: walletIds.length ? walletIds : undefined,
+    categoryIds: categoryIds.length ? categoryIds : undefined,
     dateFrom: from && DATE_RE.test(from) ? from : undefined,
     dateTo: to && DATE_RE.test(to) ? to : undefined,
     invoiceDateFrom: invoiceFrom && DATE_RE.test(invoiceFrom) ? invoiceFrom : undefined,
@@ -118,8 +122,8 @@ export function parseTransactionListQuery(
 export function toBalanceViewFilters(
   query: TransactionListQuery
 ): WalletTransactionFilters {
-  const { walletId, ...rest } = query.filters;
-  void walletId;
+  const { walletIds, ...rest } = query.filters;
+  void walletIds;
   return { ...rest, balanceMin: query.balanceMin, balanceMax: query.balanceMax };
 }
 

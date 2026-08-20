@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
+import { parseListParam } from "@/lib/parse-params";
 import { requireCrm } from "../require-access";
 import { LEAD_SORT_KEYS, getLeadsList, getUsersForPicker } from "./queries";
 import { getActiveLeadOrigins } from "../settings/lead-origins/queries";
@@ -25,8 +26,8 @@ export default async function LeadsPage({
   const supabase = await createClient();
   const rawParams = await searchParams;
   const search = getParam(rawParams, "q")?.trim();
-  const originId = getParam(rawParams, "origin");
-  const statusId = getParam(rawParams, "status");
+  const originIds = parseListParam(getParam(rawParams, "origin"));
+  const statusIds = parseListParam(getParam(rawParams, "status"));
   const { sort, dir } = parseSortParam(
     getParam(rawParams, "sort"),
     getParam(rawParams, "dir"),
@@ -35,7 +36,7 @@ export default async function LeadsPage({
 
   const [{ leads, totalCount }, { data: origins }, { data: statuses }, users] =
     await Promise.all([
-      getLeadsList(supabase, { search, originId, statusId, sort, dir }),
+      getLeadsList(supabase, { search, originIds, statusIds, sort, dir }),
       getActiveLeadOrigins(supabase),
       getActiveLeadStatuses(supabase),
       profile.isAdmin
@@ -89,7 +90,7 @@ export default async function LeadsPage({
                     colSpan={8}
                     className="px-4 py-10 text-center text-sm text-ink-faint"
                   >
-                    {search || originId || statusId
+                    {search || originIds.length || statusIds.length
                       ? "No leads match these filters."
                       : "No leads yet."}
                   </td>

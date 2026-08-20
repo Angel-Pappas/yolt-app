@@ -31,7 +31,8 @@ export const CATEGORY_SORT_KEYS: CategorySortKey[] = ["name", "type"];
 
 export type CategoryListParams = {
   search?: string;
-  type?: CategoryType;
+  /** Multi-select: any of these types. Undefined/empty means no type filter. */
+  types?: CategoryType[];
   sort?: CategorySortKey;
   dir?: CategorySortDir;
 };
@@ -72,8 +73,8 @@ export async function getCategoriesList(
   if (params.search) {
     query = query.ilike("name", `%${escapeLikePattern(params.search)}%`);
   }
-  if (params.type) {
-    query = query.eq("type", params.type);
+  if (params.types?.length) {
+    query = query.in("type", params.types);
   }
 
   query = query.order(sort, { ascending: dir === "asc" });

@@ -26,17 +26,50 @@ const searchInputClass =
   "w-full rounded-md border border-edge bg-surface px-2 py-1 text-sm font-normal tracking-normal normal-case text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
 
 const optionClass =
-  "block w-full truncate rounded-md px-2.5 py-1.5 text-left text-sm font-normal tracking-normal normal-case";
+  "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm font-normal tracking-normal normal-case hover:bg-canvas";
+
+/** A small themed checkbox box — filled with the accent + a check when selected. */
+function CheckBox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+        checked ? "border-accent bg-accent text-accent-ink" : "border-edge bg-surface"
+      }`}
+    >
+      {checked && (
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-3 w-3"
+        >
+          <path d="M3.5 8.5l3 3 6-7" />
+        </svg>
+      )}
+    </span>
+  );
+}
 
 /**
  * The categorical/foreign-key column filter (Transactions'
- * Type/Entity/Wallet/Category, Categories' Type) — an options list body
- * inside the shared FilterPopoverShell.
+ * Type/Entity/Wallet/Category, Categories' Type, Leads' Origin/Status) — a
+ * multi-select options list inside the shared FilterPopoverShell.
+ *
+ * Each option carries a checkbox; ticking several narrows the column to any
+ * of them (an `IN (...)` on the server). The `value`/`onChange` boundary is a
+ * comma-separated string of the selected option values ("" = none selected),
+ * so every caller stays a plain `searchParams.get(key)` / `setFilterParams`
+ * pair and the URL param holds `a,b,c`.
  *
  * The list scrolls within the panel and, once it's long enough to be worth
  * it, gets a filter-as-you-type box pinned above it — the same shape a
  * spreadsheet's column filter has, and the thing that makes a ~94-entity
- * list usable rather than a wall to scroll past.
+ * list usable rather than a wall to scroll past. The popover stays open as
+ * you tick options (multi-select); light-dismiss / Esc close it.
  */
 export function HeaderFilterPopover({
   label,
@@ -51,13 +84,12 @@ export function HeaderFilterPopover({
 }) {
   return (
     <FilterPopoverShell label={label} active={value !== ""}>
-      {(close) => (
+      {() => (
         <FilterOptionsList
           label={label}
           options={options}
           value={value}
           onChange={onChange}
-          close={close}
         />
       )}
     </FilterPopoverShell>
@@ -74,16 +106,19 @@ function FilterOptionsList({
   options,
   value,
   onChange,
-  close,
 }: {
   label: string;
   options: { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
-  close: () => void;
 }) {
   const [query, setQuery] = useState("");
   const searchable = options.length > SEARCHABLE_THRESHOLD;
+
+  const selected = useMemo(
+    () => new Set(value ? value.split(",").filter(Boolean) : []),
+    [value]
+  );
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -91,9 +126,22 @@ function FilterOptionsList({
     return options.filter((o) => o.label.toLowerCase().includes(needle));
   }, [options, query]);
 
-  function select(next: string) {
-    onChange(next);
-    close();
+  // Emit the selected values in canonical option order, so the URL param
+  // is stable regardless of the order the boxes were ticked.
+  function emit(next: Set<string>) {
+    onChange(
+      options
+        .filter((o) => next.has(o.value))
+        .map((o) => o.value)
+        .join(",")
+    );
+  }
+
+  function toggle(optValue: string) {
+    const next = new Set(selected);
+    if (next.has(optValue)) next.delete(optValue);
+    else next.add(optValue);
+    emit(next);
   }
 
   return (
@@ -106,12 +154,14 @@ function FilterOptionsList({
             autoFocus
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Search ${label.toLowerCase()}…`}
-            // Enter picks the only remaining match — the fast path when
-            // you've typed enough to narrow the list to one.
+            // Enter ticks the only remaining match — the fast path when
+            // you've typed enough to narrow the list to one — then clears the
+            // box so the next one can be searched for without closing.
             onKeyDown={(e) => {
               if (e.key === "Enter" && visible.length === 1) {
                 e.preventDefault();
-                select(visible[0].value);
+                toggle(visible[0].value);
+                setQuery("");
               }
             }}
             className={searchInputClass}
@@ -122,28 +172,30 @@ function FilterOptionsList({
       <div className="overflow-y-auto overscroll-contain p-1">
         <button
           type="button"
-          onClick={() => select("")}
+          onClick={() => onChange("")}
           className={`${optionClass} ${
-            value === "" ? "font-semibold text-accent" : "text-ink hover:bg-canvas"
+            selected.size === 0 ? "text-accent" : "text-ink"
           }`}
         >
-          All {label.toLowerCase()}
+          <CheckBox checked={selected.size === 0} />
+          <span className="truncate">All {label.toLowerCase()}</span>
         </button>
-        {visible.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => select(opt.value)}
-            title={opt.label}
-            className={`${optionClass} ${
-              value === opt.value
-                ? "font-semibold text-accent"
-                : "text-ink hover:bg-canvas"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        {visible.map((opt) => {
+          const isSelected = selected.has(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => toggle(opt.value)}
+              title={opt.label}
+              aria-pressed={isSelected}
+              className={`${optionClass} text-ink`}
+            >
+              <CheckBox checked={isSelected} />
+              <span className="truncate">{opt.label}</span>
+            </button>
+          );
+        })}
         {visible.length === 0 && (
           <p className="px-2.5 py-2 text-sm font-normal tracking-normal normal-case text-ink-faint">
             No {label.toLowerCase()} match “{query}”.

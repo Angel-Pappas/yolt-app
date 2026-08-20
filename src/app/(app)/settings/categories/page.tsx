@@ -3,6 +3,7 @@ import { ListPageHeader } from "@/components/table/list-page-header";
 import { parseSortParam } from "@/components/table/parse-sort-param";
 import { requireFinance } from "../../require-access";
 import { addCategory } from "./actions";
+import { parseListParam } from "@/lib/parse-params";
 import { CATEGORY_SORT_KEYS, getCategoriesList, type CategoryType } from "./queries";
 import { CategoryModal } from "./category-modal";
 import { CategoryRow } from "./category-row";
@@ -26,11 +27,9 @@ export default async function CategoriesPage({
   const supabase = await createClient();
   const rawParams = await searchParams;
   const search = getParam(rawParams, "q")?.trim();
-  const typeParam = getParam(rawParams, "type");
-  const type =
-    typeParam && CATEGORY_TYPES.includes(typeParam as CategoryType)
-      ? (typeParam as CategoryType)
-      : undefined;
+  const types = parseListParam(getParam(rawParams, "type")).filter(
+    (t): t is CategoryType => CATEGORY_TYPES.includes(t as CategoryType)
+  );
   const { sort, dir } = parseSortParam(
     getParam(rawParams, "sort"),
     getParam(rawParams, "dir"),
@@ -41,7 +40,7 @@ export default async function CategoriesPage({
   // renders and scrolls.
   const { categories, totalCount } = await getCategoriesList(supabase, {
     search,
-    type,
+    types: types.length ? types : undefined,
     sort,
     dir,
   });
