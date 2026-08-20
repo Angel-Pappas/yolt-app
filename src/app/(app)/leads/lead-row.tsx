@@ -123,15 +123,10 @@ export function LeadRow({
 
       {expanded && (
         <tr className={`border-b border-edge ${stripe}`}>
-          <td colSpan={COLUMN_COUNT} className="px-4 pb-4 pt-2 align-top">
-            <div className="max-w-3xl rounded-lg border border-edge bg-canvas px-4 py-3 shadow-[var(--shadow-card)]">
-              <div className="mb-1.5 text-xs font-medium text-ink-faint">
-                Description
-              </div>
-              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
-                {lead.description}
-              </p>
-            </div>
+          <td colSpan={COLUMN_COUNT} className="px-4 pb-4 pt-1 align-top">
+            <p className="max-w-3xl border-l-2 border-accent pl-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
+              {lead.description}
+            </p>
           </td>
         </tr>
       )}
