@@ -72,10 +72,11 @@ export default async function LeadsPage({
               statusOptions={statusFilterOptions}
             />
             <tbody>
-              {leads.map((lead) => (
+              {leads.map((lead, index) => (
                 <LeadRow
                   key={lead.id}
                   lead={lead}
+                  index={index}
                   users={users}
                   isAdmin={profile.isAdmin}
                   currentUserId={profile.id}
@@ -85,7 +86,7 @@ export default async function LeadsPage({
               {totalCount === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={8}
                     className="px-4 py-10 text-center text-sm text-ink-faint"
                   >
                     {search || originId || statusId

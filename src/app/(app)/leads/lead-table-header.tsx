@@ -63,12 +63,6 @@ export function LeadTableHeader({
         </th>
         <th className={thClass}>
           <TableHeaderCell
-            label="Description"
-            filter={<HeaderTextFilterPopover label="description" paramKey="q" />}
-          />
-        </th>
-        <th className={thClass}>
-          <TableHeaderCell
             label="Next step"
             filter={<HeaderTextFilterPopover label="next step" paramKey="q" />}
           />
