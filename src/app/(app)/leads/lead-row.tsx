@@ -123,8 +123,14 @@ export function LeadRow({
 
       {expanded && (
         <tr className={`border-b border-edge ${stripe}`}>
-          <td colSpan={COLUMN_COUNT} className="px-4 pb-4 pt-1 align-top">
-            <p className="max-w-3xl border-l-2 border-accent pl-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
+          {/* Empty No. + Origin cells so the description hangs under the Name column. */}
+          <td aria-hidden="true" />
+          <td aria-hidden="true" />
+          <td colSpan={COLUMN_COUNT - 2} className="px-4 pb-4 pt-1 align-top">
+            <div className="mb-1 text-xs font-medium text-ink-faint">
+              Description
+            </div>
+            <p className="max-w-3xl whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
               {lead.description}
             </p>
           </td>
