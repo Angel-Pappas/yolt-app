@@ -36,6 +36,7 @@ export function useInfiniteRows<T>({
   totalCount,
   pageSize,
   loadRange,
+  getRowKey,
 }: {
   /** The first span, rendered on the server. Treated as the source of truth whenever its identity changes. */
   initialRows: T[];
@@ -44,6 +45,19 @@ export function useInfiniteRows<T>({
   pageSize: number;
   /** Fetches `limit` rows starting at `offset`, under the same filters the server used. */
   loadRange: (offset: number, limit: number) => Promise<T[]>;
+  /**
+   * A stable identity for a row. Used to dedupe when appending a fetched
+   * span: `loadMore` assumes the rows loaded so far are a contiguous prefix
+   * of the server list, but a mutation elsewhere on the page can grow the
+   * list *while a fetch triggered by the stale state is already in flight*
+   * — e.g. adding a transaction flips `hasMore` to true for one commit
+   * (rows still stale, totalCount already fresh), the sentinel mounts, and
+   * `loadMore` fetches a span that overlaps rows the re-sync is about to
+   * (or already has) put back. Without dedupe that overlap appends a row
+   * that's already on screen, showing it twice until a refresh. Keying the
+   * append makes an overlapping fetch a no-op instead.
+   */
+  getRowKey: (row: T) => string | number;
 }) {
   const [rows, setRows] = useState<T[]>(initialRows);
   const [loading, setLoading] = useState(false);
@@ -60,12 +74,14 @@ export function useInfiniteRows<T>({
   const rowsRef = useRef(rows);
   const hasMoreRef = useRef(hasMore);
   const loadRangeRef = useRef(loadRange);
+  const getRowKeyRef = useRef(getRowKey);
   const loadingRef = useRef(false);
 
   useEffect(() => {
     rowsRef.current = rows;
     hasMoreRef.current = hasMore;
     loadRangeRef.current = loadRange;
+    getRowKeyRef.current = getRowKey;
   });
 
   const loadMore = useCallback(async () => {
@@ -76,8 +92,22 @@ export function useInfiniteRows<T>({
     try {
       const next = await loadRangeRef.current(rowsRef.current.length, pageSize);
       // Append rather than replace; concurrent calls are already prevented
-      // by the loading guard above.
-      setRows((current) => [...current, ...next]);
+      // by the loading guard above. Dedupe by row key so a span that
+      // overlaps rows already on screen (a mutation grew the list while this
+      // fetch, started from stale state, was in flight) can't double a row
+      // — see getRowKey's note above.
+      setRows((current) => {
+        const seen = new Set(current.map(getRowKeyRef.current));
+        const merged = current.slice();
+        for (const row of next) {
+          const key = getRowKeyRef.current(row);
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(row);
+          }
+        }
+        return merged;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load more rows");
     } finally {

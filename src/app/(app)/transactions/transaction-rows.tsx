@@ -61,6 +61,7 @@ export function TransactionRows({
     totalCount,
     pageSize,
     loadRange,
+    getRowKey: (t) => t.id,
   });
 
   return (
