@@ -723,17 +723,17 @@ export function TransactionFormDialog({
                 Add a VAT rate in Options before creating a transaction.
               </p>
             )}
-          </div>
-        )}
 
-        {/* Withholding tax (income/expense only) — the parallel of the VAT
-            lines above, minus the Net/Total mode: each line is a base amount
-            × a withheld rate, and withholding is deducted from the total. */}
-        {!isTransfer && (
-          <div className="sm:col-span-2">
-            <span className={formLabelClass}>Withheld tax</span>
+            {/* Withholding tax lives in the same amount block, right under the
+                VAT lines — its "+ Add withheld line" link sits directly beneath
+                "+ Add VAT line". Like VAT, the lines render *above* their add
+                link, so the add control is always under the fields it creates;
+                when there are none, the two add links simply stack. The
+                "Withheld tax" heading only appears once a line exists (nothing
+                to label otherwise). Optional — the list can be emptied fully. */}
             {withheldLines.length > 0 && (
-              <div className="space-y-2">
+              <div className="mt-3 space-y-2">
+                <span className={formLabelClass}>Withheld tax</span>
                 {withheldLines.map((line) => (
                   <div key={line.key} className="flex items-center gap-2">
                     <input
@@ -776,13 +776,15 @@ export function TransactionFormDialog({
                 ))}
               </div>
             )}
-            <button
-              type="button"
-              onClick={addWithheldLine}
-              className="mt-2 text-sm font-medium text-accent hover:underline"
-            >
-              + Add withheld line
-            </button>
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={addWithheldLine}
+                className="text-sm font-medium text-accent hover:underline"
+              >
+                + Add withheld line
+              </button>
+            </div>
             <input
               type="hidden"
               name="withheld_lines"
