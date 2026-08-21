@@ -105,7 +105,7 @@ export default async function TransactionsPage({
     <div className="flex w-full flex-1 flex-col gap-6 p-6">
       <ListPageHeader
         title="Transactions"
-        searchPlaceholder="Search description…"
+        searchPlaceholder="Search description or entity…"
         showDateRange
         dateRangeExtra={<TransactionQuickFilters />}
         addButton={

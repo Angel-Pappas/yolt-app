@@ -48,7 +48,7 @@ export type Transaction = {
 };
 
 export type TransactionFilters = {
-  /** Matched against description only (Entity/Wallet/Category each have their own dedicated filter). */
+  /** Matched against description OR entity name (Wallet/Category each have their own dedicated filter). */
   search?: string;
   /** Multi-select: any of these types. Undefined/empty means no type filter. */
   types?: TransactionType[];
@@ -291,7 +291,17 @@ export async function getActiveTransactions(
     .eq("is_deleted", false);
 
   if (filters.search) {
-    query = query.ilike("description", `%${escapeLikePattern(filters.search)}%`);
+    // Match the description OR the (flattened) entity name. Built as a
+    // PostgREST or() rather than a single .ilike so both columns are covered
+    // in one round trip. The value is escaped for LIKE metacharacters and
+    // then wrapped in double quotes (escaping \ and ") so a comma/paren/dot
+    // in the search term can't break the or() grammar — the documented way
+    // to carry reserved characters inside an or() value.
+    const escaped = escapeLikePattern(filters.search)
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"');
+    const pattern = `"%${escaped}%"`;
+    query = query.or(`description.ilike.${pattern},entity_name.ilike.${pattern}`);
   }
   if (filters.types?.length) {
     query = query.in("type", filters.types);
@@ -451,7 +461,13 @@ export async function getWalletTransactionsWithBalance(
   let filtered = allWithBalance;
   if (filters.search) {
     const needle = filters.search.toLowerCase();
-    filtered = filtered.filter((t) => t.description.toLowerCase().includes(needle));
+    // Matches description OR entity name, mirroring getActiveTransactions'
+    // DB-level or() above so both list pipelines search the same fields.
+    filtered = filtered.filter(
+      (t) =>
+        t.description.toLowerCase().includes(needle) ||
+        (t.entity?.name.toLowerCase().includes(needle) ?? false)
+    );
   }
   if (filters.types?.length) {
     const set = new Set(filters.types);
