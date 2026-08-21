@@ -9,6 +9,7 @@ import type { Entity } from "../entities/queries";
 import type { Category } from "../settings/categories/queries";
 import type { Wallet } from "../wallets/queries";
 import type { VatRate } from "../settings/vat-rates/vat-rate-queries";
+import type { WithheldTaxRate } from "../settings/withheld-tax-rates/withheld-tax-rate-queries";
 
 /**
  * The Transactions table body: renders the rows and pulls in more as the
@@ -33,6 +34,7 @@ export function TransactionRows({
   categories,
   wallets,
   vatRates,
+  withheldRates,
   balanceMode,
   columnCount,
   emptyMessage,
@@ -45,6 +47,7 @@ export function TransactionRows({
   categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
+  withheldRates: WithheldTaxRate[];
   balanceMode: boolean;
   /** For the colSpan of the empty/loading rows — the column count varies with balance view. */
   columnCount: number;
@@ -74,6 +77,7 @@ export function TransactionRows({
           categories={categories}
           wallets={wallets}
           vatRates={vatRates}
+          withheldRates={withheldRates}
           balanceMode={balanceMode}
         />
       ))}

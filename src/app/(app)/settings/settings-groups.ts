@@ -33,6 +33,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     items: [
       { label: "Categories", href: "/settings/categories" },
       { label: "VAT rates", href: "/settings/vat-rates" },
+      { label: "Withheld tax", href: "/settings/withheld-tax-rates" },
     ],
   },
   {

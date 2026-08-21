@@ -14,6 +14,7 @@ import type { Entity } from "../entities/queries";
 import type { Category } from "../settings/categories/queries";
 import type { Wallet } from "../wallets/queries";
 import type { VatRate } from "../settings/vat-rates/vat-rate-queries";
+import type { WithheldTaxRate } from "../settings/withheld-tax-rates/withheld-tax-rate-queries";
 
 const TYPE_LABEL: Record<TransactionType, string> = {
   income: "Income",
@@ -39,6 +40,7 @@ export function TransactionRow({
   categories,
   wallets,
   vatRates,
+  withheldRates,
   balanceMode = false,
 }: {
   transaction: Transaction;
@@ -46,6 +48,7 @@ export function TransactionRow({
   categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
+  withheldRates: WithheldTaxRate[];
   /** "Balance view" — see transactions/page.tsx. Swaps the Wallet column for a running-balance one. */
   balanceMode?: boolean;
 }) {
@@ -105,7 +108,9 @@ export function TransactionRow({
         {isTransfer ? "—" : formatAmount(transaction.vat_amount)}
       </td>
       <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
-        {formatAmount(computeTotal(transaction.net, transaction.vat_amount))}
+        {formatAmount(
+          computeTotal(transaction.net, transaction.vat_amount, transaction.withheld_amount)
+        )}
       </td>
       {balanceMode && (
         <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-ink">
@@ -132,6 +137,7 @@ export function TransactionRow({
           categories={categories}
           wallets={wallets}
           vatRates={vatRates}
+          withheldRates={withheldRates}
           defaultValues={{
             date: transaction.date,
             invoice_date: transaction.invoice_date,
@@ -141,6 +147,10 @@ export function TransactionRow({
             lines: transaction.vatLines.map((l) => ({
               net: l.net,
               vat_rate_id: l.vat_rate_id ?? "",
+            })),
+            withheldLines: transaction.withheldLines.map((l) => ({
+              net: l.net,
+              withheld_rate_id: l.withheld_rate_id ?? "",
             })),
             entity: transaction.entity,
             category: transaction.category,

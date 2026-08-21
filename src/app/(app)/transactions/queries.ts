@@ -18,6 +18,13 @@ export type Transaction = {
   type: TransactionType;
   net: string;
   vat_amount: string;
+  /**
+   * Withholding tax kept back from the gross (see the withheld-tax feature).
+   * Summed across the transaction's withheld lines, denormalized here exactly
+   * like vat_amount. Reduces the cash Total (net + vat_amount - withheld_amount)
+   * — that deduction lives in computeTotal(), so every Total reader picks it up.
+   */
+  withheld_amount: string;
   created_at: string;
   entity: { id: string; name: string } | null;
   category: { id: string; name: string } | null;
@@ -39,6 +46,14 @@ export type Transaction = {
    * many lines make them up.
    */
   vatLines: { net: string; vat_rate_id: string | null }[];
+  /**
+   * The withholding-tax breakdown (transaction_withheld_lines) — the exact
+   * parallel of vatLines, usually empty (most transactions have no
+   * withholding) or one line. Only read by the edit dialog to seed its
+   * withheld-line editor; the summed withheld_amount above is what every
+   * other consumer uses.
+   */
+  withheldLines: { net: string; withheld_rate_id: string | null }[];
   /**
    * Only set in "balance view" (see getWalletTransactionsWithBalance below)
    * — the running balance of one specific wallet as of this row, walking
@@ -154,6 +169,7 @@ type TransactionsExpandedRow = {
   type: TransactionType;
   net: string;
   vat_amount: string;
+  withheld_amount: string;
   created_at: string;
   entity_id: string | null;
   entity_name: string | null;
@@ -180,6 +196,7 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
     type: row.type,
     net: row.net,
     vat_amount: row.vat_amount,
+    withheld_amount: row.withheld_amount,
     created_at: row.created_at,
     entity: row.entity_id
       ? { id: row.entity_id, name: row.entity_name ?? "" }
@@ -202,6 +219,7 @@ function toTransaction(row: TransactionsExpandedRow): Transaction {
     invoice_month: row.invoice_month,
     invoice_not_required: row.invoice_not_required,
     vatLines: [],
+    withheldLines: [],
   };
 }
 
@@ -212,45 +230,76 @@ type VatLineRow = {
   vat_rate_id: string | null;
 };
 
+/** Row shape of the transaction_withheld_lines query — same numeric-as-string caveat as VatLineRow. */
+type WithheldLineRow = {
+  transaction_id: string;
+  net: string;
+  withheld_rate_id: string | null;
+};
+
 /**
- * Fills in each transaction's `vatLines` from transaction_vat_lines, keyed
- * by transaction_id. Only called on the page of rows actually being
- * returned (25 max) — this is the one piece the flattened
+ * Fills in each transaction's `vatLines` *and* `withheldLines` from their
+ * respective breakdown tables, keyed by transaction_id. Only called on the
+ * page of rows actually being returned — these are the pieces the flattened
  * transactions_expanded view can't carry (a one-to-many table doesn't
- * flatten onto a single row), and it's only actually needed by the edit
- * dialog, so a small extra query per page is fine.
+ * flatten onto a single row), and they're only actually needed by the edit
+ * dialog, so two small extra queries per page (fired together) is fine.
  */
-async function attachVatLines(
+async function attachLines(
   supabase: TypedSupabaseClient,
   transactions: Transaction[]
 ): Promise<Transaction[]> {
   const ids = transactions.map((t) => t.id);
   if (ids.length === 0) return transactions;
 
-  const { data, error } = await supabase
-    .from("transaction_vat_lines")
-    .select("transaction_id, net, vat_rate_id")
-    .in("transaction_id", ids)
-    .order("position", { ascending: true })
-    // `net` is a Postgres numeric, which comes back as a string at runtime
-    // even though the generated types label it `number` (see
-    // database.types.ts). Declaring the row shape here is what every other
-    // query in the app already does; this one was relying on the generated
-    // type's wrong label, which went unnoticed while the client was untyped.
-    .returns<VatLineRow[]>();
+  const [vatResult, withheldResult] = await Promise.all([
+    supabase
+      .from("transaction_vat_lines")
+      .select("transaction_id, net, vat_rate_id")
+      .in("transaction_id", ids)
+      .order("position", { ascending: true })
+      // `net` is a Postgres numeric, which comes back as a string at runtime
+      // even though the generated types label it `number` (see
+      // database.types.ts). Declaring the row shape here is what every other
+      // query in the app already does.
+      .returns<VatLineRow[]>(),
+    supabase
+      .from("transaction_withheld_lines")
+      .select("transaction_id, net, withheld_rate_id")
+      .in("transaction_id", ids)
+      .order("position", { ascending: true })
+      .returns<WithheldLineRow[]>(),
+  ]);
 
-  if (error) {
-    throw new Error(error.message);
+  if (vatResult.error) {
+    throw new Error(vatResult.error.message);
+  }
+  if (withheldResult.error) {
+    throw new Error(withheldResult.error.message);
   }
 
-  const byTransaction = new Map<string, { net: string; vat_rate_id: string | null }[]>();
-  for (const row of data ?? []) {
-    const list = byTransaction.get(row.transaction_id) ?? [];
+  const vatByTransaction = new Map<string, { net: string; vat_rate_id: string | null }[]>();
+  for (const row of vatResult.data ?? []) {
+    const list = vatByTransaction.get(row.transaction_id) ?? [];
     list.push({ net: row.net, vat_rate_id: row.vat_rate_id });
-    byTransaction.set(row.transaction_id, list);
+    vatByTransaction.set(row.transaction_id, list);
   }
 
-  return transactions.map((t) => ({ ...t, vatLines: byTransaction.get(t.id) ?? [] }));
+  const withheldByTransaction = new Map<
+    string,
+    { net: string; withheld_rate_id: string | null }[]
+  >();
+  for (const row of withheldResult.data ?? []) {
+    const list = withheldByTransaction.get(row.transaction_id) ?? [];
+    list.push({ net: row.net, withheld_rate_id: row.withheld_rate_id });
+    withheldByTransaction.set(row.transaction_id, list);
+  }
+
+  return transactions.map((t) => ({
+    ...t,
+    vatLines: vatByTransaction.get(t.id) ?? [],
+    withheldLines: withheldByTransaction.get(t.id) ?? [],
+  }));
 }
 
 /**
@@ -374,7 +423,7 @@ export async function getActiveTransactions(
   }
 
   return {
-    transactions: await attachVatLines(supabase, (data ?? []).map(toTransaction)),
+    transactions: await attachLines(supabase, (data ?? []).map(toTransaction)),
     totalCount: count ?? 0,
   };
 }
@@ -451,7 +500,13 @@ export async function getWalletTransactionsWithBalance(
       const isFromSide = row.wallet_id === walletId;
       amount = isFromSide ? -Number(transaction.net) : Number(transaction.net);
     } else {
-      const total = computeTotal(transaction.net, transaction.vat_amount);
+      // The cash that actually moves is net + VAT - withholding (withholding
+      // is kept back), matching wallet_balances and computeTotal.
+      const total = computeTotal(
+        transaction.net,
+        transaction.vat_amount,
+        transaction.withheld_amount
+      );
       amount = transaction.type === "income" ? total : -total;
     }
     running += amount;
@@ -566,5 +621,5 @@ export async function getWalletTransactionsWithBalance(
   const totalCount = sorted.length;
   const transactions = sorted.slice(offset, offset + limit);
 
-  return { transactions: await attachVatLines(supabase, transactions), totalCount };
+  return { transactions: await attachLines(supabase, transactions), totalCount };
 }

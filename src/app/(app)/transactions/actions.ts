@@ -51,6 +51,26 @@ function vatRatePercent(rates: Map<string, number>, vatRateId: string): number {
   return rate;
 }
 
+/** The withholding-tax equivalent of loadVatRates — every withheld rate's current percentage in one query, keyed by id. */
+async function loadWithheldRates(supabase: TypedSupabaseClient): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from("withheld_tax_rates").select("id, rate");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return new Map((data ?? []).map((row) => [row.id, Number(row.rate)]));
+}
+
+/** Same existence check as vatRatePercent, with a withholding-specific message. */
+function withheldRatePercent(rates: Map<string, number>, withheldRateId: string): number {
+  const rate = rates.get(withheldRateId);
+  if (rate === undefined) {
+    throw new Error("Invalid withheld tax rate");
+  }
+  return rate;
+}
+
 /**
  * VAT amount is computed server-side from the rate's percentage at the
  * moment of save — never trusted from the client, and never recomputed
@@ -131,10 +151,14 @@ type TransactionFields = {
   to_wallet_id: string | null;
   vat_rate_id: string | null;
   vat_amount: number;
+  withheld_amount: number;
 };
 
 /** One resolved line of a (rare) multi-VAT-rate transaction — see transaction_vat_lines. vat_amount is computed server-side the same way the parent's is, never trusted from the client. */
 type ResolvedLine = { net: number; vat_rate_id: string; vat_amount: number };
+
+/** One resolved withholding line — see transaction_withheld_lines. withheld_amount = net × rate, computed server-side, never trusted from the client. */
+type ResolvedWithheldLine = { net: number; withheld_rate_id: string; withheld_amount: number };
 
 /** The only part of a Supabase write result the callers below care about — narrowed so several differently-shaped writes can be awaited as one batch. */
 type WriteResult = { error: { message: string } | null };
@@ -155,7 +179,11 @@ type WriteResult = { error: { message: string } | null };
 async function resolveFields(
   supabase: TypedSupabaseClient,
   formData: FormData
-): Promise<{ fields: TransactionFields; lines: ResolvedLine[] }> {
+): Promise<{
+  fields: TransactionFields;
+  lines: ResolvedLine[];
+  withheldLines: ResolvedWithheldLine[];
+}> {
   const input = parseOrThrow(transactionSchema, formDataToRecord(formData));
 
   if (input.type === "transfer") {
@@ -172,13 +200,16 @@ async function resolveFields(
         to_wallet_id: input.to_wallet_id,
         vat_rate_id: null,
         vat_amount: 0,
+        withheld_amount: 0,
       },
       lines: [],
+      withheldLines: [],
     };
   }
 
-  const [rates, category_id] = await Promise.all([
+  const [rates, withheldRates, category_id] = await Promise.all([
     loadVatRates(supabase),
+    loadWithheldRates(supabase),
     resolveCategoryId(supabase, input.category_id, input.type),
   ]);
 
@@ -188,8 +219,22 @@ async function resolveFields(
     vat_amount: resolveLineVatAmount(rates, line.net, line.vat_rate_id, line.total),
   }));
 
+  // Withholding is always net × rate (no Net/Total mode) — computed
+  // server-side from the rate's current percentage, never trusted from the
+  // client, exactly like vat_amount.
+  const withheldLines = input.withheld_lines.map((line) => ({
+    net: line.net,
+    withheld_rate_id: line.withheld_rate_id,
+    withheld_amount: round2(
+      (line.net * withheldRatePercent(withheldRates, line.withheld_rate_id)) / 100
+    ),
+  }));
+
   const net = round2(lines.reduce((sum, l) => sum + l.net, 0));
   const vat_amount = round2(lines.reduce((sum, l) => sum + l.vat_amount, 0));
+  const withheld_amount = round2(
+    withheldLines.reduce((sum, l) => sum + l.withheld_amount, 0)
+  );
 
   return {
     fields: {
@@ -204,8 +249,10 @@ async function resolveFields(
       to_wallet_id: null,
       vat_rate_id: lines.length === 1 ? lines[0].vat_rate_id : null,
       vat_amount,
+      withheld_amount,
     },
     lines,
+    withheldLines,
   };
 }
 
@@ -257,6 +304,49 @@ async function writeLines(
   }
 }
 
+/**
+ * The withholding-line equivalent of writeLines — wholesale replace of a
+ * transaction's transaction_withheld_lines. Same `replaceExisting` shortcut
+ * (a just-inserted transaction can't have any lines yet). An empty
+ * withheldLines list on an edit therefore just clears them, which is exactly
+ * what happens when the user removes withholding from a transaction.
+ */
+async function writeWithheldLines(
+  supabase: TypedSupabaseClient,
+  transactionId: string,
+  withheldLines: ResolvedWithheldLine[],
+  { replaceExisting }: { replaceExisting: boolean }
+) {
+  if (replaceExisting) {
+    const { error: deleteError } = await supabase
+      .from("transaction_withheld_lines")
+      .delete()
+      .eq("transaction_id", transactionId);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+  }
+
+  if (withheldLines.length === 0) {
+    return;
+  }
+
+  const { error: insertError } = await supabase.from("transaction_withheld_lines").insert(
+    withheldLines.map((line, position) => ({
+      transaction_id: transactionId,
+      net: line.net,
+      withheld_rate_id: line.withheld_rate_id,
+      withheld_amount: line.withheld_amount,
+      position,
+    }))
+  );
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
+
 function revalidateAffectedPaths() {
   revalidatePath("/transactions");
   revalidatePath("/wallets");
@@ -265,7 +355,7 @@ function revalidateAffectedPaths() {
 
 export async function addTransaction(formData: FormData) {
   const supabase = await createClient();
-  const { fields, lines } = await resolveFields(supabase, formData);
+  const { fields, lines, withheldLines } = await resolveFields(supabase, formData);
 
   const { data, error } = await supabase
     .from("transactions")
@@ -279,6 +369,7 @@ export async function addTransaction(formData: FormData) {
 
   try {
     await writeLines(supabase, data.id, lines, { replaceExisting: false });
+    await writeWithheldLines(supabase, data.id, withheldLines, { replaceExisting: false });
   } catch (err) {
     // The parent row saved but its amount breakdown didn't — soft-delete it
     // rather than leave an orphaned transaction with no lines behind it
@@ -296,7 +387,7 @@ export async function addTransaction(formData: FormData) {
 
 export async function updateTransaction(id: string, formData: FormData) {
   const supabase = await createClient();
-  const { fields, lines } = await resolveFields(supabase, formData);
+  const { fields, lines, withheldLines } = await resolveFields(supabase, formData);
 
   const { error } = await supabase
     .from("transactions")
@@ -308,6 +399,7 @@ export async function updateTransaction(id: string, formData: FormData) {
   }
 
   await writeLines(supabase, id, lines, { replaceExisting: true });
+  await writeWithheldLines(supabase, id, withheldLines, { replaceExisting: true });
 
   revalidateAffectedPaths();
 }
@@ -332,24 +424,29 @@ export async function reconcileTransaction(id: string, formData: FormData) {
   const input = parseOrThrow(reconcileSchema, formDataToRecord(formData));
 
   let vat_amount: number | undefined;
+  let withheld_amount: number | undefined;
   let netOverride: number | undefined;
   let to_wallet_id: string | undefined;
   /** Supabase's query builder is a thenable, not a real Promise — Promise.all accepts either, but the array has to be typed to match. */
   let lineUpdates: PromiseLike<WriteResult>[] = [];
+  let withheldLineUpdates: PromiseLike<WriteResult>[] = [];
 
   if (input.type === "transfer") {
     to_wallet_id = input.to_wallet_id;
   } else {
-    // The lines and the VAT rates don't depend on each other, so they're
-    // fetched together rather than one after the other — reconcile used to
-    // walk lines -> rate-per-line -> update-per-line -> update-transaction
-    // as four sequential waits.
-    const [linesResult, rates] = await Promise.all([
+    // The VAT lines, withheld lines, and both rate tables don't depend on
+    // each other, so they're all fetched together rather than sequentially.
+    const [linesResult, withheldLinesResult, rates, withheldRates] = await Promise.all([
       supabase
         .from("transaction_vat_lines")
         .select("id, net, vat_rate_id")
         .eq("transaction_id", id),
+      supabase
+        .from("transaction_withheld_lines")
+        .select("id, net, withheld_rate_id")
+        .eq("transaction_id", id),
       loadVatRates(supabase),
+      loadWithheldRates(supabase),
     ]);
 
     if (linesResult.error) {
@@ -358,6 +455,9 @@ export async function reconcileTransaction(id: string, formData: FormData) {
     const existingLines = linesResult.data;
     if (!existingLines || existingLines.length === 0) {
       throw new Error("Could not find this transaction's VAT breakdown");
+    }
+    if (withheldLinesResult.error) {
+      throw new Error(withheldLinesResult.error.message);
     }
 
     const oldNet = existingLines.reduce((sum, l) => sum + Number(l.net), 0);
@@ -389,6 +489,36 @@ export async function reconcileTransaction(id: string, formData: FormData) {
         .eq("id", line.id)
         .then(({ error }) => ({ error }))
     );
+
+    // Withheld lines rescale the same way (proportional to the new net), each
+    // line's withheld_amount re-derived from its own rate. There may be none
+    // — most transactions have no withholding — in which case withheld_amount
+    // stays 0 and there are no line updates.
+    const existingWithheld = withheldLinesResult.data ?? [];
+    const rescaledWithheld = existingWithheld.map((line, index) => {
+      const lineNet =
+        oldNet > 0
+          ? round2(Number(line.net) * ratio)
+          : index === 0
+            ? input.net
+            : 0;
+      const lineWithheld = line.withheld_rate_id
+        ? round2((lineNet * withheldRatePercent(withheldRates, line.withheld_rate_id)) / 100)
+        : 0;
+      return { id: line.id, net: lineNet, withheld_amount: lineWithheld };
+    });
+
+    withheld_amount = round2(
+      rescaledWithheld.reduce((sum, l) => sum + l.withheld_amount, 0)
+    );
+
+    withheldLineUpdates = rescaledWithheld.map((line) =>
+      supabase
+        .from("transaction_withheld_lines")
+        .update({ net: line.net, withheld_amount: line.withheld_amount })
+        .eq("id", line.id)
+        .then(({ error }) => ({ error }))
+    );
   }
 
   const transactionUpdate: PromiseLike<WriteResult> = supabase
@@ -400,11 +530,16 @@ export async function reconcileTransaction(id: string, formData: FormData) {
       is_reconciled: true,
       ...(to_wallet_id !== undefined ? { to_wallet_id } : {}),
       ...(vat_amount !== undefined ? { vat_amount } : {}),
+      ...(withheld_amount !== undefined ? { withheld_amount } : {}),
     })
     .eq("id", id)
     .then(({ error }) => ({ error }));
 
-  const results = await Promise.all([...lineUpdates, transactionUpdate]);
+  const results = await Promise.all([
+    ...lineUpdates,
+    ...withheldLineUpdates,
+    transactionUpdate,
+  ]);
   const failed = results.find((r) => r.error);
   if (failed?.error) {
     throw new Error(failed.error.message);

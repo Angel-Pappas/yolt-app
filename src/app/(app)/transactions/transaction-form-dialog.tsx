@@ -17,6 +17,7 @@ import { EntityFormDialog } from "../entities/entity-form-dialog";
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
 import type { VatRate } from "../settings/vat-rates/vat-rate-queries";
+import type { WithheldTaxRate } from "../settings/withheld-tax-rates/withheld-tax-rate-queries";
 import { addCategory } from "../settings/categories/actions";
 import { CategoryFormDialog } from "../settings/categories/category-form-dialog";
 import type { Category } from "../settings/categories/queries";
@@ -55,6 +56,9 @@ export type AmountMode = (typeof AMOUNT_MODE_OPTIONS)[number]["value"];
 /** One amount line — 99% of transactions have exactly one, but a rare invoice mixing VAT rates (e.g. 1000 @ 24% + 200 @ 6%) can have more. See transaction_vat_lines. */
 type VatLineSeed = { net: string; vat_rate_id: string };
 
+/** One withholding-tax line — usually absent, occasionally one. Base amount + a withheld rate; withheld amount = amount × rate. See transaction_withheld_lines. */
+type WithheldLineSeed = { net: string; withheld_rate_id: string };
+
 /** The full set of field values a fresh Add-transaction dialog can be seeded with — either "true defaults" (undefined) or carried over from a just-added transaction ("Add + Same", see transaction-modal.tsx). */
 export type TransactionSeed = {
   date: string;
@@ -64,6 +68,8 @@ export type TransactionSeed = {
   /** Transfer only — income/expense amounts live in `lines` instead. */
   net: string;
   lines: VatLineSeed[];
+  /** Withholding lines — usually empty (income/expense only). */
+  withheldLines: WithheldLineSeed[];
   entity: { id: string; name: string } | null;
   category: { id: string; name: string } | null;
   wallet_id: string;
@@ -91,6 +97,11 @@ function defaultVatRateId(vatRates: VatRate[]): string {
   return twentyFour?.id ?? vatRates[0]?.id ?? "";
 }
 
+/** No everyday-default convention for withholding (unlike VAT's 24%) — a freshly added withheld line just takes the first available rate, which the user then picks from. */
+function defaultWithheldRateId(withheldRates: WithheldTaxRate[]): string {
+  return withheldRates[0]?.id ?? "";
+}
+
 /** Module-level (not a ref) so it's safe to call from a lazy useState initializer, which runs during render. Only needs to be unique within one render's line list, so a monotonically increasing counter shared across every instance is fine. */
 let nextLineId = 0;
 function newLineKey(): string {
@@ -106,6 +117,7 @@ type TransactionFormDialogProps = {
   categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
+  withheldRates: WithheldTaxRate[];
   defaultValues?: TransactionSeed;
   action: (formData: FormData) => Promise<void>;
   onDone: () => void;
@@ -123,6 +135,7 @@ export function TransactionFormDialog({
   categories,
   wallets,
   vatRates,
+  withheldRates,
   defaultValues,
   action,
   onDone,
@@ -196,10 +209,43 @@ export function TransactionFormDialog({
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   }
 
+  // Withholding lines (income/expense only) — usually none. Unlike VAT lines,
+  // there's no "at least one" requirement: withholding is optional, so the
+  // list can be emptied entirely.
+  const [withheldLines, setWithheldLines] = useState<
+    { key: string; net: string; withheldRateId: string }[]
+  >(() =>
+    (defaultValues?.withheldLines ?? []).map((l) => ({
+      key: newLineKey(),
+      net: l.net,
+      withheldRateId: l.withheld_rate_id || defaultWithheldRateId(withheldRates),
+    }))
+  );
+
+  function addWithheldLine() {
+    setWithheldLines((prev) => [
+      ...prev,
+      { key: newLineKey(), net: "", withheldRateId: defaultWithheldRateId(withheldRates) },
+    ]);
+  }
+  function removeWithheldLine(key: string) {
+    setWithheldLines((prev) => prev.filter((l) => l.key !== key));
+  }
+  function updateWithheldLine(
+    key: string,
+    patch: Partial<{ net: string; withheldRateId: string }>
+  ) {
+    setWithheldLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  }
+
   const isTransfer = type === "transfer";
 
   function rateFor(vatRateId: string): number {
     return Number(vatRates.find((v) => v.id === vatRateId)?.rate ?? 0);
+  }
+
+  function withheldRateFor(withheldRateId: string): number {
+    return Number(withheldRates.find((r) => r.id === withheldRateId)?.rate ?? 0);
   }
 
   // Net is always the value actually saved — in "total" mode a line's typed
@@ -224,6 +270,16 @@ export function TransactionFormDialog({
     return { ...line, net, vatAmount, total };
   });
 
+  // Withholding is always base × rate (no Net/Total mode — withholding is
+  // defined on the net). Each line's amount is its own base, mirroring the
+  // server (resolveFields). Summed into withheldValue, which reduces the total.
+  const computedWithheldLines = withheldLines.map((line) => {
+    const r = withheldRateFor(line.withheldRateId);
+    const net = parseAmountInput(line.net);
+    const withheldAmount = round2((net * r) / 100);
+    return { ...line, net, withheldAmount };
+  });
+
   const amountNum = parseAmountInput(amountInput);
   const netValue = isTransfer
     ? amountNum
@@ -231,7 +287,13 @@ export function TransactionFormDialog({
   const vatAmountValue = isTransfer
     ? 0
     : round2(computedLines.reduce((sum, l) => sum + l.vatAmount, 0));
-  const totalValue = netValue + vatAmountValue;
+  const withheldValue = isTransfer
+    ? 0
+    : round2(computedWithheldLines.reduce((sum, l) => sum + l.withheldAmount, 0));
+  // The cash that changes hands: net + VAT - withholding (matches computeTotal).
+  const grossTotalValue = netValue + vatAmountValue;
+  const totalValue = grossTotalValue - withheldValue;
+  const hasWithheld = !isTransfer && withheldLines.length > 0;
 
   const sameWalletError =
     isTransfer && walletId && toWalletId && walletId === toWalletId;
@@ -278,6 +340,7 @@ export function TransactionFormDialog({
     const categoryMatch = categories.find((c) => c.id === categoryId) ?? null;
 
     let seedLines: VatLineSeed[] = [];
+    let seedWithheldLines: WithheldLineSeed[] = [];
     if (formType !== "transfer") {
       try {
         const raw = JSON.parse(String(formData.get("lines") ?? "[]")) as {
@@ -286,6 +349,14 @@ export function TransactionFormDialog({
         seedLines = raw.map((l) => ({ net: "", vat_rate_id: l.vat_rate_id }));
       } catch {
         seedLines = [];
+      }
+      try {
+        const raw = JSON.parse(String(formData.get("withheld_lines") ?? "[]")) as {
+          withheld_rate_id: string;
+        }[];
+        seedWithheldLines = raw.map((l) => ({ net: "", withheld_rate_id: l.withheld_rate_id }));
+      } catch {
+        seedWithheldLines = [];
       }
     }
 
@@ -296,6 +367,7 @@ export function TransactionFormDialog({
       type: formType,
       net: "",
       lines: seedLines,
+      withheldLines: seedWithheldLines,
       entity: entityMatch ? { id: entityMatch.id, name: entityMatch.name } : null,
       category: categoryMatch ? { id: categoryMatch.id, name: categoryMatch.name } : null,
       wallet_id: String(formData.get("wallet_id") ?? ""),
@@ -653,6 +725,81 @@ export function TransactionFormDialog({
             )}
           </div>
         )}
+
+        {/* Withholding tax (income/expense only) — the parallel of the VAT
+            lines above, minus the Net/Total mode: each line is a base amount
+            × a withheld rate, and withholding is deducted from the total. */}
+        {!isTransfer && (
+          <div className="sm:col-span-2">
+            <span className={formLabelClass}>Withheld tax</span>
+            {withheldLines.length > 0 && (
+              <div className="space-y-2">
+                {withheldLines.map((line) => (
+                  <div key={line.key} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      placeholder="Amount"
+                      aria-label="Withheld base amount"
+                      value={line.net}
+                      onChange={(e) =>
+                        updateWithheldLine(line.key, { net: sanitizeAmountInput(e.target.value) })
+                      }
+                      className={`${flexInputClass} min-w-0 flex-1`}
+                    />
+                    <select
+                      required
+                      aria-label="Withheld tax rate"
+                      value={line.withheldRateId}
+                      onChange={(e) =>
+                        updateWithheldLine(line.key, { withheldRateId: e.target.value })
+                      }
+                      className={`${flexInputClass} w-32 shrink-0`}
+                    >
+                      {withheldRates.length === 0 && <option value="">No rates</option>}
+                      {withheldRates.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} ({r.rate}%)
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => removeWithheldLine(line.key)}
+                      aria-label="Remove withheld line"
+                      className="shrink-0 rounded-lg p-2 text-ink-faint transition hover:bg-expense-soft hover:text-expense"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={addWithheldLine}
+              className="mt-2 text-sm font-medium text-accent hover:underline"
+            >
+              + Add withheld line
+            </button>
+            <input
+              type="hidden"
+              name="withheld_lines"
+              value={JSON.stringify(
+                computedWithheldLines.map((l) => ({
+                  net: l.net,
+                  withheld_rate_id: l.withheldRateId,
+                }))
+              )}
+            />
+            {withheldLines.length > 0 && withheldRates.length === 0 && (
+              <p className="mt-1 text-xs text-ink-faint">
+                Add a withheld tax rate in Settings before withholding.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-1.5 rounded-lg bg-canvas p-3">
@@ -666,6 +813,22 @@ export function TransactionFormDialog({
               <span className="text-ink-muted">VAT amount</span>
               <span className="tabular-nums text-ink">{formatAmount(vatAmountValue)}</span>
             </div>
+            {/* Full breakdown only once withholding is in play: Net + VAT =
+                Gross total, minus Withheld = Total (see the withheld feature). */}
+            {hasWithheld && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-muted">Gross total</span>
+                  <span className="tabular-nums text-ink">{formatAmount(grossTotalValue)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-muted">Withheld</span>
+                  <span className="tabular-nums text-expense">
+                    {formatAmount(-withheldValue)}
+                  </span>
+                </div>
+              </>
+            )}
           </>
         )}
         <div className="flex justify-between text-sm font-semibold">

@@ -16,6 +16,7 @@ import { getActiveEntities } from "../entities/queries";
 import { getActiveCategories } from "../settings/categories/queries";
 import { getActiveWallets } from "../wallets/queries";
 import { getActiveVatRates } from "../settings/vat-rates/vat-rate-queries";
+import { getActiveWithheldTaxRates } from "../settings/withheld-tax-rates/withheld-tax-rate-queries";
 import { TransactionModal } from "./transaction-modal";
 import { TransactionRows } from "./transaction-rows";
 import { TransactionTableHeader } from "./transaction-table-header";
@@ -88,11 +89,13 @@ export default async function TransactionsPage({
     { data: entities },
     { data: categories },
     { data: vatRates },
+    { data: withheldRates },
   ] = await Promise.all([
     fetchFirstSpan(),
     getActiveEntities(supabase),
     getActiveCategories(supabase),
     getActiveVatRates(supabase),
+    getActiveWithheldTaxRates(supabase),
   ]);
 
   const emptyMessage = hasActiveTransactionFilters(query)
@@ -119,6 +122,7 @@ export default async function TransactionsPage({
               categories={categories ?? []}
               wallets={wallets ?? []}
               vatRates={vatRates ?? []}
+              withheldRates={withheldRates ?? []}
               action={addTransaction}
             />
           </div>
@@ -150,6 +154,7 @@ export default async function TransactionsPage({
               categories={categories ?? []}
               wallets={wallets ?? []}
               vatRates={vatRates ?? []}
+              withheldRates={withheldRates ?? []}
               balanceMode={balanceWallet !== null}
               columnCount={COLUMN_COUNT}
               emptyMessage={emptyMessage}

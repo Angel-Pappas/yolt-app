@@ -41,11 +41,41 @@ const linesField = z
   })
   .pipe(z.array(vatLineSchema).min(1, "Add at least one amount"));
 
+/**
+ * A withholding-tax line — the exact parallel of a VAT line, minus the
+ * Net/Total mode: withholding is always `net × rate`, so there's only ever a
+ * base amount and a rate, no total to anchor to.
+ */
+const withheldLineSchema = z.object({
+  net: z.coerce.number().min(0, "Amount must be zero or greater"),
+  withheld_rate_id: z.uuid("Choose a withheld tax rate"),
+});
+
+/**
+ * Withheld lines, serialized as their own JSON field like `lines`. Unlike
+ * `lines` this may be empty (most transactions have no withholding at all) —
+ * and the field can be absent entirely, which parses to no lines.
+ */
+const withheldLinesField = z
+  .string()
+  .optional()
+  .transform((raw, ctx) => {
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw);
+    } catch {
+      ctx.addIssue({ code: "custom", message: "Invalid withheld lines" });
+      return z.NEVER;
+    }
+  })
+  .pipe(z.array(withheldLineSchema));
+
 const incomeExpenseFields = {
   date: z.iso.date("Invalid date"),
   invoice_date: z.iso.date("Invalid invoice date"),
   description: z.string().trim(),
   lines: linesField,
+  withheld_lines: withheldLinesField,
   entity_id: optionalUuid("Invalid entity"),
   category_id: optionalUuid("Invalid category"),
   wallet_id: z.uuid("Choose a wallet"),

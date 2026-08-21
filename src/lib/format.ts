@@ -92,11 +92,19 @@ export function parseAmountInput(value: string | number): number {
 }
 
 /**
- * Total is never stored — it's always net + vat_amount, computed wherever
- * it's displayed so it can never drift from its inputs.
+ * Total is never stored — it's always net + vat_amount - withheld_amount,
+ * computed wherever it's displayed so it can never drift from its inputs.
+ * `withheldAmount` defaults to 0, so every pre-withholding call site (and any
+ * transaction with no withholding) is unaffected. Withholding is deducted
+ * because it's money kept back from the gross rather than moved — the total is
+ * the cash that actually changes hands (see the withheld-tax feature).
  */
-export function computeTotal(net: number | string, vatAmount: number | string): number {
-  return Number(net) + Number(vatAmount);
+export function computeTotal(
+  net: number | string,
+  vatAmount: number | string,
+  withheldAmount: number | string = 0
+): number {
+  return Number(net) + Number(vatAmount) - Number(withheldAmount);
 }
 
 /** Rounds to exactly 2 decimals, avoiding float artifacts like 0.1 + 0.2. Shared by the transaction form's client-side net/total math and the server's VAT computation, so both round the same way. */

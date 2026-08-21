@@ -7,6 +7,7 @@ import { TransactionFormDialog, type TransactionSeed } from "./transaction-form-
 import type { Entity } from "../entities/queries";
 import type { Wallet } from "../wallets/queries";
 import type { VatRate } from "../settings/vat-rates/vat-rate-queries";
+import type { WithheldTaxRate } from "../settings/withheld-tax-rates/withheld-tax-rate-queries";
 import type { Category } from "../settings/categories/queries";
 
 type TransactionModalProps = {
@@ -18,6 +19,7 @@ type TransactionModalProps = {
   categories: Category[];
   wallets: Wallet[];
   vatRates: VatRate[];
+  withheldRates: WithheldTaxRate[];
   action: (formData: FormData) => Promise<void>;
 };
 
@@ -41,6 +43,7 @@ export function TransactionModal({
   categories,
   wallets,
   vatRates,
+  withheldRates,
   action,
 }: TransactionModalProps) {
   const { dialogRef, open, close } = useDialog();
@@ -84,6 +87,7 @@ export function TransactionModal({
         categories={categories}
         wallets={wallets}
         vatRates={vatRates}
+        withheldRates={withheldRates}
         defaultValues={seed}
         autoOpen={autoOpen}
         action={action}

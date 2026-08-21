@@ -1,22 +1,3 @@
-// Generated via the Supabase MCP (generate_typescript_types) against the
-// live schema. Regenerate after any migration that changes tables/views —
-// this file should never be hand-edited.
-//
-// IMPORTANT gotcha: this generator types every Postgres `numeric` column
-// (net, vat_amount, rate, total, ...) as TypeScript `number`, but the
-// Supabase JS client actually returns `numeric` values as **strings** at
-// runtime (to avoid floating-point precision loss) — this file's types
-// don't reflect that. Don't trust `row.net` being a real `number` just
-// because this file says so; keep doing `Number(...)` explicitly before
-// arithmetic, exactly as the rest of the app already does. The domain
-// types in each feature's queries.ts (Transaction, Entity, etc.) are the
-// ones that get this right and are what the rest of the app should use —
-// this file exists to type-check `.from()`/`.select()` calls (catching a
-// typo'd table/column name at compile time). For that checking to actually
-// happen, query helpers must take the `TypedSupabaseClient` alias from
-// ./types, not the bare `SupabaseClient` from @supabase/supabase-js —
-// the latter silently erases all of it.
-
 export type Json =
   | string
   | number
@@ -422,6 +403,61 @@ export type Database = {
           },
         ]
       }
+      transaction_withheld_lines: {
+        Row: {
+          created_at: string
+          id: string
+          net: number
+          position: number
+          transaction_id: string
+          user_id: string
+          withheld_amount: number
+          withheld_rate_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          net: number
+          position?: number
+          transaction_id: string
+          user_id?: string
+          withheld_amount?: number
+          withheld_rate_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          net?: number
+          position?: number
+          transaction_id?: string
+          user_id?: string
+          withheld_amount?: number
+          withheld_rate_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_withheld_lines_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_withheld_lines_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions_expanded"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_withheld_lines_withheld_rate_id_fkey"
+            columns: ["withheld_rate_id"]
+            isOneToOne: false
+            referencedRelation: "withheld_tax_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           category_id: string | null
@@ -443,6 +479,7 @@ export type Database = {
           vat_amount: number
           vat_rate_id: string | null
           wallet_id: string
+          withheld_amount: number
         }
         Insert: {
           category_id?: string | null
@@ -464,6 +501,7 @@ export type Database = {
           vat_amount?: number
           vat_rate_id?: string | null
           wallet_id: string
+          withheld_amount?: number
         }
         Update: {
           category_id?: string | null
@@ -485,6 +523,7 @@ export type Database = {
           vat_amount?: number
           vat_rate_id?: string | null
           wallet_id?: string
+          withheld_amount?: number
         }
         Relationships: [
           {
@@ -598,6 +637,36 @@ export type Database = {
         }
         Relationships: []
       }
+      withheld_tax_rates: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean
+          name: string
+          rate: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name: string
+          rate: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name?: string
+          rate?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       transactions_expanded: {
@@ -627,6 +696,7 @@ export type Database = {
           vat_rate_name: string | null
           wallet_id: string | null
           wallet_name: string | null
+          withheld_amount: number | null
         }
         Relationships: [
           {

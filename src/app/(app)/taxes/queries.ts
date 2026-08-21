@@ -282,6 +282,171 @@ export async function getMonthlyVatList(
   return { months: sorted, totalCount: sorted.length };
 }
 
+// --- Withheld (withholding) tax ---------------------------------------------
+
+export type MonthlyWithheld = {
+  /** "yyyy-mm" */
+  period: string;
+  /** Withholding collected this month — sum of withheld_amount on this month's expense transactions (money we kept back when paying contractors). This is also what's payable *next* month, so it isn't duplicated as its own column. */
+  withheld: number;
+  /** Cash due to the state *this* calendar month: the previous month's withholding, which is remitted by the end of this one. */
+  payableThisMonth: number;
+};
+
+type WithheldBearingRow = {
+  withheld_amount: string;
+  date: string;
+};
+
+/**
+ * The withholding-tax remittance ledger. Simpler than VAT — no credit
+ * rollover or installments: withholding collected in a month is simply
+ * remitted to the state by the end of the *following* month (explicit user
+ * description of how they pay it on the contractor's behalf).
+ *
+ * Attributed to the transaction's **payment date** (`date`, "when we go to
+ * pay the contractor"), not invoice_date — this is the one place withholding
+ * and VAT deliberately key off different dates. Sums **expense** withholding
+ * only: that's the "we withhold and remit" case; a client withholding from
+ * our income is their liability, not ours, so it isn't remitted here.
+ *
+ * Walks every period from the earliest month with withholding through the
+ * later of (the latest such month) or (the current period), filling quiet
+ * gap months so a payable can always reach the month it's due in. Always the
+ * full unfiltered ledger — `getMonthlyWithheldList()` filters it for display.
+ */
+export async function getMonthlyWithheldLedger(
+  supabase: TypedSupabaseClient
+): Promise<MonthlyWithheld[]> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("withheld_amount, date")
+    .eq("is_deleted", false)
+    .eq("type", "expense")
+    .gt("withheld_amount", 0)
+    .returns<WithheldBearingRow[]>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const byPeriod = new Map<string, number>();
+  for (const row of data ?? []) {
+    const period = row.date.slice(0, 7);
+    byPeriod.set(period, (byPeriod.get(period) ?? 0) + Number(row.withheld_amount));
+  }
+
+  if (byPeriod.size === 0) {
+    return [];
+  }
+
+  const periodsWithData = [...byPeriod.keys()].sort();
+  const earliest = periodsWithData[0];
+  const latestWithData = periodsWithData[periodsWithData.length - 1];
+  const today = currentPeriod();
+  const latest = latestWithData > today ? latestWithData : today;
+
+  const months: MonthlyWithheld[] = [];
+  let previousWithheld = 0;
+
+  for (let period = earliest; ; period = nextPeriod(period)) {
+    const withheld = round2(byPeriod.get(period) ?? 0);
+    months.push({
+      period,
+      withheld,
+      payableThisMonth: round2(previousWithheld),
+    });
+    previousWithheld = withheld;
+    if (period === latest) break;
+  }
+
+  return months;
+}
+
+export type MonthlyWithheldFilters = {
+  /** Compared against the 1st of each period. Inclusive, ISO "yyyy-mm-dd". */
+  periodFrom?: string;
+  periodTo?: string;
+  withheldMin?: number;
+  withheldMax?: number;
+  payableThisMin?: number;
+  payableThisMax?: number;
+};
+
+export type MonthlyWithheldSortKey = "period" | "withheld" | "payableThisMonth";
+export type MonthlyWithheldSortDir = "asc" | "desc";
+
+export const MONTHLY_WITHHELD_SORT_KEYS: MonthlyWithheldSortKey[] = [
+  "period",
+  "withheld",
+  "payableThisMonth",
+];
+
+export type MonthlyWithheldListParams = {
+  filters?: MonthlyWithheldFilters;
+  sort?: MonthlyWithheldSortKey;
+  dir?: MonthlyWithheldSortDir;
+};
+
+export type MonthlyWithheldListResult = {
+  months: MonthlyWithheld[];
+  totalCount: number;
+};
+
+/**
+ * The withheld detail page's list view — filter/sort on top of the full
+ * ledger, same split as getMonthlyVatList (compute the whole chain first,
+ * filter for display after; sorting by anything but period breaks the
+ * month-to-month payable chain, an accepted tradeoff).
+ */
+export async function getMonthlyWithheldList(
+  supabase: TypedSupabaseClient,
+  params: MonthlyWithheldListParams = {}
+): Promise<MonthlyWithheldListResult> {
+  const filters = params.filters ?? {};
+  const sort = params.sort ?? "period";
+  const dir = params.dir ?? "asc";
+
+  const all = await getMonthlyWithheldLedger(supabase);
+
+  let filtered = all;
+  if (filters.periodFrom) {
+    filtered = filtered.filter((m) => `${m.period}-01` >= filters.periodFrom!);
+  }
+  if (filters.periodTo) {
+    filtered = filtered.filter((m) => `${m.period}-01` <= filters.periodTo!);
+  }
+  if (filters.withheldMin !== undefined) {
+    filtered = filtered.filter((m) => m.withheld >= filters.withheldMin!);
+  }
+  if (filters.withheldMax !== undefined) {
+    filtered = filtered.filter((m) => m.withheld <= filters.withheldMax!);
+  }
+  if (filters.payableThisMin !== undefined) {
+    filtered = filtered.filter((m) => m.payableThisMonth >= filters.payableThisMin!);
+  }
+  if (filters.payableThisMax !== undefined) {
+    filtered = filtered.filter((m) => m.payableThisMonth <= filters.payableThisMax!);
+  }
+
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp: number;
+    switch (sort) {
+      case "withheld":
+        cmp = a.withheld - b.withheld;
+        break;
+      case "payableThisMonth":
+        cmp = a.payableThisMonth - b.payableThisMonth;
+        break;
+      default:
+        cmp = a.period.localeCompare(b.period);
+    }
+    return dir === "asc" ? cmp : -cmp;
+  });
+
+  return { months: sorted, totalCount: sorted.length };
+}
+
 /** The current "yyyy-mm" period, server clock. */
 export function currentPeriod(): string {
   return new Date().toISOString().slice(0, 7);
