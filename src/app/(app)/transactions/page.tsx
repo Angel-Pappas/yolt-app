@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireFinance } from "../require-access";
 import { addTransaction } from "./actions";
@@ -49,6 +50,31 @@ export default async function TransactionsPage({
   const rawParams = await searchParams;
   const params = toSearchParams(rawParams);
   const searchParamsString = params.toString();
+
+  // Default the view to the current month when the visitor hasn't chosen any
+  // period. Redirecting (rather than defaulting the query silently) keeps the
+  // URL the single source of truth, so the date-range filter shows "This
+  // month" active and its from/to fields are populated. Skipped whenever a
+  // period intent is already present — a from/to range, a Taxes invoice-date
+  // drill-down (invoice_from/invoice_to), or an explicit "All time" (all=1) —
+  // so those deep-links and the opt-out aren't clobbered. Balance view is
+  // excluded too — its running-balance ledger is meant to show full history,
+  // not a single month.
+  const hasPeriodIntent = ["from", "to", "invoice_from", "invoice_to", "all", "balance"].some(
+    (k) => params.has(k)
+  );
+  if (!hasPeriodIntent) {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    const withMonth = new URLSearchParams(searchParamsString);
+    withMonth.set("from", `${y}-${pad(m + 1)}-01`);
+    withMonth.set("to", `${y}-${pad(m + 1)}-${pad(lastDay)}`);
+    redirect(`/transactions?${withMonth.toString()}`);
+  }
+
   const query = parseTransactionListQuery(params);
 
   // Wallets are needed up front to resolve the `balance` param into a real

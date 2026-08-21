@@ -49,13 +49,24 @@ export function DateRangeFilter() {
 
   const currentFrom = searchParams.get("from") ?? "";
   const currentTo = searchParams.get("to") ?? "";
-  const activePreset = PRESETS.find((p) => {
-    const range = presetRange(p.key);
-    return (range.from ?? "") === currentFrom && (range.to ?? "") === currentTo;
-  })?.key;
+  // Transactions defaults to the current month when no range is chosen (see
+  // page.tsx's redirect), so "All time" can't be the plain absence of a range
+  // any more — it carries an explicit `all=1` marker that opts out of that
+  // default. Every other preset clears the marker.
+  const isAllTime = searchParams.get("all") === "1" && !currentFrom && !currentTo;
+  const activePreset = isAllTime
+    ? "all-time"
+    : PRESETS.find((p) => {
+        if (p.key === "all-time") return false;
+        const range = presetRange(p.key);
+        return (range.from ?? "") === currentFrom && (range.to ?? "") === currentTo;
+      })?.key;
 
   function applyPreset(preset: DatePreset) {
-    setFilterParams(presetRange(preset));
+    setFilterParams({
+      ...presetRange(preset),
+      all: preset === "all-time" ? "1" : null,
+    });
   }
 
   return (
