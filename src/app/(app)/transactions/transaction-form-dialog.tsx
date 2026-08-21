@@ -704,33 +704,11 @@ export function TransactionFormDialog({
                 </div>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={addLine}
-              className="mt-2 text-sm font-medium text-accent hover:underline"
-            >
-              + Add VAT line
-            </button>
-            <input
-              type="hidden"
-              name="lines"
-              value={JSON.stringify(
-                computedLines.map((l) => ({ net: l.net, vat_rate_id: l.vatRateId, total: l.total }))
-              )}
-            />
-            {vatRates.length === 0 && (
-              <p className="mt-1 text-xs text-ink-faint">
-                Add a VAT rate in Options before creating a transaction.
-              </p>
-            )}
-
-            {/* Withholding tax lives in the same amount block, right under the
-                VAT lines — its "+ Add withheld line" link sits directly beneath
-                "+ Add VAT line". Like VAT, the lines render *above* their add
-                link, so the add control is always under the fields it creates;
-                when there are none, the two add links simply stack. The
-                "Withheld tax" heading only appears once a line exists (nothing
-                to label otherwise). Optional — the list can be emptied fully. */}
+            {/* Withholding tax lines sit above the add-links row, right after
+                the VAT lines — a "Withheld tax" heading appears only once a
+                line exists (nothing to label otherwise). Each line is a base
+                amount × a withheld rate; withholding is deducted from the
+                total. Optional — the list can be emptied fully. */}
             {withheldLines.length > 0 && (
               <div className="mt-3 space-y-2">
                 <span className={formLabelClass}>Withheld tax</span>
@@ -776,7 +754,18 @@ export function TransactionFormDialog({
                 ))}
               </div>
             )}
-            <div className="mt-2">
+
+            {/* Both add-links share one row, side by side. Every added line —
+                VAT or withheld — renders above this row (explicit user
+                direction), so the controls stay put as lines are added. */}
+            <div className="mt-2 flex flex-wrap gap-4">
+              <button
+                type="button"
+                onClick={addLine}
+                className="text-sm font-medium text-accent hover:underline"
+              >
+                + Add VAT line
+              </button>
               <button
                 type="button"
                 onClick={addWithheldLine}
@@ -785,6 +774,14 @@ export function TransactionFormDialog({
                 + Add withheld line
               </button>
             </div>
+
+            <input
+              type="hidden"
+              name="lines"
+              value={JSON.stringify(
+                computedLines.map((l) => ({ net: l.net, vat_rate_id: l.vatRateId, total: l.total }))
+              )}
+            />
             <input
               type="hidden"
               name="withheld_lines"
@@ -795,6 +792,11 @@ export function TransactionFormDialog({
                 }))
               )}
             />
+            {vatRates.length === 0 && (
+              <p className="mt-1 text-xs text-ink-faint">
+                Add a VAT rate in Options before creating a transaction.
+              </p>
+            )}
             {withheldLines.length > 0 && withheldRates.length === 0 && (
               <p className="mt-1 text-xs text-ink-faint">
                 Add a withheld tax rate in Settings before withholding.
