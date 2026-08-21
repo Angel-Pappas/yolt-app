@@ -57,11 +57,19 @@ export default async function TransactionsPage({
   // month" active and its from/to fields are populated. Skipped whenever a
   // period intent is already present — a from/to range, a Taxes invoice-date
   // drill-down (invoice_from/invoice_to), or an explicit "All time" (all=1) —
-  // so those deep-links and the opt-out aren't clobbered. Balance view is
-  // excluded too — its running-balance ledger is meant to show full history,
-  // not a single month.
-  const hasPeriodIntent = ["from", "to", "invoice_from", "invoice_to", "all", "balance"].some(
-    (k) => params.has(k)
+  // so those deep-links and the opt-out aren't clobbered.
+  //
+  // Balance view (`balance`) is deliberately NOT excluded: it must share the
+  // exact same date default as the normal list, so the date range/preset never
+  // changes just by entering or leaving balance view (the control merges the
+  // `balance` param in/out without touching from/to, and both views default to
+  // this month). Balance view is used to reconcile a wallet against its
+  // monthly statement, so a month default is right there too — the running
+  // balance stays cumulative (carried in from all prior history), so the month
+  // reads exactly like a statement: opening balance, this month's moves,
+  // closing balance.
+  const hasPeriodIntent = ["from", "to", "invoice_from", "invoice_to", "all"].some((k) =>
+    params.has(k)
   );
   if (!hasPeriodIntent) {
     const now = new Date();
