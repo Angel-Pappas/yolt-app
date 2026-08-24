@@ -41,7 +41,10 @@ export const AREAS: Area[] = [
     label: "Business",
     home: "/leads",
     access: "crm",
-    links: [{ href: "/leads", label: "Leads" }],
+    links: [
+      { href: "/leads", label: "Leads" },
+      { href: "/projects", label: "Projects" },
+    ],
   },
 ];
 

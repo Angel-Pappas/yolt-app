@@ -42,6 +42,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     items: [
       { label: "Lead statuses", href: "/settings/lead-statuses" },
       { label: "Lead origins", href: "/settings/lead-origins" },
+      { label: "Project statuses", href: "/settings/project-statuses" },
     ],
   },
   {

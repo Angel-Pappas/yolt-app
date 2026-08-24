@@ -10,9 +10,11 @@ import {
 } from "../queries";
 import { getActiveLeadOrigins } from "../../settings/lead-origins/queries";
 import { getActiveLeadStatuses } from "../../settings/lead-statuses/queries";
+import { getProjectForLead } from "../../projects/queries";
 import { LeadEditForm } from "./lead-edit-form";
 import { ActionsPanel } from "./actions-panel";
 import { ContactsPanel } from "./contacts-panel";
+import { ConvertToProject } from "./convert-to-project";
 
 export default async function LeadEditPage({
   params,
@@ -26,22 +28,36 @@ export default async function LeadEditPage({
   const lead = await getLead(supabase, id);
   if (!lead) notFound();
 
-  const [{ data: origins }, { data: statuses }, actions, contacts, users] =
-    await Promise.all([
-      getActiveLeadOrigins(supabase),
-      getActiveLeadStatuses(supabase),
-      getLeadActions(supabase, id),
-      getLeadContacts(supabase, id),
-      profile.isAdmin
-        ? getUsersForPicker(supabase)
-        : Promise.resolve([
-            { id: profile.id, name: profile.name || profile.email || "Me" },
-          ]),
-    ]);
+  const [
+    { data: origins },
+    { data: statuses },
+    actions,
+    contacts,
+    users,
+    existingProject,
+  ] = await Promise.all([
+    getActiveLeadOrigins(supabase),
+    getActiveLeadStatuses(supabase),
+    getLeadActions(supabase, id),
+    getLeadContacts(supabase, id),
+    profile.isAdmin
+      ? getUsersForPicker(supabase)
+      : Promise.resolve([
+          { id: profile.id, name: profile.name || profile.email || "Me" },
+        ]),
+    getProjectForLead(supabase, id),
+  ]);
 
   return (
     <div className="flex w-full max-w-4xl flex-1 flex-col gap-6 p-6">
-      <h1 className="font-display text-3xl font-bold text-ink">{lead.name}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold text-ink">{lead.name}</h1>
+        <ConvertToProject
+          leadId={id}
+          leadName={lead.name}
+          existingProject={existingProject}
+        />
+      </div>
 
       <LeadEditForm
         lead={lead}

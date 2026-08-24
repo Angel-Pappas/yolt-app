@@ -102,11 +102,18 @@ export function LeadFields({
             className={formInputClass}
           >
             <option value="">— None —</option>
-            {statuses.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
+            {statuses
+              // "Project agreed" is set by conversion, not picked by hand — hide
+              // it, unless it's already this lead's status (so saving doesn't
+              // silently clear it).
+              .filter(
+                (s) => !s.is_conversion || s.id === defaultValues?.status_id
+              )
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
           </select>
         </div>
         <div className="sm:col-span-2">

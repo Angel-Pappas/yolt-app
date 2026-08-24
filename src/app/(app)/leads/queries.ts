@@ -66,6 +66,12 @@ export type LeadListParams = {
   originIds?: string[];
   /** Multi-select status ids; any of them. The sentinel "none" matches leads with no status set, and may be combined with real ids. */
   statusIds?: string[];
+  /**
+   * The "Project agreed" conversion status id. When the user hasn't picked any
+   * status filter, converted leads (this status) are hidden by default — they've
+   * graduated to projects. Ticking that status in the filter brings them back.
+   */
+  conversionStatusId?: string | null;
   sort?: LeadSortKey;
   dir?: LeadSortDir;
 };
@@ -121,6 +127,13 @@ export async function getLeadsList(
     } else {
       query = query.in("status_id", realIds);
     }
+  } else if (params.conversionStatusId) {
+    // No explicit status filter → hide converted ("Project agreed") leads by
+    // default. `neq` alone would also drop null-status rows (NULL <> x is NULL),
+    // so keep those explicitly via an OR.
+    query = query.or(
+      `status_id.is.null,status_id.neq.${params.conversionStatusId}`
+    );
   }
 
   if (params.sort) {

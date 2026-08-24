@@ -206,6 +206,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          is_conversion: boolean
           is_deleted: boolean
           name: string
           position: number
@@ -215,6 +216,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_conversion?: boolean
           is_deleted?: boolean
           name: string
           position?: number
@@ -224,6 +226,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_conversion?: boolean
           is_deleted?: boolean
           name?: string
           position?: number
@@ -347,6 +350,143 @@ export type Database = {
           is_admin?: boolean
         }
         Relationships: []
+      }
+      project_actions: {
+        Row: {
+          action_date: string
+          author_name: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          action_date?: string
+          author_name?: string | null
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          project_id: string
+          user_id?: string
+        }
+        Update: {
+          action_date?: string
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_actions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_statuses: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_deleted: boolean
+          name: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name: string
+          position?: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          name?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          estimated_months: number | null
+          id: string
+          is_deleted: boolean
+          lead_id: string | null
+          name: string
+          next_step: string | null
+          sort_order: number | null
+          status_id: string | null
+          user_id: string
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          estimated_months?: number | null
+          id?: string
+          is_deleted?: boolean
+          lead_id?: string | null
+          name: string
+          next_step?: string | null
+          sort_order?: number | null
+          status_id?: string | null
+          user_id?: string
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          estimated_months?: number | null
+          id?: string
+          is_deleted?: boolean
+          lead_id?: string | null
+          name?: string
+          next_step?: string | null
+          sort_order?: number | null
+          status_id?: string | null
+          user_id?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "project_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transaction_vat_lines: {
         Row: {

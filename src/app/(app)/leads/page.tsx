@@ -34,25 +34,42 @@ export default async function LeadsPage({
     LEAD_SORT_KEYS
   );
 
-  const [{ leads, totalCount }, { data: origins }, { data: statuses }, users] =
-    await Promise.all([
-      getLeadsList(supabase, { search, originIds, statusIds, sort, dir }),
-      getActiveLeadOrigins(supabase),
-      getActiveLeadStatuses(supabase),
-      profile.isAdmin
-        ? getUsersForPicker(supabase)
-        : Promise.resolve([
-            { id: profile.id, name: profile.name || profile.email || "Me" },
-          ]),
-    ]);
+  const { data: allStatuses } = await getActiveLeadStatuses(supabase);
+  // The "Project agreed" conversion status: hidden from the default list and
+  // from manual editors, but still tickable in the status filter to reveal
+  // converted leads.
+  const conversionStatusId =
+    (allStatuses ?? []).find((s) => s.is_conversion)?.id ?? null;
+
+  const [{ leads, totalCount }, { data: origins }, users] = await Promise.all([
+    getLeadsList(supabase, {
+      search,
+      originIds,
+      statusIds,
+      conversionStatusId,
+      sort,
+      dir,
+    }),
+    getActiveLeadOrigins(supabase),
+    profile.isAdmin
+      ? getUsersForPicker(supabase)
+      : Promise.resolve([
+          { id: profile.id, name: profile.name || profile.email || "Me" },
+        ]),
+  ]);
+  const statuses = allStatuses;
 
   const originOptions = (origins ?? []).map((o) => ({ value: o.id, label: o.name }));
-  // Real statuses — used by the inline status editor on each row.
-  const statusOptions = (statuses ?? []).map((s) => ({ value: s.id, label: s.name }));
-  // The header filter also offers "No status" (leads with no status set).
+  // Inline status editor on each row — offers the normal statuses only, never
+  // "Project agreed" (that's set by conversion, not picked by hand).
+  const statusOptions = (statuses ?? [])
+    .filter((s) => !s.is_conversion)
+    .map((s) => ({ value: s.id, label: s.name }));
+  // The header filter offers "No status" plus every status *including* the
+  // conversion one, so a user can tick it to see converted leads.
   const statusFilterOptions = [
     { value: "none", label: "No status" },
-    ...statusOptions,
+    ...(statuses ?? []).map((s) => ({ value: s.id, label: s.name })),
   ];
 
   return (

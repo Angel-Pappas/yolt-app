@@ -4,6 +4,8 @@ export type LeadStatus = {
   id: string;
   name: string;
   position: number;
+  /** The single flagged "Project agreed" status set by lead→project conversion. */
+  is_conversion: boolean;
 };
 
 /**
@@ -14,7 +16,7 @@ export type LeadStatus = {
 export async function getActiveLeadStatuses(supabase: TypedSupabaseClient) {
   return supabase
     .from("lead_statuses")
-    .select("id, name, position")
+    .select("id, name, position, is_conversion")
     .eq("is_deleted", false)
     .order("position", { ascending: true })
     .order("name", { ascending: true })
@@ -52,7 +54,7 @@ export async function getLeadStatusesList(
 
   let query = supabase
     .from("lead_statuses")
-    .select("id, name, position", { count: "exact" })
+    .select("id, name, position, is_conversion", { count: "exact" })
     .eq("is_deleted", false);
 
   if (params.search) {
