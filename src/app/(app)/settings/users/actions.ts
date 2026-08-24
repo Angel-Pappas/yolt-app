@@ -10,12 +10,14 @@ import { requireAdmin } from "../../require-access";
  * the invite link, then sets their access flags on the profile the
  * auto-provision trigger created. Admin-only.
  */
-export async function inviteUser(formData: FormData) {
+export async function inviteUser(
+  formData: FormData
+): Promise<{ error?: string } | void> {
   await requireAdmin();
 
   const email = (formData.get("email") as string | null)?.trim();
   if (!email) {
-    throw new Error("Email is required");
+    return { error: "Email is required" };
   }
   const canFinance = formData.get("can_access_finance") != null;
   const canCrm = formData.get("can_access_crm") != null;
@@ -26,8 +28,23 @@ export async function inviteUser(formData: FormData) {
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${origin}/auth/confirm?next=/set-password`,
   });
+  // Return (not throw) known, user-actionable failures: Next.js sanitizes
+  // thrown Server Action errors in production, so a thrown message reaches the
+  // UI as a generic "an error occurred… digest" — a returned value survives.
   if (error) {
-    throw new Error(error.message);
+    if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+      return {
+        error:
+          "Email sending limit reached — too many invites were sent recently. Please wait a while (about an hour) and try again.",
+      };
+    }
+    if (
+      error.code === "email_exists" ||
+      error.message.toLowerCase().includes("already been registered")
+    ) {
+      return { error: "That email is already registered." };
+    }
+    return { error: error.message };
   }
 
   const userId = data.user?.id;
@@ -42,7 +59,7 @@ export async function inviteUser(formData: FormData) {
       })
       .eq("id", userId);
     if (profileError) {
-      throw new Error(profileError.message);
+      return { error: profileError.message };
     }
   }
 

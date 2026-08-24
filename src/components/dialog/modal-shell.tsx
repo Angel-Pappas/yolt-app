@@ -33,7 +33,7 @@ export function ModalShell({
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   title: ReactNode;
   submitLabel?: string;
-  action?: (formData: FormData) => Promise<void>;
+  action?: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
   maxWidth?: string;
   submitDisabled?: boolean;
