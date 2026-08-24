@@ -18,7 +18,7 @@ export function ReconcileModal({
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   transaction: Transaction;
   wallets: Wallet[];
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
 }) {
   const uid = useId();

@@ -18,7 +18,7 @@ type ContactFormDialogProps = {
   title: string;
   submitLabel: string;
   defaultValues?: ContactDefaultValues;
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
 };
 

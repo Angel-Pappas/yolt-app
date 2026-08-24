@@ -15,7 +15,7 @@ type CategoryModalProps = {
     name: string;
     type: CategoryType;
   };
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
 };
 
 export function CategoryModal({

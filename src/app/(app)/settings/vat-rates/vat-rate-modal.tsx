@@ -14,7 +14,7 @@ type VatRateModalProps = {
     name: string;
     rate: string;
   };
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
 };
 
 export function VatRateModal({

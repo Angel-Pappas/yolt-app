@@ -20,7 +20,7 @@ type TransactionModalProps = {
   wallets: Wallet[];
   vatRates: VatRate[];
   withheldRates: WithheldTaxRate[];
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
 };
 
 /**

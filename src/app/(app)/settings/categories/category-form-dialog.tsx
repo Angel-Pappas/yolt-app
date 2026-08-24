@@ -18,7 +18,7 @@ type CategoryFormDialogProps = {
     name: string;
     type: CategoryType;
   };
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
 };
 

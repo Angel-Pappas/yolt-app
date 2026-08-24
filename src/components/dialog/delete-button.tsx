@@ -15,7 +15,7 @@ export function DeleteButton({
   confirmMessage,
   label,
 }: {
-  action: () => Promise<void>;
+  action: () => Promise<void | { error?: string | null }>;
   confirmMessage: string;
   label: string;
 }) {
@@ -25,7 +25,13 @@ export function DeleteButton({
     if (!confirm(confirmMessage)) return;
     startTransition(async () => {
       try {
-        await action();
+        // Actions return { error } rather than throwing, since Next.js
+        // sanitizes thrown Server Action errors in production (see
+        // lib/action-result.ts).
+        const result = await action();
+        if (result && result.error) {
+          alert(result.error);
+        }
       } catch (err) {
         alert(err instanceof Error ? err.message : "Failed to delete");
       }

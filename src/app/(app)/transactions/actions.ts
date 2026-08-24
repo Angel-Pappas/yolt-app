@@ -5,6 +5,7 @@ import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/server";
 import { formDataToRecord } from "@/lib/form-data";
 import { parseOrThrow } from "@/lib/validation";
+import { formAction } from "@/lib/action-result";
 import { round2 } from "@/lib/format";
 import { invoiceMonthSchema, reconcileSchema, transactionSchema } from "./schema";
 import { resolveInvoiceMonthInput } from "./invoice-month";
@@ -354,54 +355,58 @@ function revalidateAffectedPaths() {
 }
 
 export async function addTransaction(formData: FormData) {
-  const supabase = await createClient();
-  const { fields, lines, withheldLines } = await resolveFields(supabase, formData);
+  return formAction(async () => {
+    const supabase = await createClient();
+    const { fields, lines, withheldLines } = await resolveFields(supabase, formData);
 
-  const { data, error } = await supabase
-    .from("transactions")
-    .insert(fields)
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    throw new Error(error?.message ?? "Failed to add transaction");
-  }
-
-  try {
-    await writeLines(supabase, data.id, lines, { replaceExisting: false });
-    await writeWithheldLines(supabase, data.id, withheldLines, { replaceExisting: false });
-  } catch (err) {
-    // The parent row saved but its amount breakdown didn't — soft-delete it
-    // rather than leave an orphaned transaction with no lines behind it
-    // (there's no DELETE policy on transactions to hard-remove it, same as
-    // everywhere else in the app — see Summary.md).
-    await supabase
+    const { data, error } = await supabase
       .from("transactions")
-      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-      .eq("id", data.id);
-    throw err;
-  }
+      .insert(fields)
+      .select("id")
+      .single();
 
-  revalidateAffectedPaths();
+    if (error || !data) {
+      throw new Error(error?.message ?? "Failed to add transaction");
+    }
+
+    try {
+      await writeLines(supabase, data.id, lines, { replaceExisting: false });
+      await writeWithheldLines(supabase, data.id, withheldLines, { replaceExisting: false });
+    } catch (err) {
+      // The parent row saved but its amount breakdown didn't — soft-delete it
+      // rather than leave an orphaned transaction with no lines behind it
+      // (there's no DELETE policy on transactions to hard-remove it, same as
+      // everywhere else in the app — see Summary.md).
+      await supabase
+        .from("transactions")
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq("id", data.id);
+      throw err;
+    }
+
+    revalidateAffectedPaths();
+  });
 }
 
 export async function updateTransaction(id: string, formData: FormData) {
-  const supabase = await createClient();
-  const { fields, lines, withheldLines } = await resolveFields(supabase, formData);
+  return formAction(async () => {
+    const supabase = await createClient();
+    const { fields, lines, withheldLines } = await resolveFields(supabase, formData);
 
-  const { error } = await supabase
-    .from("transactions")
-    .update(fields)
-    .eq("id", id);
+    const { error } = await supabase
+      .from("transactions")
+      .update(fields)
+      .eq("id", id);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  await writeLines(supabase, id, lines, { replaceExisting: true });
-  await writeWithheldLines(supabase, id, withheldLines, { replaceExisting: true });
+    await writeLines(supabase, id, lines, { replaceExisting: true });
+    await writeWithheldLines(supabase, id, withheldLines, { replaceExisting: true });
 
-  revalidateAffectedPaths();
+    revalidateAffectedPaths();
+  });
 }
 
 /**
@@ -420,151 +425,155 @@ export async function updateTransaction(id: string, formData: FormData) {
  * user checked it.
  */
 export async function reconcileTransaction(id: string, formData: FormData) {
-  const supabase = await createClient();
-  const input = parseOrThrow(reconcileSchema, formDataToRecord(formData));
+  return formAction(async () => {
+    const supabase = await createClient();
+    const input = parseOrThrow(reconcileSchema, formDataToRecord(formData));
 
-  let vat_amount: number | undefined;
-  let withheld_amount: number | undefined;
-  let netOverride: number | undefined;
-  let to_wallet_id: string | undefined;
-  /** Supabase's query builder is a thenable, not a real Promise — Promise.all accepts either, but the array has to be typed to match. */
-  let lineUpdates: PromiseLike<WriteResult>[] = [];
-  let withheldLineUpdates: PromiseLike<WriteResult>[] = [];
+    let vat_amount: number | undefined;
+    let withheld_amount: number | undefined;
+    let netOverride: number | undefined;
+    let to_wallet_id: string | undefined;
+    /** Supabase's query builder is a thenable, not a real Promise — Promise.all accepts either, but the array has to be typed to match. */
+    let lineUpdates: PromiseLike<WriteResult>[] = [];
+    let withheldLineUpdates: PromiseLike<WriteResult>[] = [];
 
-  if (input.type === "transfer") {
-    to_wallet_id = input.to_wallet_id;
-  } else {
-    // The VAT lines, withheld lines, and both rate tables don't depend on
-    // each other, so they're all fetched together rather than sequentially.
-    const [linesResult, withheldLinesResult, rates, withheldRates] = await Promise.all([
-      supabase
-        .from("transaction_vat_lines")
-        .select("id, net, vat_rate_id")
-        .eq("transaction_id", id),
-      supabase
-        .from("transaction_withheld_lines")
-        .select("id, net, withheld_rate_id")
-        .eq("transaction_id", id),
-      loadVatRates(supabase),
-      loadWithheldRates(supabase),
+    if (input.type === "transfer") {
+      to_wallet_id = input.to_wallet_id;
+    } else {
+      // The VAT lines, withheld lines, and both rate tables don't depend on
+      // each other, so they're all fetched together rather than sequentially.
+      const [linesResult, withheldLinesResult, rates, withheldRates] = await Promise.all([
+        supabase
+          .from("transaction_vat_lines")
+          .select("id, net, vat_rate_id")
+          .eq("transaction_id", id),
+        supabase
+          .from("transaction_withheld_lines")
+          .select("id, net, withheld_rate_id")
+          .eq("transaction_id", id),
+        loadVatRates(supabase),
+        loadWithheldRates(supabase),
+      ]);
+
+      if (linesResult.error) {
+        throw new Error(linesResult.error.message);
+      }
+      const existingLines = linesResult.data;
+      if (!existingLines || existingLines.length === 0) {
+        throw new Error("Could not find this transaction's VAT breakdown");
+      }
+      if (withheldLinesResult.error) {
+        throw new Error(withheldLinesResult.error.message);
+      }
+
+      const oldNet = existingLines.reduce((sum, l) => sum + Number(l.net), 0);
+      const ratio = oldNet > 0 ? input.net / oldNet : 0;
+
+      const rescaled = existingLines.map((line, index) => {
+        const lineNet =
+          oldNet > 0
+            ? round2(Number(line.net) * ratio)
+            : index === 0
+              ? input.net
+              : 0;
+        const lineVat = line.vat_rate_id
+          ? netModeVatAmount(lineNet, vatRatePercent(rates, line.vat_rate_id))
+          : 0;
+        return { id: line.id, net: lineNet, vat_amount: lineVat };
+      });
+
+      netOverride = round2(rescaled.reduce((sum, l) => sum + l.net, 0));
+      vat_amount = round2(rescaled.reduce((sum, l) => sum + l.vat_amount, 0));
+
+      // Started, not awaited — the parent-row update below writes different
+      // rows and is computed from the same already-resolved numbers, so both
+      // writes go out together and are awaited as one batch.
+      lineUpdates = rescaled.map((line) =>
+        supabase
+          .from("transaction_vat_lines")
+          .update({ net: line.net, vat_amount: line.vat_amount })
+          .eq("id", line.id)
+          .then(({ error }) => ({ error }))
+      );
+
+      // Withheld lines rescale the same way (proportional to the new net), each
+      // line's withheld_amount re-derived from its own rate. There may be none
+      // — most transactions have no withholding — in which case withheld_amount
+      // stays 0 and there are no line updates.
+      const existingWithheld = withheldLinesResult.data ?? [];
+      const rescaledWithheld = existingWithheld.map((line, index) => {
+        const lineNet =
+          oldNet > 0
+            ? round2(Number(line.net) * ratio)
+            : index === 0
+              ? input.net
+              : 0;
+        const lineWithheld = line.withheld_rate_id
+          ? round2((lineNet * withheldRatePercent(withheldRates, line.withheld_rate_id)) / 100)
+          : 0;
+        return { id: line.id, net: lineNet, withheld_amount: lineWithheld };
+      });
+
+      withheld_amount = round2(
+        rescaledWithheld.reduce((sum, l) => sum + l.withheld_amount, 0)
+      );
+
+      withheldLineUpdates = rescaledWithheld.map((line) =>
+        supabase
+          .from("transaction_withheld_lines")
+          .update({ net: line.net, withheld_amount: line.withheld_amount })
+          .eq("id", line.id)
+          .then(({ error }) => ({ error }))
+      );
+    }
+
+    const transactionUpdate: PromiseLike<WriteResult> = supabase
+      .from("transactions")
+      .update({
+        date: input.date,
+        net: netOverride ?? input.net,
+        wallet_id: input.wallet_id,
+        is_reconciled: true,
+        ...(to_wallet_id !== undefined ? { to_wallet_id } : {}),
+        ...(vat_amount !== undefined ? { vat_amount } : {}),
+        ...(withheld_amount !== undefined ? { withheld_amount } : {}),
+      })
+      .eq("id", id)
+      .then(({ error }) => ({ error }));
+
+    const results = await Promise.all([
+      ...lineUpdates,
+      ...withheldLineUpdates,
+      transactionUpdate,
     ]);
-
-    if (linesResult.error) {
-      throw new Error(linesResult.error.message);
-    }
-    const existingLines = linesResult.data;
-    if (!existingLines || existingLines.length === 0) {
-      throw new Error("Could not find this transaction's VAT breakdown");
-    }
-    if (withheldLinesResult.error) {
-      throw new Error(withheldLinesResult.error.message);
+    const failed = results.find((r) => r.error);
+    if (failed?.error) {
+      throw new Error(failed.error.message);
     }
 
-    const oldNet = existingLines.reduce((sum, l) => sum + Number(l.net), 0);
-    const ratio = oldNet > 0 ? input.net / oldNet : 0;
-
-    const rescaled = existingLines.map((line, index) => {
-      const lineNet =
-        oldNet > 0
-          ? round2(Number(line.net) * ratio)
-          : index === 0
-            ? input.net
-            : 0;
-      const lineVat = line.vat_rate_id
-        ? netModeVatAmount(lineNet, vatRatePercent(rates, line.vat_rate_id))
-        : 0;
-      return { id: line.id, net: lineNet, vat_amount: lineVat };
-    });
-
-    netOverride = round2(rescaled.reduce((sum, l) => sum + l.net, 0));
-    vat_amount = round2(rescaled.reduce((sum, l) => sum + l.vat_amount, 0));
-
-    // Started, not awaited — the parent-row update below writes different
-    // rows and is computed from the same already-resolved numbers, so both
-    // writes go out together and are awaited as one batch.
-    lineUpdates = rescaled.map((line) =>
-      supabase
-        .from("transaction_vat_lines")
-        .update({ net: line.net, vat_amount: line.vat_amount })
-        .eq("id", line.id)
-        .then(({ error }) => ({ error }))
-    );
-
-    // Withheld lines rescale the same way (proportional to the new net), each
-    // line's withheld_amount re-derived from its own rate. There may be none
-    // — most transactions have no withholding — in which case withheld_amount
-    // stays 0 and there are no line updates.
-    const existingWithheld = withheldLinesResult.data ?? [];
-    const rescaledWithheld = existingWithheld.map((line, index) => {
-      const lineNet =
-        oldNet > 0
-          ? round2(Number(line.net) * ratio)
-          : index === 0
-            ? input.net
-            : 0;
-      const lineWithheld = line.withheld_rate_id
-        ? round2((lineNet * withheldRatePercent(withheldRates, line.withheld_rate_id)) / 100)
-        : 0;
-      return { id: line.id, net: lineNet, withheld_amount: lineWithheld };
-    });
-
-    withheld_amount = round2(
-      rescaledWithheld.reduce((sum, l) => sum + l.withheld_amount, 0)
-    );
-
-    withheldLineUpdates = rescaledWithheld.map((line) =>
-      supabase
-        .from("transaction_withheld_lines")
-        .update({ net: line.net, withheld_amount: line.withheld_amount })
-        .eq("id", line.id)
-        .then(({ error }) => ({ error }))
-    );
-  }
-
-  const transactionUpdate: PromiseLike<WriteResult> = supabase
-    .from("transactions")
-    .update({
-      date: input.date,
-      net: netOverride ?? input.net,
-      wallet_id: input.wallet_id,
-      is_reconciled: true,
-      ...(to_wallet_id !== undefined ? { to_wallet_id } : {}),
-      ...(vat_amount !== undefined ? { vat_amount } : {}),
-      ...(withheld_amount !== undefined ? { withheld_amount } : {}),
-    })
-    .eq("id", id)
-    .then(({ error }) => ({ error }));
-
-  const results = await Promise.all([
-    ...lineUpdates,
-    ...withheldLineUpdates,
-    transactionUpdate,
-  ]);
-  const failed = results.find((r) => r.error);
-  if (failed?.error) {
-    throw new Error(failed.error.message);
-  }
-
-  revalidateAffectedPaths();
+    revalidateAffectedPaths();
+  });
 }
 
 export async function setInvoiceMonth(id: string, formData: FormData) {
-  const supabase = await createClient();
-  const { invoice_month } = parseOrThrow(
-    invoiceMonthSchema,
-    formDataToRecord(formData)
-  );
+  return formAction(async () => {
+    const supabase = await createClient();
+    const { invoice_month } = parseOrThrow(
+      invoiceMonthSchema,
+      formDataToRecord(formData)
+    );
 
-  const { error } = await supabase
-    .from("transactions")
-    .update(resolveInvoiceMonthInput(invoice_month))
-    .eq("id", id);
+    const { error } = await supabase
+      .from("transactions")
+      .update(resolveInvoiceMonthInput(invoice_month))
+      .eq("id", id);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidateAffectedPaths();
+    revalidateAffectedPaths();
+  });
 }
 
 /**
@@ -629,17 +638,19 @@ export async function loadMoreTransactions(
 }
 
 export async function deleteTransaction(id: string) {
-  const supabase = await createClient();
+  return formAction(async () => {
+    const supabase = await createClient();
 
-  // Soft delete only — nothing is ever permanently removed from the app.
-  const { error } = await supabase
-    .from("transactions")
-    .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    // Soft delete only — nothing is ever permanently removed from the app.
+    const { error } = await supabase
+      .from("transactions")
+      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+      .eq("id", id);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidateAffectedPaths();
+    revalidateAffectedPaths();
+  });
 }

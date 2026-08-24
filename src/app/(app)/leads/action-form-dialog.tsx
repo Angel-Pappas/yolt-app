@@ -26,7 +26,7 @@ type ActionFormDialogProps = {
    * default for the edit dialog, which should keep the action's own values.
    */
   resetKey?: number;
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
 };
 

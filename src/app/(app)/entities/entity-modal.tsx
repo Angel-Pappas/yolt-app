@@ -14,7 +14,7 @@ type EntityModalProps = {
     name: string;
     vat_number: string | null;
   };
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone?: () => void;
 };
 

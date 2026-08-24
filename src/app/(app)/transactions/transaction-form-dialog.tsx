@@ -119,7 +119,7 @@ type TransactionFormDialogProps = {
   vatRates: VatRate[];
   withheldRates: WithheldTaxRate[];
   defaultValues?: TransactionSeed;
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
   /** Present only for the Add-transaction flow — swaps the single Save button for Cancel / Add + New / Add + Same / Add. See transaction-modal.tsx. */
   addVariants?: AddVariantHandlers;
@@ -323,7 +323,13 @@ export function TransactionFormDialog({
     startTransition(async () => {
       try {
         setError(null);
-        await action(formData);
+        // Actions return { error } rather than throwing (Next.js sanitizes
+        // thrown Server Action errors in production — see lib/action-result.ts).
+        const result = await action(formData);
+        if (result && result.error) {
+          setError(result.error);
+          return;
+        }
         onSuccess();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");

@@ -31,7 +31,13 @@ export function LeadEditForm({
     setSaved(false);
     startTransition(async () => {
       try {
-        await updateLead(lead.id, formData);
+        // updateLead returns { error } rather than throwing (Next.js sanitizes
+        // thrown Server Action errors in production — see lib/action-result.ts).
+        const result = await updateLead(lead.id, formData);
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
         setSaved(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");

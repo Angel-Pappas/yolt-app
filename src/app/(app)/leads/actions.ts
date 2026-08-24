@@ -4,55 +4,56 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { formDataToRecord } from "@/lib/form-data";
 import { parseOrThrow } from "@/lib/validation";
+import { formAction } from "@/lib/action-result";
 import { getProfile, type UserProfile } from "@/lib/user";
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import { leadSchema, leadContactSchema, leadActionSchema } from "./schema";
 
 // ---- leads -----------------------------------------------------------------
 
-/** Creates a lead and returns its id (the caller navigates to its edit page). */
-export async function addLead(formData: FormData): Promise<string> {
-  const supabase = await createClient();
-  const fields = parseOrThrow(leadSchema, formDataToRecord(formData));
+export async function addLead(formData: FormData) {
+  return formAction(async () => {
+    const supabase = await createClient();
+    const fields = parseOrThrow(leadSchema, formDataToRecord(formData));
 
-  const { data, error } = await supabase
-    .from("leads")
-    .insert(fields)
-    .select("id")
-    .single();
-  if (error) {
-    throw new Error(error.message);
-  }
+    const { error } = await supabase.from("leads").insert(fields);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath("/leads");
-  return data.id;
+    revalidatePath("/leads");
+  });
 }
 
 export async function updateLead(id: string, formData: FormData) {
-  const supabase = await createClient();
-  const fields = parseOrThrow(leadSchema, formDataToRecord(formData));
+  return formAction(async () => {
+    const supabase = await createClient();
+    const fields = parseOrThrow(leadSchema, formDataToRecord(formData));
 
-  const { error } = await supabase.from("leads").update(fields).eq("id", id);
-  if (error) {
-    throw new Error(error.message);
-  }
+    const { error } = await supabase.from("leads").update(fields).eq("id", id);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath("/leads");
-  revalidatePath(`/leads/${id}`);
+    revalidatePath("/leads");
+    revalidatePath(`/leads/${id}`);
+  });
 }
 
 export async function deleteLead(id: string) {
-  const supabase = await createClient();
+  return formAction(async () => {
+    const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("leads")
-    .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) {
-    throw new Error(error.message);
-  }
+    const { error } = await supabase
+      .from("leads")
+      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath("/leads");
+    revalidatePath("/leads");
+  });
 }
 
 /** Update just the next step — used by the inline edit on the leads list. */
@@ -126,26 +127,28 @@ async function requireCrmProfile(
 }
 
 export async function addLeadAction(leadId: string, formData: FormData) {
-  const supabase = await createClient();
-  const profile = await requireCrmProfile(supabase);
-  const { body, action_date, user_id } = parseOrThrow(
-    leadActionSchema,
-    formDataToRecord(formData)
-  );
-  const actor = await resolveActor(supabase, profile, user_id);
+  return formAction(async () => {
+    const supabase = await createClient();
+    const profile = await requireCrmProfile(supabase);
+    const { body, action_date, user_id } = parseOrThrow(
+      leadActionSchema,
+      formDataToRecord(formData)
+    );
+    const actor = await resolveActor(supabase, profile, user_id);
 
-  const { error } = await supabase.from("lead_actions").insert({
-    lead_id: leadId,
-    body,
-    action_date,
-    user_id: actor.userId,
-    author_name: actor.name,
+    const { error } = await supabase.from("lead_actions").insert({
+      lead_id: leadId,
+      body,
+      action_date,
+      user_id: actor.userId,
+      author_name: actor.name,
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath(`/leads/${leadId}`);
   });
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath(`/leads/${leadId}`);
 }
 
 export async function updateLeadAction(
@@ -153,67 +156,73 @@ export async function updateLeadAction(
   leadId: string,
   formData: FormData
 ) {
-  const supabase = await createClient();
-  const profile = await requireCrmProfile(supabase);
-  const { body, action_date, user_id } = parseOrThrow(
-    leadActionSchema,
-    formDataToRecord(formData)
-  );
+  return formAction(async () => {
+    const supabase = await createClient();
+    const profile = await requireCrmProfile(supabase);
+    const { body, action_date, user_id } = parseOrThrow(
+      leadActionSchema,
+      formDataToRecord(formData)
+    );
 
-  const update: {
-    body: string;
-    action_date: string;
-    user_id?: string;
-    author_name?: string | null;
-  } = {
-    body,
-    action_date,
-  };
-  // Only admins can reassign the actor.
-  if (profile.isAdmin && user_id) {
-    const actor = await resolveActor(supabase, profile, user_id);
-    update.user_id = actor.userId;
-    update.author_name = actor.name;
-  }
+    const update: {
+      body: string;
+      action_date: string;
+      user_id?: string;
+      author_name?: string | null;
+    } = {
+      body,
+      action_date,
+    };
+    // Only admins can reassign the actor.
+    if (profile.isAdmin && user_id) {
+      const actor = await resolveActor(supabase, profile, user_id);
+      update.user_id = actor.userId;
+      update.author_name = actor.name;
+    }
 
-  const { error } = await supabase
-    .from("lead_actions")
-    .update(update)
-    .eq("id", id);
-  if (error) {
-    throw new Error(error.message);
-  }
+    const { error } = await supabase
+      .from("lead_actions")
+      .update(update)
+      .eq("id", id);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath(`/leads/${leadId}`);
+    revalidatePath(`/leads/${leadId}`);
+  });
 }
 
 export async function deleteLeadAction(id: string, leadId: string) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("lead_actions")
-    .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) {
-    throw new Error(error.message);
-  }
+  return formAction(async () => {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("lead_actions")
+      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath(`/leads/${leadId}`);
+    revalidatePath(`/leads/${leadId}`);
+  });
 }
 
 // ---- contacts (the Contacts sub-tab) ---------------------------------------
 
 export async function addLeadContact(leadId: string, formData: FormData) {
-  const supabase = await createClient();
-  const fields = parseOrThrow(leadContactSchema, formDataToRecord(formData));
+  return formAction(async () => {
+    const supabase = await createClient();
+    const fields = parseOrThrow(leadContactSchema, formDataToRecord(formData));
 
-  const { error } = await supabase
-    .from("lead_contacts")
-    .insert({ lead_id: leadId, ...fields });
-  if (error) {
-    throw new Error(error.message);
-  }
+    const { error } = await supabase
+      .from("lead_contacts")
+      .insert({ lead_id: leadId, ...fields });
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath(`/leads/${leadId}`);
+    revalidatePath(`/leads/${leadId}`);
+  });
 }
 
 export async function updateLeadContact(
@@ -221,29 +230,33 @@ export async function updateLeadContact(
   leadId: string,
   formData: FormData
 ) {
-  const supabase = await createClient();
-  const fields = parseOrThrow(leadContactSchema, formDataToRecord(formData));
+  return formAction(async () => {
+    const supabase = await createClient();
+    const fields = parseOrThrow(leadContactSchema, formDataToRecord(formData));
 
-  const { error } = await supabase
-    .from("lead_contacts")
-    .update(fields)
-    .eq("id", id);
-  if (error) {
-    throw new Error(error.message);
-  }
+    const { error } = await supabase
+      .from("lead_contacts")
+      .update(fields)
+      .eq("id", id);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath(`/leads/${leadId}`);
+    revalidatePath(`/leads/${leadId}`);
+  });
 }
 
 export async function deleteLeadContact(id: string, leadId: string) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("lead_contacts")
-    .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) {
-    throw new Error(error.message);
-  }
+  return formAction(async () => {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("lead_contacts")
+      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      throw new Error(error.message);
+    }
 
-  revalidatePath(`/leads/${leadId}`);
+    revalidatePath(`/leads/${leadId}`);
+  });
 }

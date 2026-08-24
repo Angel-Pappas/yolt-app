@@ -36,7 +36,8 @@ export function LeadAddModal({
   }
 
   async function handleAdd(formData: FormData) {
-    await addLead(formData);
+    // Returned (not thrown) so ModalShell can show a real error message.
+    return addLead(formData);
   }
 
   return (

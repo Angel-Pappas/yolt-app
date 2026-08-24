@@ -9,7 +9,7 @@ type LeadOriginFormDialogProps = {
   title: string;
   submitLabel: string;
   defaultValues?: { name: string };
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
 };
 

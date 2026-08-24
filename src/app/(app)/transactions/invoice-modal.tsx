@@ -13,7 +13,7 @@ export function InvoiceModal({
 }: {
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   transaction: Transaction;
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
 }) {
   const uid = useId();

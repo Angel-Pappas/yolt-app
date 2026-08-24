@@ -14,7 +14,7 @@ type WalletModalProps = {
     name: string;
     starting_balance: string;
   };
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<void | { error?: string | null }>;
 };
 
 export function WalletModal({
