@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { formatPhone } from "@/lib/format";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { ChevronIcon } from "@/components/icons";
@@ -40,7 +40,6 @@ export function LeadRow({
   currentUserId: string;
   statusOptions: StatusOption[];
 }) {
-  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
 
   const hasDescription = Boolean(lead.description && lead.description.trim());
@@ -53,9 +52,18 @@ export function LeadRow({
 
   return (
     <>
+      {/*
+        Stretched-link pattern: the row is `relative`, and the lead name is a
+        real <Link> whose `::after` pseudo-element is absolutely stretched over
+        the whole row (`after:inset-0`). Because it's a genuine <a href>, the
+        browser gives middle-click, Ctrl/Cmd+click, and the right-click "Open in
+        new tab" menu for free — none of which a JS onClick could provide. The
+        interactive cells (Next step, Status, actions) are lifted above the
+        overlay with `relative z-10` so they stay clickable; clicking any other
+        part of the row falls through to the stretched link and opens the lead.
+      */}
       <tr
-        onClick={() => router.push(`/leads/${lead.id}`)}
-        className={`group cursor-pointer border-edge transition-colors hover:bg-canvas ${stripe} ${
+        className={`group relative border-edge transition-colors hover:bg-canvas ${stripe} ${
           expanded ? "" : "border-b"
         }`}
       >
@@ -66,7 +74,12 @@ export function LeadRow({
           {lead.origin_name ? <Pill label={lead.origin_name} /> : <span className="text-ink-faint">—</span>}
         </td>
         <td className="px-4 py-3 align-middle text-sm font-medium text-ink">
-          {lead.name}
+          <Link
+            href={`/leads/${lead.id}`}
+            className="rounded-sm outline-none after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            {lead.name}
+          </Link>
         </td>
         <td className="px-4 py-3 align-middle text-sm text-ink-muted">
           {lead.contact_email ?? "—"}
@@ -75,21 +88,22 @@ export function LeadRow({
           {lead.contact_phone ? formatPhone(lead.contact_phone) : "—"}
         </td>
         <td className="px-4 py-3 align-middle text-sm text-ink-muted">
-          <EditableNextStep leadId={lead.id} value={lead.next_step} />
+          <div className="relative z-10">
+            <EditableNextStep leadId={lead.id} value={lead.next_step} />
+          </div>
         </td>
-        <td
-          className="px-4 py-3 align-middle text-sm"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <EditableStatus
-            leadId={lead.id}
-            statusId={lead.status_id}
-            statusName={lead.status_name}
-            options={statusOptions}
-          />
+        <td className="px-4 py-3 align-middle text-sm">
+          <div className="relative z-10 inline-block">
+            <EditableStatus
+              leadId={lead.id}
+              statusId={lead.status_id}
+              statusName={lead.status_name}
+              options={statusOptions}
+            />
+          </div>
         </td>
-        <td className="px-4 py-3 text-right align-middle" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-end">
+        <td className="px-4 py-3 text-right align-middle">
+          <div className="relative z-10 flex items-center justify-end">
             {hasDescription && (
               <button
                 type="button"
