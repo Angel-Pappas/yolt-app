@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { escapeLikePattern } from "@/lib/supabase/like";
 
 export type VatRate = {
   id: string;
@@ -36,10 +37,6 @@ export type VatRateListParams = {
 };
 
 /** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[%_]/g, (match) => `\\${match}`);
-}
-
 export type VatRateListResult = {
   vatRates: VatRate[];
   totalCount: number;

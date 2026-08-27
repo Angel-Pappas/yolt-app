@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { escapeLikePattern } from "@/lib/supabase/like";
 
 export type Entity = {
   id: string;
@@ -40,10 +41,6 @@ export type EntityListResult = {
 };
 
 /** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[%_]/g, (match) => `\\${match}`);
-}
-
 /**
  * The Entities page's own list view: search + sort at the database level,
  * part of the shared table template (see src/components/table/). Kept

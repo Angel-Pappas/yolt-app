@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { escapeLikePattern } from "@/lib/supabase/like";
 
 export type LeadOrigin = {
   id: string;
@@ -32,10 +33,6 @@ export type LeadOriginListResult = {
   origins: LeadOrigin[];
   totalCount: number;
 };
-
-function escapeLikePattern(value: string): string {
-  return value.replace(/[%_]/g, (match) => `\\${match}`);
-}
 
 export async function getLeadOriginsList(
   supabase: TypedSupabaseClient,

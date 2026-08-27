@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { escapeLikePattern } from "@/lib/supabase/like";
 
 export type Wallet = {
   id: string;
@@ -74,10 +75,6 @@ export type WalletListResult = {
 };
 
 /** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[%_]/g, (match) => `\\${match}`);
-}
-
 /**
  * The Wallets page's own list view: search + sort + pagination, part of
  * the shared table template (src/components/table/). Unlike Entities/VAT

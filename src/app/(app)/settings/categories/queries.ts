@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { escapeLikePattern } from "@/lib/supabase/like";
 
 export type CategoryType = "income" | "expense";
 
@@ -43,10 +44,6 @@ export type CategoryListResult = {
 };
 
 /** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[%_]/g, (match) => `\\${match}`);
-}
-
 /**
  * The Categories page's own list view: search + type filter + sort, all at
  * the database level, same shape as every other list page (part of the

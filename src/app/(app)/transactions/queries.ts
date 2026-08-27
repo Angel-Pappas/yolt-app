@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { escapeLikePattern } from "@/lib/supabase/like";
 import { computeTotal } from "@/lib/format";
 
 export type TransactionType = "income" | "expense" | "transfer";
@@ -156,10 +157,6 @@ export type TransactionListResult = {
 };
 
 /** Escapes ILIKE's wildcard characters so a literal "%" or "_" in a search term isn't treated as a pattern. */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[%_]/g, (match) => `\\${match}`);
-}
-
 /** Row shape of the transactions_expanded view (see migration create_transactions_expanded_view_and_indexes). */
 type TransactionsExpandedRow = {
   id: string;

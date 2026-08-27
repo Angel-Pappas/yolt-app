@@ -5,8 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formDataToRecord } from "@/lib/form-data";
 import { parseOrThrow } from "@/lib/validation";
 import { formAction } from "@/lib/action-result";
-import { getProfile, type UserProfile } from "@/lib/user";
-import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { requireCrmProfile, resolveActor } from "@/lib/crm";
 import { leadSchema, leadContactSchema, leadActionSchema } from "./schema";
 
 // ---- leads -----------------------------------------------------------------
@@ -90,41 +89,6 @@ export async function updateLeadStatus(leadId: string, statusId: string | null) 
 }
 
 // ---- actions (the History sub-tab) -----------------------------------------
-
-/**
- * Resolve who an action is attributed to. A non-admin can only ever be
- * themselves; an admin may attribute it to any user. The actor's display name is
- * denormalized onto the row (author_name) so colleagues can see it without
- * reading another user's profile.
- */
-async function resolveActor(
-  supabase: TypedSupabaseClient,
-  profile: UserProfile,
-  submittedUserId: string | null
-): Promise<{ userId: string; name: string | null }> {
-  if (!profile.isAdmin || !submittedUserId || submittedUserId === profile.id) {
-    return { userId: profile.id, name: profile.name || profile.email || null };
-  }
-  const { data } = await supabase
-    .from("profiles")
-    .select("full_name, email")
-    .eq("id", submittedUserId)
-    .maybeSingle();
-  return {
-    userId: submittedUserId,
-    name: data?.full_name || data?.email || null,
-  };
-}
-
-async function requireCrmProfile(
-  supabase: TypedSupabaseClient
-): Promise<UserProfile> {
-  const profile = await getProfile(supabase);
-  if (!profile || !profile.canAccessCrm) {
-    throw new Error("You don't have access to the CRM");
-  }
-  return profile;
-}
 
 export async function addLeadAction(leadId: string, formData: FormData) {
   return formAction(async () => {

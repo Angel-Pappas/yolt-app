@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
+import { escapeLikePattern } from "@/lib/supabase/like";
 
 export type LeadStatus = {
   id: string;
@@ -40,10 +41,6 @@ export type LeadStatusListResult = {
 };
 
 /** Escapes ILIKE wildcards so a literal "%"/"_" isn't treated as a pattern. */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[%_]/g, (match) => `\\${match}`);
-}
-
 /** The Lead statuses settings page's own list view (search + sort, DB-level). */
 export async function getLeadStatusesList(
   supabase: TypedSupabaseClient,
