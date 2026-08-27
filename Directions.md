@@ -4,7 +4,7 @@ This file is a set of directions that you are to follow all the time and never s
 
 Direction 1: Always read all directions below and never skip reading or applying any of these.
 
-Direction 2: Always commit and push to main when you are done with your work.
+Direction 2: Always commit and push to main when you are done with your work. "Done" means the change is actually live for the user: written → committed → **on `main`** → deployed (Vercel auto-deploys on push to `main`). This holds even when a session is started on a feature branch (e.g. a `claude/...` branch the harness pins): carry the work through to `main` yourself — merge the feature branch into `main` and push it — rather than stopping at the branch and asking the user to merge. The user does not know how to commit/push/merge/PR and has explicitly delegated all of that; never leave a finished change sitting on a branch or hand the user a git step to perform. Do NOT open a pull request for this — merge to `main` directly. (If a push is genuinely blocked, e.g. missing GitHub write access, say so plainly and what unblocks it — that's the only acceptable reason to stop short of `main`.)
 
 Direction 3: Don't visually check, make sure the code does not have any errors but let the visual check to user. Do NOT keep restating this in replies — the user knows the visual check is his and will do it regardless. Just make the change and report that the code checks pass; never tack on "I can't eyeball this / this lands on you to verify" style caveats.
 
