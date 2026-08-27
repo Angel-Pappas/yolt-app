@@ -1,33 +1,52 @@
 import { thClass, tableHeadRowClass } from "@/components/table/table-styles";
 import { AddActionModal } from "./add-action-modal";
 import { ActionRow } from "./action-row";
-import type { LeadAction, UserOption } from "../queries";
+import type {
+  ActionRecord,
+  UserOption,
+  AddActionFn,
+  UpdateActionFn,
+  DeleteActionFn,
+} from "./types";
 
 /**
- * The History sub-tab: a table of actions (newest first), plus Add. Server
- * component — the interactive bits (rows, add modal) are client children.
+ * The History sub-tab: a table of actions (newest first) plus Add, shared by the
+ * Leads and Projects features. This is a server component — the interactive bits
+ * (rows, add modal) are client children — so the feature's Server Actions are
+ * passed straight through as props (add/update/delete), the supported way to
+ * hand a Server Action to a client child.
  */
 export function ActionsPanel({
-  leadId,
+  parentId,
   actions,
   users,
   isAdmin,
   currentUserId,
+  placeholder,
+  addAction,
+  updateAction,
+  deleteAction,
 }: {
-  leadId: string;
-  actions: LeadAction[];
+  parentId: string;
+  actions: ActionRecord[];
   users: UserOption[];
   isAdmin: boolean;
   currentUserId: string;
+  placeholder?: string;
+  addAction: AddActionFn;
+  updateAction: UpdateActionFn;
+  deleteAction: DeleteActionFn;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end">
         <AddActionModal
-          leadId={leadId}
+          parentId={parentId}
           users={users}
           isAdmin={isAdmin}
           currentUserId={currentUserId}
+          placeholder={placeholder}
+          addAction={addAction}
         />
       </div>
 
@@ -47,10 +66,13 @@ export function ActionsPanel({
                 <ActionRow
                   key={action.id}
                   action={action}
-                  leadId={leadId}
+                  parentId={parentId}
                   users={users}
                   isAdmin={isAdmin}
                   currentUserId={currentUserId}
+                  placeholder={placeholder}
+                  updateAction={updateAction}
+                  deleteAction={deleteAction}
                 />
               ))}
               {actions.length === 0 && (

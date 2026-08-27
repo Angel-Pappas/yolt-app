@@ -9,7 +9,9 @@ import {
   formLabelClass,
 } from "@/components/form-styles";
 import { todayLocalIsoDate } from "@/lib/format";
-import type { UserOption } from "../../leads/queries";
+import type { UserOption } from "./types";
+
+const DEFAULT_PLACEHOLDER = "e.g. Called and they didn't reply — will call again";
 
 type ActionFormDialogProps = {
   dialogRef: React.RefObject<HTMLDialogElement | null>;
@@ -19,7 +21,14 @@ type ActionFormDialogProps = {
   users: UserOption[];
   isAdmin: boolean;
   currentUserId: string;
-  /** Bumped by the Add wrapper on every open so a fresh form resets to blank/today. */
+  /** Example text shown in the empty Action field; feature-specific wording. */
+  placeholder?: string;
+  /**
+   * Bumped by the Add wrappers on every open so a fresh "Add action" resets to
+   * a blank form dated today — the dialog instance is reused across opens, so
+   * without this the previous entry's text/date would linger. Left at its
+   * default for the edit dialog, which should keep the action's own values.
+   */
   resetKey?: number;
   action: (formData: FormData) => Promise<void | { error?: string | null }>;
   onDone: () => void;
@@ -33,17 +42,21 @@ export function ActionFormDialog({
   users,
   isAdmin,
   currentUserId,
+  placeholder = DEFAULT_PLACEHOLDER,
   resetKey = 0,
   action,
   onDone,
 }: ActionFormDialogProps) {
   const uid = useId();
+  // Defaults to today for a new action; editable, and pre-filled on edit.
   const [date, setDate] = useState(
     defaultValues?.action_date ?? todayLocalIsoDate()
   );
 
-  // Reset to today (or the edited action's date) each time resetKey changes.
-  // Adjusted during render, not in an effect (set-state-in-effect rule).
+  // Reset the date to today (or the edited action's date) each time the Add
+  // wrapper bumps resetKey. Adjusted during render, not in an effect, per the
+  // codebase's set-state-in-effect rule. The uncontrolled fields below reset
+  // via key={resetKey}.
   const [lastReset, setLastReset] = useState(resetKey);
   if (resetKey !== lastReset) {
     setLastReset(resetKey);
@@ -74,6 +87,8 @@ export function ActionFormDialog({
         />
       </div>
 
+      {/* Only admins can attribute an action to another user; everyone else's
+          actions are always their own (no picker, resolved server-side). */}
       {isAdmin && (
         <div>
           <label htmlFor={`${uid}-user`} className={formLabelClass}>
@@ -107,7 +122,7 @@ export function ActionFormDialog({
           required
           autoFocus
           defaultValue={defaultValues?.body ?? ""}
-          placeholder="e.g. Sent the offer, waiting on their feedback"
+          placeholder={placeholder}
           className={formInputClass}
         />
       </div>

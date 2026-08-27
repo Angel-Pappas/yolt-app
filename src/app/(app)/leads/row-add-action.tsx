@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useDialog } from "@/components/dialog/use-dialog";
 import { PlusIcon } from "@/components/icons";
-import { ActionFormDialog } from "./action-form-dialog";
+import { ActionFormDialog } from "@/components/action-log/action-form-dialog";
 import { addLeadAction } from "./actions";
 import type { UserOption } from "./queries";
 

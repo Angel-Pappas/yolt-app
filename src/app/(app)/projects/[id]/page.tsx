@@ -6,7 +6,12 @@ import { getProject, getProjectActions } from "../queries";
 import { getActiveProjectStatuses } from "../../settings/project-statuses/queries";
 import { getUsersForPicker } from "../../leads/queries";
 import { ProjectEditForm } from "./project-edit-form";
-import { ActionsPanel } from "./actions-panel";
+import { ActionsPanel } from "@/components/action-log/actions-panel";
+import {
+  addProjectAction,
+  updateProjectAction,
+  deleteProjectAction,
+} from "../actions";
 
 export default async function ProjectEditPage({
   params,
@@ -59,11 +64,15 @@ export default async function ProjectEditPage({
       <section className="flex flex-col gap-4">
         <h2 className="font-display text-xl font-semibold text-ink">History</h2>
         <ActionsPanel
-          projectId={id}
+          parentId={id}
           actions={actions}
           users={users}
           isAdmin={profile.isAdmin}
           currentUserId={profile.id}
+          placeholder="e.g. Sent the offer, waiting on their feedback"
+          addAction={addProjectAction}
+          updateAction={updateProjectAction}
+          deleteAction={deleteProjectAction}
         />
       </section>
     </div>

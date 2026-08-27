@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { formatAmount } from "@/lib/format";
 import { DeleteButton } from "@/components/dialog/delete-button";
-import { deleteProject } from "./actions";
-import { EditableNextStep } from "./editable-next-step";
-import { EditableStatus } from "./editable-status";
+import { deleteProject, updateProjectNextStep, updateProjectStatus } from "./actions";
+import { EditableNextStep } from "@/components/inline-edit/editable-next-step";
+import { EditableStatus } from "@/components/inline-edit/editable-status";
 import type { ProjectListItem } from "./queries";
 
 type StatusOption = { value: string; label: string };
@@ -44,10 +44,10 @@ export function ProjectRow({
       <td className="px-4 py-3 align-middle text-sm">
         <div className="relative z-10 inline-block">
           <EditableStatus
-            projectId={project.id}
             statusId={project.status_id}
             statusName={project.status_name}
             options={statusOptions}
+            onSave={(id) => updateProjectStatus(project.id, id)}
           />
         </div>
       </td>
@@ -60,7 +60,10 @@ export function ProjectRow({
       </td>
       <td className="px-4 py-3 align-middle text-sm text-ink-muted">
         <div className="relative z-10">
-          <EditableNextStep projectId={project.id} value={project.next_step} />
+          <EditableNextStep
+            value={project.next_step}
+            onSave={(text) => updateProjectNextStep(project.id, text)}
+          />
         </div>
       </td>
       <td className="px-4 py-3 text-right align-middle">

@@ -11,8 +11,9 @@ import {
 import { getActiveLeadOrigins } from "../../settings/lead-origins/queries";
 import { getActiveLeadStatuses } from "../../settings/lead-statuses/queries";
 import { getProjectForLead } from "../../projects/queries";
+import { ActionsPanel } from "@/components/action-log/actions-panel";
+import { addLeadAction, updateLeadAction, deleteLeadAction } from "../actions";
 import { LeadEditForm } from "./lead-edit-form";
-import { ActionsPanel } from "./actions-panel";
 import { ContactsPanel } from "./contacts-panel";
 import { ConvertToProject } from "./convert-to-project";
 
@@ -73,11 +74,14 @@ export default async function LeadEditPage({
             label: "History",
             content: (
               <ActionsPanel
-                leadId={id}
+                parentId={id}
                 actions={actions}
                 users={users}
                 isAdmin={profile.isAdmin}
                 currentUserId={profile.id}
+                addAction={addLeadAction}
+                updateAction={updateLeadAction}
+                deleteAction={deleteLeadAction}
               />
             ),
           },

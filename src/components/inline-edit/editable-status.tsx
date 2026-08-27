@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { updateProjectStatus } from "./actions";
 
 type Option = { value: string; label: string };
 
@@ -14,24 +13,30 @@ function Pill({ label }: { label: string }) {
 }
 
 /**
- * Inline-editable Status cell on the projects list — click the pill to open a
- * status dropdown and save on selection, without opening the project.
+ * Inline-editable "Status" cell — click the pill to open a status dropdown and
+ * save on selection, without opening the record. Shared by the Leads and
+ * Projects lists; the caller supplies `onSave` (a bound Server Action).
+ * stopPropagation everywhere so a click never triggers the row's
+ * navigate-to-edit behaviour.
  */
 export function EditableStatus({
-  projectId,
   statusId,
   statusName,
   options,
+  onSave,
 }: {
-  projectId: string;
   statusId: string | null;
   statusName: string | null;
   options: Option[];
+  onSave: (statusId: string | null) => Promise<unknown>;
 }) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const selectRef = useRef<HTMLSelectElement>(null);
 
+  // Open the native dropdown immediately when entering edit mode, so it's a
+  // single click. showPicker() needs recent user activation (the pill click
+  // provides it); fall back to focus if the browser refuses.
   useEffect(() => {
     if (!editing) return;
     const el = selectRef.current;
@@ -51,7 +56,7 @@ export function EditableStatus({
     }
     startTransition(async () => {
       try {
-        await updateProjectStatus(projectId, value);
+        await onSave(value);
       } finally {
         setEditing(false);
       }

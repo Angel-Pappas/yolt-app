@@ -4,22 +4,32 @@ import { useDialog } from "@/components/dialog/use-dialog";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { tableRowClass } from "@/components/table/table-styles";
 import { formatDate } from "@/lib/format";
-import { ActionFormDialog } from "../action-form-dialog";
-import { updateLeadAction, deleteLeadAction } from "../actions";
-import type { LeadAction, UserOption } from "../queries";
+import { ActionFormDialog } from "./action-form-dialog";
+import type {
+  ActionRecord,
+  UserOption,
+  UpdateActionFn,
+  DeleteActionFn,
+} from "./types";
 
 export function ActionRow({
   action,
-  leadId,
+  parentId,
   users,
   isAdmin,
   currentUserId,
+  placeholder,
+  updateAction,
+  deleteAction,
 }: {
-  action: LeadAction;
-  leadId: string;
+  action: ActionRecord;
+  parentId: string;
   users: UserOption[];
   isAdmin: boolean;
   currentUserId: string;
+  placeholder?: string;
+  updateAction: UpdateActionFn;
+  deleteAction: DeleteActionFn;
 }) {
   const { dialogRef, open, close } = useDialog();
 
@@ -39,7 +49,7 @@ export function ActionRow({
         onClick={(e) => e.stopPropagation()}
       >
         <DeleteButton
-          action={() => deleteLeadAction(action.id, leadId)}
+          action={() => deleteAction(action.id, parentId)}
           confirmMessage="Delete this action?"
           label="Delete action"
         />
@@ -56,7 +66,8 @@ export function ActionRow({
           users={users}
           isAdmin={isAdmin}
           currentUserId={currentUserId}
-          action={updateLeadAction.bind(null, action.id, leadId)}
+          placeholder={placeholder}
+          action={updateAction.bind(null, action.id, parentId)}
           onDone={close}
         />
       </td>

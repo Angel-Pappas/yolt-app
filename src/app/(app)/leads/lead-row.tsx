@@ -5,9 +5,9 @@ import Link from "next/link";
 import { formatPhone } from "@/lib/format";
 import { DeleteButton } from "@/components/dialog/delete-button";
 import { ChevronIcon } from "@/components/icons";
-import { deleteLead } from "./actions";
-import { EditableNextStep } from "./editable-next-step";
-import { EditableStatus } from "./editable-status";
+import { deleteLead, updateLeadNextStep, updateLeadStatus } from "./actions";
+import { EditableNextStep } from "@/components/inline-edit/editable-next-step";
+import { EditableStatus } from "@/components/inline-edit/editable-status";
 import { RowAddAction } from "./row-add-action";
 import type { LeadListItem, UserOption } from "./queries";
 
@@ -89,16 +89,19 @@ export function LeadRow({
         </td>
         <td className="px-4 py-3 align-middle text-sm text-ink-muted">
           <div className="relative z-10">
-            <EditableNextStep leadId={lead.id} value={lead.next_step} />
+            <EditableNextStep
+              value={lead.next_step}
+              onSave={(text) => updateLeadNextStep(lead.id, text)}
+            />
           </div>
         </td>
         <td className="px-4 py-3 align-middle text-sm">
           <div className="relative z-10 inline-block">
             <EditableStatus
-              leadId={lead.id}
               statusId={lead.status_id}
               statusName={lead.status_name}
               options={statusOptions}
+              onSave={(id) => updateLeadStatus(lead.id, id)}
             />
           </div>
         </td>

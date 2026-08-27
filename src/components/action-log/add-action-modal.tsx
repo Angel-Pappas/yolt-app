@@ -3,20 +3,23 @@
 import { useState } from "react";
 import { useDialog } from "@/components/dialog/use-dialog";
 import { AddButton } from "@/components/table/add-button";
-import { ActionFormDialog } from "../action-form-dialog";
-import { addLeadAction } from "../actions";
-import type { UserOption } from "../queries";
+import { ActionFormDialog } from "./action-form-dialog";
+import type { UserOption, AddActionFn } from "./types";
 
 export function AddActionModal({
-  leadId,
+  parentId,
   users,
   isAdmin,
   currentUserId,
+  placeholder,
+  addAction,
 }: {
-  leadId: string;
+  parentId: string;
   users: UserOption[];
   isAdmin: boolean;
   currentUserId: string;
+  placeholder?: string;
+  addAction: AddActionFn;
 }) {
   const { dialogRef, open, close } = useDialog();
   // Bumped on each open so the reused dialog resets to a blank form dated today.
@@ -37,8 +40,9 @@ export function AddActionModal({
         users={users}
         isAdmin={isAdmin}
         currentUserId={currentUserId}
+        placeholder={placeholder}
         resetKey={resetKey}
-        action={addLeadAction.bind(null, leadId)}
+        action={addAction.bind(null, parentId)}
         onDone={close}
       />
     </>

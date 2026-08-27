@@ -2,19 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { formInputClass } from "@/components/form-styles";
-import { updateProjectNextStep } from "./actions";
 
 /**
- * Inline-editable Next step cell on the projects list — click to edit without
- * opening the project. stopPropagation everywhere so a click never triggers the
- * row's navigate-to-edit behaviour.
+ * Inline-editable "Next step" cell — click to edit in place without opening the
+ * record. Shared by the Leads and Projects lists; the caller supplies `onSave`
+ * (a bound Server Action). stopPropagation everywhere so a click never triggers
+ * the row's navigate-to-edit behaviour.
  */
 export function EditableNextStep({
-  projectId,
   value,
+  onSave,
 }: {
-  projectId: string;
   value: string | null;
+  onSave: (text: string) => Promise<unknown>;
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(value ?? "");
@@ -28,7 +28,7 @@ export function EditableNextStep({
   function save() {
     startTransition(async () => {
       try {
-        await updateProjectNextStep(projectId, text);
+        await onSave(text);
         setEditing(false);
       } catch {
         // Leave the editor open so the typed text isn't lost.
@@ -65,6 +65,7 @@ export function EditableNextStep({
         autoFocus
         onKeyDown={(e) => {
           if (e.key === "Escape") cancel();
+          // Enter saves; Shift+Enter still inserts a newline.
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             save();
