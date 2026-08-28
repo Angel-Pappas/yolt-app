@@ -491,6 +491,16 @@ Two codebases will coexist for the whole build.
   own admin or deactivate self — guarded server-side + disabled in the UI); the
   "Users" nav entry shows for admins only. Colleagues self-register (open
   registration for now); an admin grants access here — no SMTP needed. **58 tests**
-  (5 new); all CI green; deployed. **Next:** the real **Finance build —
-  Transactions** (schema/models, then CRUD), with tests. (Invite-only signup + email
-  invites deferred until SMTP exists — company/later.)
+  (5 new); all CI green; deployed. (Invite-only signup + email invites deferred
+  until SMTP exists — company/later.)
+- **2026-08-28 (finance reference data)** — Built the finance lookup entities:
+  **Wallets** (name + starting balance), **Entities** (name + VAT number),
+  **Categories** (name + income/expense type), **VAT rates** and **Withheld tax
+  rates** (name + rate %) — all CRUD, `can:access-finance`-gated, soft-delete, in the
+  Finance sidebar. Extracted a reusable **`CrudResource`** component (config-driven
+  table + add/edit dialog + delete; text/decimal/select fields) used by
+  Categories/VAT/Withheld. Schema uses **bigint PKs** (existing UUIDs remapped at the
+  cutover conversion — see §5/§7). **93 tests** total; all CI green; deployed.
+  **Next:** the core **Transactions** feature (schema + VAT/withheld line tables,
+  the entry form, VAT/withholding math, filtering, live balances) — the big one,
+  built in slices.
