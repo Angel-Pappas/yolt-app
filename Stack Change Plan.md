@@ -479,5 +479,11 @@ Two codebases will coexist for the whole build.
   **`EnsureAccountIsActive`** guard that logs out deactivated users. Added the new
   repo's **`AGENTS.md`** (its engineering-log/guidance doc). **7 new tests** (46
   total); all CI checks green (Pint / PHPStan / Pest / vp check / tsc); pushed +
-  deployed. **Next:** user management + invites, the two areas (nav, launcher, route
-  gating), then Finance (Transactions).
+  deployed.
+- **2026-08-28 (areas + shell)** — Built the **two areas** and the **access-aware
+  app shell**: route gating (`/transactions` via `can:access-finance`, `/leads` via
+  `can:access-crm`), the sidebar's **Finance/Business nav groups render per access**,
+  a **launcher** (dashboard) with area cards, placeholder area pages, and a
+  **`user:promote {email}`** artisan command to bootstrap the first super admin.
+  **53 tests** (7 new); all CI green; deployed. **Next:** user management + invites
+  (the admin UI to grant access), then Finance (Transactions — the real build).
