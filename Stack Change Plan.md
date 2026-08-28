@@ -485,5 +485,12 @@ Two codebases will coexist for the whole build.
   `can:access-crm`), the sidebar's **Finance/Business nav groups render per access**,
   a **launcher** (dashboard) with area cards, placeholder area pages, and a
   **`user:promote {email}`** artisan command to bootstrap the first super admin.
-  **53 tests** (7 new); all CI green; deployed. **Next:** user management + invites
-  (the admin UI to grant access), then Finance (Transactions — the real build).
+  **53 tests** (7 new); all CI green; deployed.
+- **2026-08-28 (user management)** — Admin **Settings ▸ Users** screen: list all
+  users with inline toggles for Admin / Finance / Business / Active (self can't drop
+  own admin or deactivate self — guarded server-side + disabled in the UI); the
+  "Users" nav entry shows for admins only. Colleagues self-register (open
+  registration for now); an admin grants access here — no SMTP needed. **58 tests**
+  (5 new); all CI green; deployed. **Next:** the real **Finance build —
+  Transactions** (schema/models, then CRUD), with tests. (Invite-only signup + email
+  invites deferred until SMTP exists — company/later.)
