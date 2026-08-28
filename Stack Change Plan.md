@@ -347,9 +347,16 @@ the current app's `Summary.md`.)
   Withheld tax rates, Lead statuses, Lead origins, Project statuses, Users
   (admin/invites). _(These are the app's own settings — distinct from the starter
   kit's built-in profile/password pages, which we adapt.)_
-- **Design system** — token theming, the shared table template, the shared
-  dialog/form template, shared table/inline-edit/action-log components, pills,
-  icons, segmented controls.
+- **Design system — [DECIDED 2026-08-28] adopt the starter kit's design language**,
+  not a reproduction of the old app's visual identity. The owner prefers the clean/
+  minimal starter-kit look. The new app is built **on shadcn/ui** ("new-york" style,
+  **neutral OKLCH tokens**, **Instrument Sans**, **lucide** icons, light+dark built
+  in — verified in the scaffold's `resources/css/app.css` + `components.json`). So
+  **parity is functional (same features/behaviour), NOT a visual pixel-match** of the
+  old app — the look is a deliberate upgrade. The old app's functional visual cues
+  (income/expense colors; the shared table/dialog/inline-edit/action-log patterns)
+  are re-expressed within shadcn components (its Table, Dialog, Sidebar, etc.). Font
+  and accent color are a few token changes if we ever want to re-tint.
 
 ---
 
