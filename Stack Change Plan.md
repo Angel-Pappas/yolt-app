@@ -30,12 +30,10 @@ works well and was just audited clean.
 - Owner's goals, in order: (1) remove the "wrong stack" objection by moving to the
   company's stack; (2) position the app to be incorporated into company infra
   later; (3) **keep control** of the app's expansion and roadmap.
-- **[DECISION NEEDED — business, owner's call] Political gate.** Once the app is on
-  company infrastructure, "control" is partly *organizational*, not technical. A
-  multi-week/‑month rewrite is a large investment; it may be worth **securing a
-  written understanding of roadmap ownership *before* the rewrite**, not after.
-  This is the owner's judgment, but the plan flags it as a real prerequisite risk,
-  not just a footnote.
+- **[DECIDED 2026-08-28] Political gate.** Once the app is on company
+  infrastructure, "control" is partly *organizational*, not technical. **The owner
+  will lock down a roadmap-ownership understanding before the rewrite is handed
+  over.**
 
 ---
 
@@ -206,11 +204,12 @@ write one live DB safely. Corrected plan:
 
 ## 9. Repo, environment & prerequisites (new — these were missing)
 
-- **[DECISION NEEDED — recommended: new repo]** Build the Laravel app in a **new,
-  separate Git repository**, not this one. This repo is wired to Vercel and
-  auto-deploys on push to `main` (Direction 2) — putting a Laravel app here risks
-  breaking the live production deploy. A new repo also gives the new app its own
-  history and its own hosting/CI.
+- **[DECIDED 2026-08-28] Separate new repo.** The Laravel app lives in its own repo,
+  **`Angel-Pappas/yolt-app-new`** (already created, currently empty). Not this repo
+  — this one is wired to Vercel and auto-deploys on push to `main`. **[flag]** the
+  new repo is currently **public**; recommend switching it to **private** before
+  pushing the app (company financial/CRM code). Direction 2 (auto-deploy on push)
+  does **not** apply to the new repo — see hosting (§17).
 - **Local toolchain** to install first: PHP 8.3+, Composer, the `laravel`
   installer, Node.js (already present) for Vite. Confirm each is installed and on
   PATH before scaffolding.
@@ -280,10 +279,10 @@ the current app's behaviour, encoded as tests:
   library: likely `maatwebsite/excel` or `PhpSpreadsheet`; confirm Laravel-13
   compatibility and pick at build time.
 - **Soft-delete** everywhere (no hard delete in the app).
-- **[flag]** Some Greek tax rules the current app implements are documented as
-  "researched, not accountant-confirmed." Parity = matching the current app, which
-  bakes those in. The rewrite is a natural moment to **re-verify the tax rules with
-  an accountant** — recommended, owner's call.
+- **[DECIDED 2026-08-28]** Some Greek tax rules the current app implements are
+  documented as "researched, not accountant-confirmed." **The owner will verify the
+  Greek tax rules** while we rebuild them; parity otherwise means matching the
+  current app.
 
 ---
 
@@ -366,11 +365,22 @@ Two codebases will coexist for the whole build.
 
 ## 17. Hosting / infrastructure (later)
 
-- Move off **Vercel + Supabase** to **Laravel infra** — **[DECISION NEEDED]**:
-  Laravel Forge (+ a VPS), Laravel Cloud, or the company's own infra. Co-locating
-  app + DB removes the current cross-region latency concern.
-- Preserve the **performance work**: the current DB indexes carry over (they're
-  plain Postgres); keep them in the new migrations.
+- **[DECIDED 2026-08-28] Vercel is ruled out** — it is the wrong platform for a PHP
+  Laravel app (serverless/frontend-oriented; running Laravel on it is hacky). We do
+  **not** set up Vercel for the new app.
+- **[DECIDED 2026-08-28] Final production hosting + SMTP are the company's infra
+  team's job, later**, when the app moves onto company infrastructure.
+- **Preview/viewing during development** (interim, until the company hosts it):
+  - **Local preview** — the app runs locally (`php artisan serve` + Vite); Claude
+    previews it and shows the owner as features are built. Zero setup, immediate.
+  - **A shareable URL the owner can open themselves** (the old Vercel habit) — the
+    first-party equivalent is **Laravel Cloud** (deploys from GitHub, handles the
+    build) **[verified 2026-08-28 it exists and deploys from GitHub]**. Connecting a
+    hosting account goes **through the owner** (Claude cannot create/connect hosting
+    or billing) — same division of labor as Vercel today. **[DECISION NEEDED —
+    later]**: set up a Laravel Cloud preview, or wait for the company host.
+- Preserve the **performance work**: the current DB indexes carry over (plain
+  Postgres); keep them in the new migrations.
 - Planned future features (recurring transactions, notifications) fit Laravel's
   **queues + scheduler** better than Vercel Cron.
 
@@ -393,19 +403,22 @@ Two codebases will coexist for the whole build.
 
 ## 19. Open decisions (consolidated)
 
-Everything marked **[DECISION NEEDED]** above, in one place:
+**Resolved 2026-08-28:**
+1. **Political gate** — ✅ owner will lock down roadmap ownership before handover. (§1)
+2. **Repo** — ✅ new separate repo `Angel-Pappas/yolt-app-new` (exists, empty).
+   Pending: flip it **public → private**. (§9)
+3. **Auth** — ✅ Fortify (skip WorkOS). (§2)
+4. **Views** — ✅ replace `transactions_expanded`/`wallet_balances` with Eloquent. (§5)
+5. **Feature-freeze** the old app during the build — ✅ yes. (§16)
+6. **Vercel** — ✅ ruled out (wrong platform for Laravel). (§17)
+7. **Final hosting + SMTP** — ✅ deferred to the company's infra team, later. (§9, §17)
+8. **Accountant re-verification** of the Greek tax rules — ✅ owner will verify. (§12)
 
-1. **Political gate** — secure roadmap-ownership understanding before investing in
-   the rewrite? (§1)
-2. **Repo** — new separate repo (recommended) vs this one. (§9)
-3. **Auth** — confirm Fortify (recommended) vs WorkOS. (§2)
-4. **Views** — replace `transactions_expanded`/`wallet_balances` with Eloquent
-   (recommended) vs keep as DB views. (§5)
-5. **RLS defense-in-depth** — keep Postgres RLS too? (default no) (§6)
-6. **Feature-freeze** the old app during the build? (recommended yes) (§16)
-7. **Hosting target** — Forge / Laravel Cloud / company infra. (§17)
-8. **SMTP provider** for mail. (§9)
-9. **Accountant re-verification** of the Greek tax rules? (recommended) (§12)
-10. **Still to confirm at build:** `updated_at` columns per table (§5); Excel
-    library + Laravel 13 compat (§12); Pest vs PHPUnit default (§15); type-safety
-    approach for Inertia page props.
+**Still open:**
+- **Repo visibility** — switch `yolt-app-new` to private (recommended). (§9)
+- **Interim preview** — set up a Laravel Cloud preview URL (owner connects it) vs
+  local preview only, until the company hosts it. (§17)
+- **RLS defense-in-depth** — keep Postgres RLS too? (default no) (§6)
+- **Confirm at build:** `updated_at` columns per table (§5); Excel library +
+  Laravel 13 compat (§12); Pest vs PHPUnit default (§15); type-safety approach for
+  Inertia page props; local PHP 8.3 / Composer / Laravel-installer setup (§9).
