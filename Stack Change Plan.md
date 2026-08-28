@@ -377,8 +377,9 @@ Two codebases will coexist for the whole build.
     first-party equivalent is **Laravel Cloud** (deploys from GitHub, handles the
     build) **[verified 2026-08-28 it exists and deploys from GitHub]**. Connecting a
     hosting account goes **through the owner** (Claude cannot create/connect hosting
-    or billing) — same division of labor as Vercel today. **[DECISION NEEDED —
-    later]**: set up a Laravel Cloud preview, or wait for the company host.
+    or billing) — same division of labor as Vercel today. **[CHOSEN 2026-08-28:
+    Laravel Cloud]** (~$5/mo, bundled Neon-powered Postgres). Owner created the
+    account; connecting the repo is the next step (see §20).
 - Preserve the **performance work**: the current DB indexes carry over (plain
   Postgres); keep them in the new migrations.
 - Planned future features (recurring transactions, notifications) fit Laravel's
@@ -415,10 +416,25 @@ Two codebases will coexist for the whole build.
 8. **Accountant re-verification** of the Greek tax rules — ✅ owner will verify. (§12)
 
 **Still open:**
-- **Repo visibility** — switch `yolt-app-new` to private (recommended). (§9)
-- **Interim preview** — set up a Laravel Cloud preview URL (owner connects it) vs
-  local preview only, until the company hosts it. (§17)
+- **Interim preview host** — ✅ **Laravel Cloud** chosen (owner created the account;
+  connecting the repo is the next step). (§17, §20)
+- **Repo visibility** — `yolt-app-new` is public; Laravel Cloud supports private, so
+  it can be made private if desired (owner's choice — not required). (§9)
 - **RLS defense-in-depth** — keep Postgres RLS too? (default no) (§6)
 - **Confirm at build:** `updated_at` columns per table (§5); Excel library +
-  Laravel 13 compat (§12); Pest vs PHPUnit default (§15); type-safety approach for
-  Inertia page props; local PHP 8.3 / Composer / Laravel-installer setup (§9).
+  Laravel 13 compat (§12); type-safety approach for Inertia page props.
+  (✅ Pest chosen; ✅ toolchain installed — see §20.)
+
+---
+
+## 20. Progress log
+
+- **2026-08-28** — **Toolchain installed** on the dev machine (verified current/
+  proper versions): **PHP 8.4.24** (php.ini configured: openssl, mbstring, curl,
+  fileinfo, pdo_sqlite, sqlite3, pdo_pgsql, pgsql, zip, intl, bcmath),
+  **Composer 2.10.3**, **pnpm 11.24**, **Laravel installer 5.32**. **Scaffolded the
+  app fresh** — **Laravel 13.29 + the official React starter kit** (React 19, TS,
+  Inertia 3, Tailwind 4, shadcn/ui, vite-plus, **Fortify** auth, **Pest**), SQLite
+  for local dev. **Verified:** frontend builds cleanly; **39 Pest tests pass**.
+  **Pushed** to `Angel-Pappas/yolt-app-new` (`main`). **Next:** connect Laravel
+  Cloud to the repo → attach Postgres → deploy.
