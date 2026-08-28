@@ -100,9 +100,23 @@ Explicit owner direction, and the guiding rule:
 
 ## 5. Data & schema strategy
 
-Goal: **keep all business data**, build to the existing shape, and stay as
-idiomatic as that allows. Concrete decisions (these fix the first draft's
-"keep the schema exactly" ⇄ "idiomatic Laravel" contradiction):
+Goal: **keep all business data** and stay as idiomatic as possible.
+
+**[DECIDED 2026-08-28] Target database engine: MySQL 8.4** — the company
+standardizes on MySQL (owner ~90% sure; DB is empty so still reversible — worth a
+final confirm), so we build on **MySQL**, not Postgres. This means the schema is
+**rebuilt for MySQL** and the existing **Postgres (Supabase) data is migrated /
+converted into MySQL** at cutover — not kept in place. That conversion is
+**low-risk for this data**: money is `numeric`→`DECIMAL` (exact both sides, no
+rounding), text preserved via **utf8mb4**, UUIDs → `CHAR(36)`, booleans →
+`TINYINT(1)` (all handled by Laravel); the data is tiny; it's a **validated
+export/import** (not a blind dump) with the **source Postgres kept intact as
+fallback**; and the **parity tests re-verify every number**. See §7. _(Any
+Postgres-only mechanics below — partial indexes, sequences, RLS — get a MySQL
+equivalent or are already being dropped.)_
+
+Concrete schema decisions (these fix the first draft's "keep the schema exactly" ⇄
+"idiomatic Laravel" contradiction):
 
 - **Primary keys — keep the existing UUIDs.** Every table uses UUID PKs and every
   business row's `user_id` references a user UUID. Laravel supports this via the
@@ -168,13 +182,17 @@ The first draft's "parallel-run both apps against the shared data" is **not
 feasible** — two apps with different auth systems and security models cannot both
 write one live DB safely. Corrected plan:
 
-1. **Develop against a *copy*** of the production database (dump + restore into the
-   new app's Postgres). The old app keeps running normally on its own DB.
-2. **Validate** the new app in staging against a recent copy (feature by feature,
-   tests + owner walkthrough).
+1. **Develop against the new MySQL database** (Laravel Cloud). During the build,
+   seed it with representative data; the real Postgres data is converted in at
+   cutover (step 3). The old app keeps running normally on its own Postgres DB.
+2. **Validate** the new app in staging (feature by feature, tests + owner
+   walkthrough).
 3. **One-time cutover** when ready: freeze writes on the old app briefly, take a
-   final dump, run the migration (users merge + drop Supabase auth artifacts),
-   point the new app at it, switch DNS/traffic. **No simultaneous dual-writes.**
+   final export of the Postgres data, **convert it into the new MySQL schema**
+   (validated per-table export/import — e.g. `pgloader` into the clean schema, with
+   row-count + value checks and the parity tests as the safety net), including the
+   users merge (drop the Supabase auth artifacts), point traffic at the new app.
+   **No simultaneous dual-writes.**
 4. **Fallback/rollback:** keep the old app + its DB intact and runnable for an
    agreed window after cutover, so we can switch back if a blocker appears. Define
    that window before cutover.
@@ -414,16 +432,19 @@ Two codebases will coexist for the whole build.
 6. **Vercel** — ✅ ruled out (wrong platform for Laravel). (§17)
 7. **Final hosting + SMTP** — ✅ deferred to the company's infra team, later. (§9, §17)
 8. **Accountant re-verification** of the Greek tax rules — ✅ owner will verify. (§12)
+9. **Database engine** — ✅ **MySQL 8.4** (company standard; ~90% confirmed, DB empty
+   so reversible). Implies a Postgres→MySQL data conversion at cutover. (§5, §7)
+10. **Interim host** — ✅ **Laravel Cloud**: app deployed and **live**, MySQL 8.4 DB
+    attached, **registration/login verified end-to-end**. Push-to-deploy active. (§20)
 
 **Still open:**
-- **Interim preview host** — ✅ **Laravel Cloud** chosen (owner created the account;
-  connecting the repo is the next step). (§17, §20)
+- **Confirm the company's DB standard** (the ~10%) — settles the MySQL choice. (§5)
 - **Repo visibility** — `yolt-app-new` is public; Laravel Cloud supports private, so
   it can be made private if desired (owner's choice — not required). (§9)
-- **RLS defense-in-depth** — keep Postgres RLS too? (default no) (§6)
+- **RLS defense-in-depth** — moot on MySQL (no RLS); authz is app-layer + tests. (§6)
 - **Confirm at build:** `updated_at` columns per table (§5); Excel library +
-  Laravel 13 compat (§12); type-safety approach for Inertia page props.
-  (✅ Pest chosen; ✅ toolchain installed — see §20.)
+  Laravel 13 compat (§12); type-safety for Inertia page props; **align local dev DB
+  to MySQL** (scaffold used SQLite). (✅ Pest chosen; ✅ toolchain installed.)
 
 ---
 
@@ -436,5 +457,12 @@ Two codebases will coexist for the whole build.
   app fresh** — **Laravel 13.29 + the official React starter kit** (React 19, TS,
   Inertia 3, Tailwind 4, shadcn/ui, vite-plus, **Fortify** auth, **Pest**), SQLite
   for local dev. **Verified:** frontend builds cleanly; **39 Pest tests pass**.
-  **Pushed** to `Angel-Pappas/yolt-app-new` (`main`). **Next:** connect Laravel
-  Cloud to the repo → attach Postgres → deploy.
+  **Pushed** to `Angel-Pappas/yolt-app-new` (`main`).
+- **2026-08-28 (later)** — **Deployed to Laravel Cloud.** Owner created the app
+  (`production` env, Frankfurt / `eu-central-1`), attached a **MySQL 8.4** serverless
+  database (Dev config — 512 MiB, sleeps when idle), and deployed. Fixed a CI
+  formatting failure (`vp check --fix`) → GitHub Actions green. **App is live** at
+  `yolt-app-new-production-ximjo9.laravel.cloud`; **registration + login verified
+  end-to-end** (proves MySQL connected + migrations ran). **Push-to-deploy active.**
+  Foundation complete. **Next:** stand up the project's engineering-log doc, then
+  build the auth/permission model → the Finance area — spec-driven, with tests.
