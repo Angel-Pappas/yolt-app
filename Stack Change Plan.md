@@ -501,6 +501,17 @@ Two codebases will coexist for the whole build.
   table + add/edit dialog + delete; text/decimal/select fields) used by
   Categories/VAT/Withheld. Schema uses **bigint PKs** (existing UUIDs remapped at the
   cutover conversion — see §5/§7). **93 tests** total; all CI green; deployed.
-  **Next:** the core **Transactions** feature (schema + VAT/withheld line tables,
-  the entry form, VAT/withholding math, filtering, live balances) — the big one,
   built in slices.
+- **2026-08-28 (transactions — first slices)** — **Data model**: transactions +
+  transaction_vat_lines + transaction_withheld_lines tables + models with
+  relationships (bigint PKs). **List view**: `TransactionController@index` + a table
+  (Type/Date/Wallet/Category/Entity/Description/Net/VAT/Total); shared Greek-style
+  `resources/js/lib/format.ts` (formatAmount 1.234,56; formatDate dd/mm/yyyy).
+  **Entry form (income/expense)**: `store` computes each VAT line's amount from the
+  rate's current % **server-side** (never trusted from the client), sums net/vat,
+  writes the transaction + lines in a DB transaction; a dialog with type/date/
+  invoice-date/entity/category (filtered by type)/wallet/net/VAT-rate/description +
+  a live Net/VAT/Total preview. **104 tests**; all CI green; deployed. **Still to do
+  on Transactions:** transfers, multi VAT lines + Net/Total toggle, withholding
+  lines, edit/delete, reconcile, invoice-month, filtering/sorting, balance view —
+  then Taxes (VAT + withholding ledgers), the Business/CRM area, and the import.
