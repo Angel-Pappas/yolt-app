@@ -471,5 +471,13 @@ Two codebases will coexist for the whole build.
   formatting failure (`vp check --fix`) → GitHub Actions green. **App is live** at
   `yolt-app-new-production-ximjo9.laravel.cloud`; **registration + login verified
   end-to-end** (proves MySQL connected + migrations ran). **Push-to-deploy active.**
-  Foundation complete. **Next:** stand up the project's engineering-log doc, then
-  build the auth/permission model → the Finance area — spec-driven, with tests.
+  Foundation complete.
+- **2026-08-28 (build begins)** — First feature increment: the **access-control
+  model** — four permission flags on `users`
+  (`is_admin`/`can_access_finance`/`can_access_crm`/`is_active`), authorization
+  **gates** (`admin`/`access-finance`/`access-crm`, each requiring active), and an
+  **`EnsureAccountIsActive`** guard that logs out deactivated users. Added the new
+  repo's **`AGENTS.md`** (its engineering-log/guidance doc). **7 new tests** (46
+  total); all CI checks green (Pint / PHPStan / Pest / vp check / tsc); pushed +
+  deployed. **Next:** user management + invites, the two areas (nav, launcher, route
+  gating), then Finance (Transactions).
