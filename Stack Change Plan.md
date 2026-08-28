@@ -1,292 +1,411 @@
 # Stack Change Plan
 
-This is the authoritative planning document for migrating **Yolt-App** from its
-current stack (Next.js + Supabase) to the company's stack (**Laravel + React**).
-It records every decision and detail agreed so far. Keep it current: update it
-whenever a decision changes or a new one is made, and **verify every technical
-fact in it against live/official sources before relying on it** (see the
-working-discipline section — this document is not exempt from that rule).
+Authoritative planning document for migrating **Yolt-App** from its current stack
+(Next.js + Supabase, hosted on Vercel) to the company's stack (**Laravel 13 + the
+official React starter kit**). It records every decision and detail agreed so far.
 
-_Started: 2026-08-28. Status: **planning only** — no build work started yet._
+Keep it current, and **verify every technical fact in it against live/official
+sources before relying on it** — this document is NOT exempt from that rule
+(Direction 6). Each fact below is tagged **[verified 2026-08-28]**,
+**[unverified — confirm at build]**, or **[DECISION NEEDED]**.
+
+_Started: 2026-08-28. Revised: 2026-08-28 after a critical review that found ~20
+gaps in the first draft (broken FKs on user migration, an infeasible
+"parallel-run", schema-vs-Laravel-convention conflicts, missing views, an
+overstated "100% in PHP", unverified claims, and missing prerequisites). This
+revision resolves them. Status: **planning only — no build work started.**_
 
 ---
 
 ## 1. Why we are doing this (the driver)
 
-The reason is **strategic/organizational, not technical dissatisfaction** — the
-current app works well and was just audited clean.
+Strategic/organizational, **not** technical dissatisfaction — the current app
+works well and was just audited clean.
 
-- The app is growing: the new **Business/CRM** part means **other people in the
-  company will start using it** (they use it mostly for information; the owner is
-  the main power-user).
-- The company works in **PHP/Laravel**. The team objects that this app is on a
-  different stack and has floated **building their own app instead**.
-- The owner's goals, in order:
-  1. **Remove the "wrong stack" objection** by moving to the company's stack.
-  2. Position the app to later be **incorporated into the company's
-     infrastructure**.
-  3. **Keep control** over the app's expansion and shaping — the owner intends to
-     remain the person who drives its roadmap.
-- **Caution to plan around:** once the app lives on company infrastructure,
-  "control" becomes partly *organizational*, not just technical. Roadmap
-  ownership should be pinned down **before** handing over infra, not after. Keep
-  the codebase clean, documented, and clearly owned.
+- The app is growing: the **Business/CRM** part means **other people in the
+  company will start using it** (mostly for information; the owner is the main
+  power-user).
+- The company works in **PHP/Laravel**; the team objects to the different stack
+  and has floated building their own app instead.
+- Owner's goals, in order: (1) remove the "wrong stack" objection by moving to the
+  company's stack; (2) position the app to be incorporated into company infra
+  later; (3) **keep control** of the app's expansion and roadmap.
+- **[DECISION NEEDED — business, owner's call] Political gate.** Once the app is on
+  company infrastructure, "control" is partly *organizational*, not technical. A
+  multi-week/‑month rewrite is a large investment; it may be worth **securing a
+  written understanding of roadmap ownership *before* the rewrite**, not after.
+  This is the owner's judgment, but the plan flags it as a real prerequisite risk,
+  not just a footnote.
 
 ---
 
-## 2. Target stack (verified 2026-08-28)
+## 2. Target stack
 
-> Verified via official/live sources on 2026-08-28. Re-verify before scaffolding,
-> since versions move.
+**[verified 2026-08-28]** unless noted. Re-verify at scaffold time — versions move.
 
-- **Laravel 13** — current major release (13.10.0 released 2026-08-17; released
-  ~March 2026). Minimum **PHP 8.3**.
-- **Official React starter kit** — scaffolded with
-  `laravel new <app> --starter-kit=react`.
-  - Stack: **React 19, TypeScript, Inertia 3, Tailwind CSS, shadcn/ui, Vite**.
-  - Ships with auth flows, a dashboard, settings pages, and the shadcn/ui
-    component library already wired under `resources/js/pages/`.
-- **Auth: Laravel's built-in authentication** (from the starter kit), replacing
-  Supabase Auth entirely. The owner explicitly approved replacing the login and
-  the users with Laravel's own.
-- Sources checked: laravel.com/docs/13.x/releases, laravel.com/docs/13.x/starter-kits,
-  github.com/laravel/react-starter-kit, laravel-news.com/laravel-13.
+- **Laravel 13** — current major (13.10.0, 2026-08-17; released ~March 2026).
+  Minimum **PHP 8.3**.
+- **Official React starter kit** — `laravel new <app> --starter-kit=react`.
+  Stack: **React 19, TypeScript, Inertia 3, Tailwind CSS, shadcn/ui, Vite**. Ships
+  auth flows, a dashboard, and profile/password settings pages under
+  `resources/js/pages/`.
+- **Auth backend: Laravel Fortify** (what the starter kit uses for
+  login/registration/password-reset/email-verification). A **WorkOS AuthKit**
+  variant also exists (social login via an external SaaS) — **we will NOT use
+  WorkOS**; it's contrary to the "own it / move onto company infra" goal. Use the
+  default Fortify-based auth. **[DECISION NEEDED — confirm]** but strongly
+  recommended.
+- Sources: laravel.com/docs/13.x/releases, /13.x/starter-kits, /13.x/fortify;
+  github.com/laravel/react-starter-kit.
 
-### Notable version corrections already caught by verifying
-- Latest Laravel is **13**, not 12 (an earlier memory-based claim was wrong).
-- The React starter kit uses **Inertia 3**, not Inertia 2 (also a memory error).
-- These two catches are exactly why the "always verify, never trust memory" rule
-  (below) exists.
+Corrections the first-draft memory got wrong (why Direction 6 exists): latest
+Laravel is **13** (not 12); the kit is on **Inertia 3** (not 2).
 
 ---
 
 ## 3. Architectural model (Inertia)
 
-With the Inertia-based React starter kit:
-
-- **No separate API is built.** A **Laravel controller** queries the database
-  (Eloquent/PHP) and passes data as **props** to a **React page component**,
-  which renders it. Form submissions go to Laravel routes (via Inertia's
-  `useForm`), which run the business logic in PHP and redirect back with fresh
-  data.
-- **React becomes purely the view layer; 100% of data access and business logic
-  lives in PHP.** This is simpler than today, where logic is split across Server
-  Components, Server Actions, and Supabase client calls.
-- Mapping of today's Next.js concepts → Laravel/Inertia:
-  - Server Components (fetch-in-component) → Laravel controllers feeding props.
-  - Server Actions (`"use server"`) → Laravel routes + Inertia forms.
-  - `revalidatePath` → Inertia's automatic prop refresh / redirects.
-  - App Router + route groups + `layout.tsx` → Laravel routes + persistent
-    Inertia layouts.
-  - `proxy.ts` (middleware) → Laravel middleware.
-  - Supabase JS data calls everywhere → Eloquent/DB queries in PHP (the Supabase
-    client disappears from the frontend entirely).
+- **No separate API.** A Laravel controller queries the DB (Eloquent/PHP) and
+  passes data as **props** to a React page component. Form submits go to Laravel
+  routes (Inertia `useForm`), which run the **authoritative** logic in PHP and
+  redirect back with fresh data.
+- **The *authoritative* data access and business logic live in PHP.** (Corrected
+  from the first draft's "100% of logic in PHP" — that was wrong. Necessary
+  **client-side logic stays in React**; see §11.)
+- Concept mapping (today → Laravel/Inertia):
+  - Server Components → controllers feeding props.
+  - Server Actions → Laravel routes + Inertia forms.
+  - `revalidatePath` → Inertia's prop refresh / redirects.
+  - App Router + route groups + `layout.tsx` → Laravel routes + persistent Inertia
+    layouts.
+  - `proxy.ts` middleware → Laravel middleware.
+  - Supabase JS calls → Eloquent/DB in PHP (the Supabase client leaves the
+    frontend entirely).
 
 ---
 
 ## 4. Approach — a full, from-scratch rewrite (NOT a port)
 
-**This is a clean rebuild, written as if the app were being created for itself in
-Laravel from day one.** Explicit owner direction, and the guiding rule for the
-whole project:
+Explicit owner direction, and the guiding rule:
 
-- **The current app is a *reference/specification*, not a source to copy.** We
-  look at it to answer "what should this screen look like / how should this
-  behave," then **build each piece fresh and idiomatic** in Laravel + Inertia +
-  React.
-- **No file ports. No copy-paste.** Nothing Next.js-shaped survives. Every page
-  starts as a Laravel controller + an Inertia page written the Laravel-native
-  way — never old code with the edges filed off.
-- Recreating the **same look** means writing **new Tailwind** that achieves the
-  same appearance (rebuild-to-match, not copy). This is natural because the
-  starter kit is already React 19 + TypeScript + Tailwind — the same family the
-  current app uses.
-- **Guard against the "patch it together" loop:** build each feature the
-  idiomatic way *first*, then compare against the reference for parity — never
-  start from pasted code and patch until it works. (This was a specific concern
-  the owner raised, and it is a real risk to actively avoid.)
+- **The current app is a reference/specification, not a source to copy.** Look at
+  it to learn *what* to build; build each piece fresh and idiomatic in
+  Laravel + Inertia + React.
+- **No file ports, no copy-paste.** Nothing Next.js-shaped survives. Recreating
+  the same look means writing **new Tailwind** to match (natural — the kit is
+  already React 19 + TS + Tailwind).
+- **Guard against the "patch it together" loop:** build each feature idiomatically
+  *first*, then compare to the reference for parity — never start from pasted code
+  and patch until it works.
 
 ---
 
-## 5. Data — keep it all; build to the existing DB; load data last
+## 5. Data & schema strategy
 
-- **All business data stays exactly as it is** — transactions, transaction VAT
-  lines, transaction withheld lines, entities, wallets, VAT rates, withheld-tax
-  rates, categories, leads, lead statuses/origins/contacts/actions, projects,
-  project statuses/actions, profiles, etc. The new app is **built to the existing
-  Postgres schema**.
-- The **only** part that cannot stay as-is is the **auth plumbing**, because it is
-  Supabase-specific: the managed `auth.users` table, the `private.*` RLS helper
-  functions, and the RLS policies. These are **rebuilt the Laravel way**, and the
-  **user accounts are migrated** into Laravel's `users` table (bcrypt password
-  hashes are likely portable; worst case, a one-time password reset for a handful
-  of users). The owner approved this.
-- **Security model shift:** database-enforced **RLS** → Laravel **application-layer
-  authorization** (Policies/Gates + query scopes), backed by tests. (Keeping RLS
-  as optional defense-in-depth is possible but is not the Laravel idiom and is not
-  planned unless we decide otherwise.)
-- **Sequence (owner's ordering):** build the app from the ground up against a
-  **copy** of the real schema → get it looking/working/feeling the same → then, as
-  the **final** step, do the real **data cutover**. We design against the true
-  schema from day one, but the live data comes in last.
+Goal: **keep all business data**, build to the existing shape, and stay as
+idiomatic as that allows. Concrete decisions (these fix the first draft's
+"keep the schema exactly" ⇄ "idiomatic Laravel" contradiction):
 
----
-
-## 6. Build sequence (planned)
-
-1. Scaffold `laravel new <app> --starter-kit=react` (Laravel 13). Re-verify the
-   version at scaffold time.
-2. Stand up the **engineering-log discipline** (the Laravel equivalent of
-   `Summary.md` — verified versions, chosen approaches, source links; kept
-   current).
-3. Connect the app to a **copy of the existing Postgres schema**.
-4. Build **auth + the permission model** first (RLS → Policies/Gates + query
-   scopes; the two-area Finance/Business access flags; admin; invites).
-5. Build the **Finance area first** (Transactions is the core, and the owner is
-   its main user), feature by feature — **each with tests**, each **checked for
-   parity** against the current app.
-6. Then **CRM** (Leads, Projects), then **Settings**, then the **import tool**.
-7. Build to look/work/feel the same; **real data cutover is last**.
-8. **Parallel-run** both apps against the shared data, verify, then cut over.
+- **Primary keys — keep the existing UUIDs.** Every table uses UUID PKs and every
+  business row's `user_id` references a user UUID. Laravel supports this via the
+  **`HasUuids`** trait + `$table->uuid('id')->primary()` **[verified 2026-08-28]**.
+  We reuse the **existing** UUIDs (including user IDs), so **no foreign key breaks**
+  during migration. _(This was the biggest hole in the first draft.)_
+- **Users — merge `auth.users` + `profiles` into one Laravel `users` table**,
+  seeded with the **existing user UUIDs** and carrying the permission fields
+  (`is_admin`, `can_access_finance`, `can_access_crm`, `is_active`, `full_name`,
+  `email`). Passwords copy over: Supabase stores **bcrypt** (`$2a$…`), Laravel
+  verifies bcrypt, so **users keep their passwords, no reset** **[verified
+  2026-08-28]**. After migration the Supabase `auth.*` schema and `profiles` are
+  dropped.
+- **Soft deletes — use Laravel's native `SoftDeletes` keyed on `deleted_at`.** The
+  existing data already sets `deleted_at` on deleted rows and leaves it null on
+  active rows, so Laravel's `deleted_at IS NULL` filter maps onto the current data
+  directly. The redundant `is_deleted` boolean is dropped (or ignored). **[confirm
+  the data invariant holds for every table before relying on it.]**
+- **Timestamps — [unverified — confirm].** The current tables have `created_at`;
+  it's unconfirmed whether they have `updated_at`, which Eloquent writes by
+  default. Plan: add an `updated_at` column where missing (additive, safe) or
+  configure the model. Confirm per table.
+- **The Postgres views** `transactions_expanded` and `wallet_balances` (workarounds
+  for PostgREST's limits) are **replaced by Eloquent**, not carried over —
+  ordering by joined columns is native in Eloquent, and the running/computed
+  balances become PHP or SQL aggregates (as the current balance-view already does
+  in JS). **[DECISION NEEDED — confirm]**: replace-with-Eloquent (recommended) vs
+  keep-as-DB-views.
+- **Everything else stays**: transactions, transaction_vat_lines,
+  transaction_withheld_lines, entities, wallets, vat_rates, withheld_tax_rates,
+  categories, leads, lead_statuses/origins/contacts/actions, projects,
+  project_statuses/actions, plus the sort_order sequences.
 
 ---
 
-## 7. Business logic to re-implement in PHP (each with tests)
+## 6. Security model — RLS → application-layer authorization (its own concern)
 
-Re-implemented from scratch in PHP, verified against the current app's behavior:
+The single **biggest correctness/security risk** of the migration, called out
+explicitly (the first draft gave it two sentences).
 
-- VAT lines — multi-rate, single Net/Total mode for the whole transaction;
-  Total-mode `vat_amount` anchored to `total − net` (avoids the double-rounding
-  bug the current app documents).
-- Withholding-tax lines (parallel to VAT lines; always on net; optional).
-- `computeTotal` = `net + vat_amount − withheld_amount`.
-- **Greek VAT monthly ledger** — chronological walk with **credit rollover**
-  (negative net carries forward) and **installments** (a debit > €100 splits into
-  2 equal interest-free parts, half now / half next month; ≤ €100 paid in full),
-  including gap-month walking. (Installment option always treated as taken.)
-- **Withholding remittance ledger** — collected this month → payable next month,
-  attributed to the **payment date** (not invoice date).
-- **Running wallet balances** — `starting_balance` + each active transaction's
-  signed effect.
-- **Invoice-month 1–13 resolution** (13 = "no invoice needed").
-- **Invoice-date** VAT-period attribution (VAT belongs to the invoiced month).
-- **Excel import** (→ Laravel Excel / PhpSpreadsheet) — the fixed spreadsheet
-  format, the 1–13 "Bacon" column, wallet aliases, auto-creating missing
-  entities/categories/wallets, chunked writes, per-row failure reporting.
-- **Soft-delete** conventions across every table (no hard delete in the app).
-- Greek-style formatting (dd/mm/yyyy dates, `.` thousands / `,` decimal), the
-  locale-independent segmented date field, and comma-or-dot amount inputs.
+- Today, **all** access control is enforced in the database by RLS
+  (`has_finance_access()`, `has_crm_access()`, `is_admin()`, per-row `user_id`
+  gates). Your own docs treat "RLS is the real lock" as sacred.
+- Laravel's idiom moves this **into the application**: middleware for area access
+  (finance/CRM/admin), **Policies/Gates** for per-action authorization, and
+  **global query scopes** so a model can never be queried unscoped by accident.
+- **This is where a bug leaks another user's data**, so the mitigations are
+  first-class:
+  - Enforce access in **one place per concern** (middleware + a base scoped query),
+    not sprinkled per controller.
+  - **Tests that *attempt* forbidden access and assert denial** (a finance-only
+    user hitting CRM; user A editing user B's row; a deactivated user; a non-admin
+    reassigning an action's author). These are required, not optional.
+- **[DECISION NEEDED — default: no]** Optionally keep Postgres RLS as
+  defense-in-depth. It fights Laravel's pooled single-DB-role connection model, so
+  default is app-layer only + tests. Revisit only if we want belt-and-suspenders.
 
 ---
 
-## 8. Feature inventory to reproduce (parity checklist)
+## 7. Migration & cutover mechanism (fixes the "parallel-run" contradiction)
 
-The new app must look, work, and feel the same. High-level surfaces to reach
-parity on (see the current app's `Summary.md` for the full behavioral spec):
+The first draft's "parallel-run both apps against the shared data" is **not
+feasible** — two apps with different auth systems and security models cannot both
+write one live DB safely. Corrected plan:
 
-- **Auth** — login, password reset, email verification, invite flow, set-password;
-  public signup closed.
-- **Multi-user, areas & access control** — profiles/permission flags
-  (admin / finance / CRM / active), the two areas (Finance & Business), the area
-  switcher, the launcher home, route protection, unified Settings.
-- **App shell** — top bar, side nav (area-aware), account menu, notification bell
-  (placeholder).
-- **Finance:**
-  - **Transactions** — full CRUD; types (income/expense/transfer); VAT lines +
-    Net/Total toggle; withholding lines; reconcile; invoice (1–13) state;
-    invoice-date; balance view (per-wallet running balance); filters/sort (URL
-    state, tri-state sort, per-column header filters, multi-select categorical
-    filters); load-as-you-scroll; quick filters; the three Add buttons; the Excel
-    import; default-to-current-month.
-  - **Entities**, **Wallets** (with starting balance & live balances).
-  - **Taxes** — VAT monthly ledger, withholding ledger.
-- **Business (CRM):**
-  - **Leads** — list (inline next-step/status editors, expandable description,
-    stretched-link rows, per-row add-action), edit page (fields, campaign-only
-    fields, main contact), History sub-tab, Contacts sub-tab.
-  - **Projects** — list, detail, History, lead→project conversion, the
-    manual "Project Agreed" vs flagged "Converted" states.
-- **Settings** — Account, Appearance (theme: light/dark/system), Categories, VAT
-  rates, Withheld tax rates, Lead statuses, Lead origins, Project statuses, Users
-  (admin/invites).
-- **Design system** — the token-based theming, the shared **table template**, the
-  shared **dialog/form template**, shared table/inline-edit/action-log components,
-  pills, icons, segmented controls.
-
-_(This is a checklist to build and verify against, one feature at a time — not a
-license to port any of it.)_
+1. **Develop against a *copy*** of the production database (dump + restore into the
+   new app's Postgres). The old app keeps running normally on its own DB.
+2. **Validate** the new app in staging against a recent copy (feature by feature,
+   tests + owner walkthrough).
+3. **One-time cutover** when ready: freeze writes on the old app briefly, take a
+   final dump, run the migration (users merge + drop Supabase auth artifacts),
+   point the new app at it, switch DNS/traffic. **No simultaneous dual-writes.**
+4. **Fallback/rollback:** keep the old app + its DB intact and runnable for an
+   agreed window after cutover, so we can switch back if a blocker appears. Define
+   that window before cutover.
 
 ---
 
-## 9. Testing philosophy (a first-class goal)
+## 8. Build sequence
 
-The owner wants **as many tests as make sense** — tests for every single thing
-where a test is warranted from a developer's perspective and per field best
-practices.
+1. **Set up the local toolchain** (see §9) — PHP 8.3+, Composer, the Laravel
+   installer, Node/Vite. (This machine did not have these; it's a real first step.)
+2. **Scaffold** `laravel new <app> --starter-kit=react` (Laravel 13; re-verify).
+   Decide the **repo** (§9) first.
+3. Stand up the project's own docs (§10) — its `AGENTS.md`/`Summary.md`/`Directions`
+   equivalents; the current ones are Next/Vercel/Supabase-specific and don't carry
+   over verbatim.
+4. Connect to a **copy** of the Postgres schema; write Eloquent models/migrations
+   to match (UUID PKs, SoftDeletes, timestamps per §5).
+5. **Auth + permission model first** — Fortify auth, the merged `users` table,
+   middleware + Policies + global scopes (§6), invites, set-password. With the
+   denial-tests from §6.
+6. **Finance area** (Transactions is the core; owner is main user), feature by
+   feature — **each with tests**, each checked for **parity** (§13).
+7. Then **CRM** (Leads, Projects), then **Settings**, then the **Excel import**.
+8. Build to look/work/feel the same; the **real data cutover is last** (§7).
 
-- **What tests are:** code that automatically checks the app does what it should,
-  run on command in seconds — instead of manual clicking.
-- **Kinds we will use:**
-  - **Unit tests** — one piece of logic in isolation, especially the **tax math**
-    with known-correct expected values (e.g. "€1,000 net @ 24% → €240 VAT, €1,240
-    total"; "a €150 VAT debit → two €75 installments").
-  - **Feature tests** — whole flows, including **authorization** (e.g. "a non-CRM
-    user is blocked from Leads"; "an expense of €124 drops the wallet balance by
-    €124").
-- **Tooling:** Laravel's first-class testing, using **Pest** (the modern idiom).
-  Re-verify the current recommended tooling at build time.
-- **When:** tests are written **alongside** each feature, not after. They are how
-  "identical behavior, no loss of functionality" becomes *provable* rather than
-  hoped-for, and how the owner's ongoing expansion stays safe from regressions.
-- **Standing rule (added to Directions):** after building something, check current
-  best practices and decide whether it warrants a test; if yes, tell the owner and
-  suggest building it.
+---
+
+## 9. Repo, environment & prerequisites (new — these were missing)
+
+- **[DECISION NEEDED — recommended: new repo]** Build the Laravel app in a **new,
+  separate Git repository**, not this one. This repo is wired to Vercel and
+  auto-deploys on push to `main` (Direction 2) — putting a Laravel app here risks
+  breaking the live production deploy. A new repo also gives the new app its own
+  history and its own hosting/CI.
+- **Local toolchain** to install first: PHP 8.3+, Composer, the `laravel`
+  installer, Node.js (already present) for Vite. Confirm each is installed and on
+  PATH before scaffolding.
+- **Mail/SMTP** — invites and password resets need a real mail transport. The
+  current app leaned on Supabase's (rate-limited) built-in email; Laravel needs
+  **SMTP credentials** configured (`.env`). This is a prerequisite, not an
+  afterthought. **[DECISION NEEDED]**: which SMTP provider.
+- **Environment/secrets** — `.env` for DB connection, `APP_KEY`, mail, etc. Not
+  committed. Decide where production secrets live (host's dashboard, as today).
 
 ---
 
 ## 10. Working discipline (verify & document)
 
-- **Always assume memory is wrong and verify.** Never state a version, API, or
-  "the right way to do X" from memory — look it up against official/current
-  sources first. Treat any such claim made without a lookup as a bug.
-- **Document what is verified** — record verified facts, chosen approaches, and
-  source links in the project's engineering log (the Laravel-side equivalent of
-  `Summary.md`), and keep it current.
-- **Consult that documentation first; when it is silent, search online again.**
-- This mirrors the existing `AGENTS.md` instinct ("This is NOT the Next.js you
-  know — read the guide before writing any code").
+- **Always assume memory is wrong and verify** — never state a version/API/"right
+  way" from memory; look it up against official/current sources first. Any such
+  claim made without a lookup is a bug (Direction 6).
+- **Document what's verified** — the new repo gets its own engineering log
+  (name/location TBD in that repo; the equivalent of this app's `Summary.md`) with
+  verified facts, decisions, and source links; keep it current; consult it first,
+  re-search when it's silent.
+- Mirrors the existing `AGENTS.md` instinct ("This is NOT the Next.js you know —
+  read the guide first"). The Laravel project needs the same posture.
 
 ---
 
-## 11. Hosting / infrastructure (later)
+## 11. Client-side logic to rebuild in React (new — corrects the §3 overstatement)
 
-- Move off **Vercel + Supabase** to **Laravel infrastructure** (Laravel Forge /
-  Laravel Cloud / the company's own infra — to be decided). Co-locating the app
-  and the database removes the current cross-region latency concern.
-- Planned future features become easier on Laravel: **recurring transactions** and
-  **notifications** fit Laravel's **queues + scheduler** better than Vercel Cron.
+These are genuinely client-side and do **not** move to PHP. They're rebuilt fresh
+in React and are their own parity targets:
 
----
+- Live **VAT / withholding / Total preview** as the user types (a *duplicate* of
+  the authoritative PHP calc — acceptable, exactly as the current app duplicates it
+  between client preview and server).
+- The locale-independent **segmented dd/mm/yyyy date field** (keyboard behaviour,
+  clamping, ISO emit).
+- **Amount inputs** — comma/dot tolerant sanitization (`,` decimal, `.` thousands).
+- **Inline edits** (Next step / Status), **top-layer filter popovers**,
+  **comboboxes**, **tri-state sort**, **load-as-you-scroll**, the segmented
+  controls, theme switching.
 
-## 12. Effort & risk framing
-
-- This is a **full rewrite**, multi-week, **feature by feature** — not a port and
-  not a weekend job.
-- It is one of the **more tractable** rewrites because:
-  1. The frontend stack **aligns** (React 19 / TypeScript / Tailwind on both
-     sides).
-  2. The current app is a **near-complete functional spec** (`Summary.md`).
-  3. The owner is the **primary user** and can validate parity feature by feature.
-  4. A **parallel-run cutover** avoids any big-bang data risk.
+(Client-side validation is for UX; the **server** re-validates authoritatively.)
 
 ---
 
-## 13. Open items / decisions still to make
+## 12. Business logic to re-implement in PHP (each with tests)
 
-- Exact hosting target (Forge vs Laravel Cloud vs company infra).
-- Whether to adopt shadcn/ui components or rebuild the current design system's
-  components against the same look (leaning: keep the current design system's
-  look, use shadcn selectively — to be decided at build time).
-- Whether to keep RLS as optional defense-in-depth (default: no).
-- Password-hash portability (confirm bcrypt compatibility vs one-time reset).
-- Type safety for Inertia page props (how to carry DB types into the React side).
+Server-side/authoritative only (client-side items live in §11). Verified against
+the current app's behaviour, encoded as tests:
+
+- VAT lines — multi-rate, one Net/Total mode per transaction; Total-mode
+  `vat_amount` anchored to `total − net` (avoids double-rounding).
+- Withholding-tax lines (parallel to VAT lines; always on net; optional).
+- `computeTotal = net + vat_amount − withheld_amount`.
+- **Greek VAT monthly ledger** — chronological walk, credit rollover, installments
+  (debit > €100 → two equal interest-free parts; ≤ €100 paid in full), gap-month
+  walking; installment option always taken.
+- **Withholding remittance ledger** — collected this month → payable next month,
+  by **payment date**.
+- **Running wallet balances** — `starting_balance` + each active transaction's
+  signed effect.
+- Invoice-month **1–13** resolution (13 = "no invoice needed").
+- **Invoice-date** VAT-period attribution.
+- **Excel import** — the fixed spreadsheet format, the 1–13 "Bacon" column, wallet
+  aliases, auto-creating missing entities/categories/wallets, chunked writes,
+  per-row failure reporting, upload-size handling. **[unverified — confirm]** the
+  library: likely `maatwebsite/excel` or `PhpSpreadsheet`; confirm Laravel-13
+  compatibility and pick at build time.
+- **Soft-delete** everywhere (no hard delete in the app).
+- **[flag]** Some Greek tax rules the current app implements are documented as
+  "researched, not accountant-confirmed." Parity = matching the current app, which
+  bakes those in. The rewrite is a natural moment to **re-verify the tax rules with
+  an accountant** — recommended, owner's call.
+
+---
+
+## 13. Definition of "parity" / acceptance (new — was undefined)
+
+"Looks/works/feels the same" needs teeth. A feature is **done** when:
+
+1. Its **tests pass** (unit for logic, feature for flows + authorization denial).
+2. Its **behaviour matches** the current app on a shared checklist of cases
+   (including the documented edge cases — rounding, installments, soft-delete
+   visibility, permission gating).
+3. The **owner signs off** on look/feel from a walkthrough (the subjective part
+   stays a human check, per Direction 3).
+
+Numbers (tax, balances, VAT) are verified by **assertion against known-correct
+values**, not by eyeballing.
+
+---
+
+## 14. Feature inventory to reproduce (parity checklist)
+
+Build and verify one at a time — not a license to port. (Full behavioural spec:
+the current app's `Summary.md`.)
+
+- **Auth** — login, password reset, **invite flow + set-password** (public signup
+  is **closed/invite-only**; there is no self-service email-verification feature to
+  reproduce — corrected from the first draft).
+- **Multi-user, areas & access** — permission flags (admin/finance/CRM/active), the
+  two areas (Finance & Business), area switcher, launcher home, route protection,
+  unified Settings.
+- **App shell** — top bar, area-aware side nav, account menu, notification bell
+  (placeholder).
+- **Finance** — Transactions (CRUD; income/expense/transfer; VAT lines + Net/Total;
+  withholding lines; reconcile; invoice 1–13 state; invoice-date; balance view;
+  URL-state filters/sort, tri-state sort, per-column header filters, multi-select
+  categorical filters; load-as-you-scroll; quick filters; three Add buttons; Excel
+  import; default-to-current-month); Entities; Wallets (starting balance + live
+  balances); Taxes (VAT ledger, withholding ledger).
+- **Business (CRM)** — Leads (list with inline editors, expandable description,
+  stretched-link rows, per-row add-action; edit page with campaign fields + main
+  contact; History + Contacts sub-tabs); Projects (list, detail, History,
+  lead→project conversion, manual "Project Agreed" vs flagged "Converted").
+- **Settings** — Account, Appearance (light/dark/system), Categories, VAT rates,
+  Withheld tax rates, Lead statuses, Lead origins, Project statuses, Users
+  (admin/invites). _(These are the app's own settings — distinct from the starter
+  kit's built-in profile/password pages, which we adapt.)_
+- **Design system** — token theming, the shared table template, the shared
+  dialog/form template, shared table/inline-edit/action-log components, pills,
+  icons, segmented controls.
+
+---
+
+## 15. Testing philosophy (first-class)
+
+Owner wants tests for **everything where a test makes sense** per best practices.
+
+- **Unit tests** — isolated logic, especially **tax math** with known-correct
+  expected values.
+- **Feature tests** — whole flows, including **authorization denial** (§6).
+- **Tooling: Pest** **[unverified — confirm which the Laravel 13 kit defaults to
+  (Pest or PHPUnit); both are fine]**.
+- Written **alongside** each feature. This is how "no loss of functionality"
+  becomes provable and how future expansion stays regression-safe.
+- Standing rule (Direction 7): after building something, assess whether it warrants
+  a test per best practices; if yes, tell the owner and suggest it.
+
+---
+
+## 16. Managing the current live app during the build (new — was missing)
+
+Two codebases will coexist for the whole build.
+
+- **[DECISION NEEDED — recommended: soft feature-freeze]** on the Next app during
+  the rewrite: fix bugs, but **avoid new features**, so the parity target stops
+  moving. If a new feature is genuinely needed mid-build, it's added to the plan
+  and built in both.
+- The old app stays the source of truth until cutover (§7).
+
+---
+
+## 17. Hosting / infrastructure (later)
+
+- Move off **Vercel + Supabase** to **Laravel infra** — **[DECISION NEEDED]**:
+  Laravel Forge (+ a VPS), Laravel Cloud, or the company's own infra. Co-locating
+  app + DB removes the current cross-region latency concern.
+- Preserve the **performance work**: the current DB indexes carry over (they're
+  plain Postgres); keep them in the new migrations.
+- Planned future features (recurring transactions, notifications) fit Laravel's
+  **queues + scheduler** better than Vercel Cron.
+
+---
+
+## 18. Effort & risk
+
+- This is a **full rewrite of a ~19k-line app with full test coverage** — realistic
+  scale is **weeks-to-months**, not "a few weeks." Treat any tighter estimate as
+  optimistic until the first Finance features prove a pace.
+- Lower-risk than a typical rewrite because: the frontend stack **aligns**
+  (React 19/TS/Tailwind); the current app is a **near-complete spec**; the owner is
+  the **primary user** and validates parity; and the **one-time cutover with
+  fallback** (§7) avoids big-bang data risk.
+- Biggest residual risks: the **RLS→app-layer** shift (§6), **user/data migration
+  correctness** (§5, §7), and **scope/parity drift** if the old app keeps changing
+  (§16).
+
+---
+
+## 19. Open decisions (consolidated)
+
+Everything marked **[DECISION NEEDED]** above, in one place:
+
+1. **Political gate** — secure roadmap-ownership understanding before investing in
+   the rewrite? (§1)
+2. **Repo** — new separate repo (recommended) vs this one. (§9)
+3. **Auth** — confirm Fortify (recommended) vs WorkOS. (§2)
+4. **Views** — replace `transactions_expanded`/`wallet_balances` with Eloquent
+   (recommended) vs keep as DB views. (§5)
+5. **RLS defense-in-depth** — keep Postgres RLS too? (default no) (§6)
+6. **Feature-freeze** the old app during the build? (recommended yes) (§16)
+7. **Hosting target** — Forge / Laravel Cloud / company infra. (§17)
+8. **SMTP provider** for mail. (§9)
+9. **Accountant re-verification** of the Greek tax rules? (recommended) (§12)
+10. **Still to confirm at build:** `updated_at` columns per table (§5); Excel
+    library + Laravel 13 compat (§12); Pest vs PHPUnit default (§15); type-safety
+    approach for Inertia page props.
