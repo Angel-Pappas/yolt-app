@@ -609,3 +609,13 @@ Two codebases will coexist for the whole build.
   access gating); all CI green; deployed. **Deferred:** admin actor-picker (attribute
   an action to another user), the Contacts sub-list, inline next-step/status editing,
   campaign fields — then Projects and lead→project conversion.
+- **2026-08-31 (Business/CRM — additional lead contacts)** — a `lead_contacts` table
+  (nested under a lead, `cascadeOnDelete`, soft-delete) for people beyond the main
+  contact: name/position/phone/landline/website/email. `LeadContactController`
+  store/update/destroy with the same wrong-lead 404 guard as actions; a
+  `ContactFormDialog` drives add/edit; the lead detail page renders a **Contacts**
+  card (Name / Position / Phone / Email + edit/delete) below History. **167 tests**
+  (6 new); all CI green; deployed. The lead detail page is now feature-complete bar
+  the deferred polish. **Deferred:** admin actor-picker, inline next-step/status
+  editing, campaign fields, phone formatting — then Projects and lead→project
+  conversion.
