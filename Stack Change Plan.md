@@ -515,3 +515,12 @@ Two codebases will coexist for the whole build.
   on Transactions:** transfers, multi VAT lines + Net/Total toggle, withholding
   lines, edit/delete, reconcile, invoice-month, filtering/sorting, balance view —
   then Taxes (VAT + withholding ledgers), the Business/CRM area, and the import.
+- **2026-08-31 (transactions — CRUD, transfers, balances)** — Transactions now have
+  **full CRUD** (edit + delete, soft-delete; a shared validate/persist that rewrites
+  the VAT lines wholesale), **transfers** (from/to wallet, no VAT; a type change on
+  edit clears the other shape), and **live wallet balances** (a reusable
+  `App\Support\WalletBalances` service; a Balance column on the Wallets page + shared
+  Greek `formatAmount`). **114 tests**; all CI green; deployed. **Still to do on
+  Transactions:** multi VAT lines + Net/Total toggle, withholding lines, reconcile /
+  invoice tagging, filtering/sorting, per-wallet balance view — then Taxes, CRM,
+  import.
