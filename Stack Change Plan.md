@@ -524,3 +524,21 @@ Two codebases will coexist for the whole build.
   Transactions:** multi VAT lines + Net/Total toggle, withholding lines, reconcile /
   invoice tagging, filtering/sorting, per-wallet balance view — then Taxes, CRM,
   import.
+- **2026-08-31 (transactions — filtering/search)** — the Transactions list now
+  filters by free-text search (description OR entity name, debounced), type, wallet
+  (matching both sides of a transfer), and a date range, all via URL query params
+  read server-side in `TransactionController@index` (a `filters` prop drives the new
+  `transactions-filters.tsx` toolbar; a Clear button when any is active). **118
+  tests**; all CI green; deployed.
+- **2026-08-31 (transactions — withholding tax)** — income/expense transactions can
+  now carry **Greek withholding tax** (παρακράτηση), modelled as the exact parallel
+  of VAT lines: an optional withholding "line" (base + `withheld_tax_rates` rate)
+  whose amount is computed server-side (`resolveWithheldLines`, never trusted from
+  the client) and summed into `transactions.withheld_amount`; the cash **Total = net
+  + VAT − withheld**. The form gained a Withholding base + rate pair (income/expense
+  only) and a 4-column Net/VAT/Withheld/Total preview; `withheldLines` are
+  eager-loaded for edit pre-fill and rewritten wholesale on save (cleared on a type
+  change or when withholding is removed). `resolveLines` renamed `resolveVatLines`
+  for symmetry. **123 tests**; all CI green; deployed. **Still to do on
+  Transactions:** multi VAT lines + Net/Total toggle, reconcile / invoice tagging,
+  per-wallet balance view — then Taxes (VAT + withholding ledgers), CRM, import.
