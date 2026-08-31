@@ -648,3 +648,24 @@ Two codebases will coexist for the whole build.
   **185 tests** (6 new); all CI green; deployed. **Next CRM slice:** the lead→project
   **conversion** (Convert button, "Converted"/"Project Agreed" done-states, hiding
   converted leads).
+- **2026-08-31 (Business/CRM — lead→project conversion)** — ties Leads and Projects
+  together. `lead_statuses` gained an **`is_conversion`** flag; the seeder adds the
+  two done-states — **"Project Agreed"** (a normal manual stage a salesperson picks)
+  and the flagged **"Converted"** (set by the Convert action). Logic keys off the
+  flag, never the name. (MySQL has no partial unique index for single-true, so the
+  invariant is by construction: the flag is data-only, not editable via the status
+  CRUD.) `ProjectController@convert` (POST `/leads/{lead}/convert`) creates a project
+  linked to the lead, flips the lead to Converted, and redirects to the project — in
+  a DB transaction; a lead converts **only once** (an existing project redirects
+  instead of duplicating). The leads list **hides converted leads by default**
+  (excludes the conversion status unless the status filter asks for it — with the
+  `is null OR != ` guard so null-status rows survive); the status filter still lists
+  Converted. The lead form's status dropdown **omits the conversion status** unless
+  it's the lead's current value (so saving doesn't silently clear it). The lead
+  detail page shows **"Convert to project"** (a name-prompt dialog, pre-filled with
+  the lead name) or **"View project →"** once converted. **192 tests** (7 new); all
+  CI green; deployed. **The Business/CRM area (Phase 1) is now functionally
+  complete.** **Deferred CRM polish:** admin actor-picker, inline next-step/status
+  editing, campaign fields, phone formatting, History/Contacts as tabs. **Remaining
+  Finance polish:** multi VAT lines + Net/Total toggle, reconcile/invoice tagging.
+  **Then:** the historical **import** tool.
