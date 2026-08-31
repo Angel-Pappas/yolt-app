@@ -554,3 +554,20 @@ Two codebases will coexist for the whole build.
   CI green; deployed. **Still to do on Transactions:** multi VAT lines + Net/Total
   toggle, reconcile / invoice tagging — then Taxes (VAT + withholding ledgers),
   CRM, import.
+- **2026-08-31 (Taxes area — VAT + withholding ledgers)** — the **Taxes** section
+  (side-nav link, finance-gated): a `/taxes` index with a card per tax type showing
+  the current period's headline figures, and a full month-by-month page each.
+  **`VatLedger`** walks the complete history chronologically (by `invoice_date`),
+  threading a **credit rollover** (negative net carries forward indefinitely) and
+  **two-installment** deferral (a debit over €100 splits half-now/half-next-month,
+  ≤€100 paid in full) — gap months emitted so state passes through them; columns
+  Month / Income VAT / Expenses VAT / Net / Roll over / Payable this month / Payable
+  next month. **`WithheldLedger`** is the simpler parallel (by payment `date`,
+  expense-side only): collected this month → payable next. Both are derived live,
+  never stored. **Tests caught a real bug** — `Carbon::createFromFormat('Y-m', …)`
+  inherits today's day-of-month and overflows a short month (Feb on the 31st → Mar);
+  fixed by anchoring to `-01`. **141 tests** (12 new ledger tests covering rollover,
+  installments, gap months, payment-date attribution); all CI green; deployed.
+  **Deferred:** month→transactions drill-down links (needs an `invoice_date` filter
+  on the transactions list, not yet built). **Still to do on Transactions:** multi
+  VAT lines + Net/Total toggle, reconcile / invoice tagging — then CRM, import.
