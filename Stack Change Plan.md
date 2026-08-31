@@ -619,3 +619,19 @@ Two codebases will coexist for the whole build.
   the deferred polish. **Deferred:** admin actor-picker, inline next-step/status
   editing, campaign fields, phone formatting — then Projects and lead→project
   conversion.
+- **2026-08-31 (Business/CRM — Projects foundation)** — the second Business section.
+  A `project_statuses` lookup (Agreed/Scoping/Contracting/In progress/Delivered/
+  Cancelled, its own pipeline — now seeded by the renamed-in-spirit `LeadLookupSeeder`
+  alongside the lead lookups) and a `projects` table: auto **No.** (`sort_order`,
+  withTrashed max+1, never reused), a nullable `lead_id` (the originating lead,
+  `nullOnDelete` — a project holds project info only and links back rather than
+  copying the lead), status FK, `value` (decimal, a manual amount for now — a later
+  phase sums it from deliverables), `estimated_months`, description, next step. A
+  projects list (No. / Name / **Client** = the linked lead's main-contact name read
+  live / Status / Value / Next step + edit/delete) with search+status filters, an
+  add/edit dialog, and Business side-nav links (Projects, Project statuses). **179
+  tests** (16 new across project + project-status CRUD, auto-No./never-reused,
+  client surfacing, validation, filters, access gating, seeder). All CI green;
+  deployed. **Next CRM slices:** project detail page + History (`project_actions`),
+  then the lead→project **conversion** (Convert button, the "Converted"/"Project
+  Agreed" done-states, hiding converted leads).
