@@ -683,3 +683,19 @@ Two codebases will coexist for the whole build.
   green; deployed. **Remaining Finance polish:** multi VAT lines + Net/Total toggle.
   **Then:** the historical **import** tool (or a Postgres→MySQL data migration at
   cutover — decide with the owner which path).
+- **2026-08-31 (Finance — multi VAT lines + Net/Total toggle)** — the transaction
+  amount entry is now a **list of VAT lines** (amount + rate, "+ Add VAT line" /
+  remove), for the occasional single invoice mixing rates, plus one **Net/Total
+  segmented toggle** for the whole transaction. The form submits `amount_mode` +
+  `lines[].amount`; the server resolves each line's net/VAT from the rate (never
+  trusted from the client): Net mode → VAT = net × rate; **Total mode → net = total
+  ÷ (1+rate), VAT anchored to (total − net)** so a line reconstructs exactly with no
+  double-rounding drift. `transactions.net`/`vat_amount` stay the authoritative
+  *summed* values (every other reader unchanged); `vat_rate_id` is the single line's
+  rate or null for mixed. `vatLines` are now eager-loaded (like `withheldLines`) so
+  editing seeds the real breakdown. **205 tests** (5 new: Total-mode derivation +
+  exact reconstruction, multi-rate summing with null rate, single-line rate kept,
+  amount_mode required; the existing transaction tests migrated to the new payload).
+  All CI green; deployed. **Both areas' feature set now matches the old app** bar the
+  deferred CRM polish. **Then:** the historical **import** path (Excel importer, or a
+  Postgres→MySQL data migration at cutover — decide with the owner).
