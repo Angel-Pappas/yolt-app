@@ -581,3 +581,18 @@ Two codebases will coexist for the whole build.
   defaults. **148 tests** (7 new: CRUD, position append, access gating, seeder
   idempotency); all CI green; deployed. **Next CRM slices:** Leads list + CRUD, then
   lead detail (contacts + activity log), Projects, and lead→project conversion.
+- **2026-08-31 (Business/CRM — Leads list + CRUD)** — the core Leads feature: a
+  `leads` table (auto **No.** `sort_order` assigned at `withTrashed()->max+1` so a
+  soft-deleted lead keeps its number — **never reused**; a test caught that the
+  default soft-delete scope would otherwise reset it), origin/status FKs to the
+  lookups, a lead-level website, and a **main contact** (`contact_*` columns:
+  name/position/email/phone/landline), description, next step. A list page (No. /
+  Origin / Name / Email / Phone / Next step / Status + edit/delete) with a
+  search+origin+status filter bar, and a full add/edit dialog (name, origin/status
+  selects, main-contact fieldset, description/next-step textareas — added a shadcn
+  `Textarea` component). **155 tests** (7 new: CRUD, auto-No. append, never-reused,
+  validation, filter/search, access gating); all CI green; deployed. **Deferred to
+  later CRM slices:** additional contacts + activity-log (History) sub-tabs on a
+  lead detail page, campaign-only fields (platform/we-are/we-want), inline
+  next-step/status editing, phone formatting — then Projects and lead→project
+  conversion.
