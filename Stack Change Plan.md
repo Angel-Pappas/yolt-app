@@ -635,3 +635,16 @@ Two codebases will coexist for the whole build.
   deployed. **Next CRM slices:** project detail page + History (`project_actions`),
   then the lead→project **conversion** (Convert button, the "Converted"/"Project
   Agreed" done-states, hiding converted leads).
+- **2026-08-31 (Business/CRM — project detail + History, shared action log)** — a
+  `/projects/{project}` detail page (linked from the list): header with No., the
+  linked lead's contact name and a **"View lead →"** link, an info card
+  (status/value/estimated-months/description/next-step), an Edit button reusing the
+  project form dialog, and a **History** log. `project_actions` (the exact parallel
+  of `lead_actions`, `cascadeOnDelete`, editable `action_date`, denormalized
+  `author_name`); `ProjectActionController` with the wrong-project 404 guard. The
+  History entry dialog was **extracted to a shared `components/crm/action-form-dialog`**
+  (takes a `baseUrl` prop) and **Leads migrated onto it** (the leads-local copy
+  deleted) — first shared CRM component, per the plan's shared-action-log intent.
+  **185 tests** (6 new); all CI green; deployed. **Next CRM slice:** the lead→project
+  **conversion** (Convert button, "Converted"/"Project Agreed" done-states, hiding
+  converted leads).
