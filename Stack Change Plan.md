@@ -699,3 +699,55 @@ Two codebases will coexist for the whole build.
   All CI green; deployed. **Both areas' feature set now matches the old app** bar the
   deferred CRM polish. **Then:** the historical **import** path (Excel importer, or a
   Postgres→MySQL data migration at cutover — decide with the owner).
+- **2026-08-31 (cutover — legacy data migration).** Owner's decision: **migrate the
+  live old DB into the new one** (not re-import Excel — the Excel importer is retired
+  and must NOT be added). Every row moves to its correct place so nothing is lost or
+  changes when the owner switches apps. Two parts:
+  1. **Campaign fields on leads** (`campaign_platform` enum fb/ig, `campaign_we_are`,
+     `campaign_we_want`) — the one schema gap vs. the old `leads`. Shown in the lead
+     form only when origin is "Campaign", cleared otherwise. **Required**: all 58 old
+     leads carry campaign data, so without these every lead would lose it.
+  2. **`legacy:import` Artisan command** + **`App\Support\Legacy\LegacyImporter`**.
+     Reads a `legacy` Postgres connection (config/database.php, env `LEGACY_DB_*`),
+     replaces the finance+CRM data with a faithful copy of the old app's: loaded
+     parents-first with **UUID→bigint id remapping** (an id-map per table that FKs
+     translate through), **soft-delete preserved** (old `is_deleted`+`deleted_at` →
+     new `deleted_at`, so deleted rows stay deleted), **`created_at`/`sort_order`
+     preserved**, and **created-by remapped** to the matching new user by email
+     (users themselves are NOT migrated — the owner's login stays; passwords can't
+     move). `delete()` not `truncate()` (TRUNCATE implicitly commits on MySQL) keeps
+     it atomic in one transaction. The importer is reader-driven so it's unit-tested
+     against a fixture (**9 tests**: FK remap, transfers, soft-deletes, campaign
+     fields, user-by-email mapping, full-replace, pretend mode). `--pretend` reports
+     source counts without writing; the real run confirms first (`--force` skips).
+     **216 tests total; all CI green; deployed.**
+     - **Verified against the real old DB** (via Supabase MCP): 909 transactions (3
+       soft-deleted), 906 VAT lines, 100 entities, 34 categories, 3 wallets, 4 VAT
+       rates, 58 leads (all with campaign data), 25 lead actions, 1 lead contact, 7
+       lead statuses (one `is_conversion`="Converted"), 5 origins, 6 project statuses,
+       projects/project_actions empty, 1 withheld line. Single owner
+       (`a.pappas@yoltlabs.com`); no null wallets; no multi-rate transactions. Every
+       column maps cleanly; nothing in the old schema is unhandled.
+
+### Cutover runbook (run once, when switching to the new app)
+
+The migration **replaces** the new app's finance+CRM data with the old app's, so run
+it at the moment of cutover. It runs wherever both databases are reachable and
+`pdo_pgsql` is present — **Laravel Cloud is the natural place** (it hosts the new
+MySQL and can reach Supabase over the internet).
+
+1. **Get the old DB connection** — Supabase dashboard → old project (`yolt-app`,
+   ref `mzfxfweljbfvyqlhvmzr`) → Project Settings → Database → connection info (host,
+   port, database `postgres`, user, password; the session pooler is fine).
+2. **Set env on the new app** (Laravel Cloud → Environment): `LEGACY_DB_HOST`,
+   `LEGACY_DB_PORT`, `LEGACY_DB_DATABASE`, `LEGACY_DB_USERNAME`, `LEGACY_DB_PASSWORD`,
+   `LEGACY_DB_SSLMODE=require`. Redeploy so config picks them up.
+3. **Dry run**: `php artisan legacy:import --pretend` → confirms connectivity and
+   prints the source row counts (should match the figures above — transactions 909,
+   etc.).
+4. **Run it**: `php artisan legacy:import` (confirm the prompt, or `--force`). Prints
+   the migrated-row counts.
+5. **Verify** in the app; then remove the `LEGACY_DB_*` env vars.
+   - Re-runnable: it deletes+reloads, so a second run just refreshes from the old DB.
+   - The owner's existing new-app **login keeps working** (users aren't touched); all
+     migrated rows are attributed to that user by email.
