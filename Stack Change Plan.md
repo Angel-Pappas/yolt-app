@@ -571,3 +571,13 @@ Two codebases will coexist for the whole build.
   **Deferred:** month→transactions drill-down links (needs an `invoice_date` filter
   on the transactions list, not yet built). **Still to do on Transactions:** multi
   VAT lines + Net/Total toggle, reconcile / invoice tagging — then CRM, import.
+- **2026-08-31 (Business/CRM — lead statuses & origins lookups)** — first CRM slice,
+  the foundation Leads will reference. Two `can:access-crm`-gated lookup lists —
+  **`lead_statuses`** (New/Contacted/Follow-up/Proposal/Won/Lost) and
+  **`lead_origins`** (Campaign/Ads/Expo/Referral/Website) — each `name` + `position`
+  (a new status/origin appends at max+1), built on the existing `CrudResource`
+  pattern (mirrors VAT rates), with side-nav links under Business. An idempotent
+  **`LeadLookupSeeder`** (firstOrCreate, safe to run against prod) seeds the
+  defaults. **148 tests** (7 new: CRUD, position append, access gating, seeder
+  idempotency); all CI green; deployed. **Next CRM slices:** Leads list + CRUD, then
+  lead detail (contacts + activity log), Projects, and lead→project conversion.
