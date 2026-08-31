@@ -596,3 +596,16 @@ Two codebases will coexist for the whole build.
   lead detail page, campaign-only fields (platform/we-are/we-want), inline
   next-step/status editing, phone formatting — then Projects and lead→project
   conversion.
+- **2026-08-31 (Business/CRM — lead detail page + activity log)** — a `/leads/{lead}`
+  detail page (lead name links to it from the list): a header with the auto No., the
+  full lead info card, an "Edit lead" button reusing the `LeadFormDialog`, and a
+  **History** log. `lead_actions` (nested under a lead, `cascadeOnDelete`) has an
+  editable **`action_date`** (defaults today, separate from the `created_at` audit
+  stamp) and a denormalized **`author_name`** (a colleague's name can't be joined
+  under the CRM's shared-read model; author = the acting user). `LeadActionController`
+  store/update/destroy guard that the action belongs to the lead in the URL (404
+  otherwise); an `ActionFormDialog` (date + body) drives add/edit. **161 tests** (6
+  new: detail render, log/attribution, validation, update/delete, wrong-lead 404,
+  access gating); all CI green; deployed. **Deferred:** admin actor-picker (attribute
+  an action to another user), the Contacts sub-list, inline next-step/status editing,
+  campaign fields — then Projects and lead→project conversion.
