@@ -542,3 +542,15 @@ Two codebases will coexist for the whole build.
   for symmetry. **123 tests**; all CI green; deployed. **Still to do on
   Transactions:** multi VAT lines + Net/Total toggle, reconcile / invoice tagging,
   per-wallet balance view — then Taxes (VAT + withholding ledgers), CRM, import.
+- **2026-08-31 (transactions — per-wallet balance view)** — a **Balance view**
+  control on the Transactions page: picking a wallet sets `?balance=<id>` and the
+  same table narrows to that wallet's history with the Wallet column swapped for a
+  running **Balance** column. `WalletBalances::runningFor()` walks the wallet's
+  *complete* chronological history (seeded from `starting_balance`; income/expense
+  move net+VAT−withheld, a transfer moves net on both sides) annotating each row;
+  the display filters are then applied in PHP, so a filtered view still shows
+  correct cumulative balances. The active search/type/date filters are preserved on
+  enter/exit; the wallet filter is hidden while in balance view. **127 tests**; all
+  CI green; deployed. **Still to do on Transactions:** multi VAT lines + Net/Total
+  toggle, reconcile / invoice tagging — then Taxes (VAT + withholding ledgers),
+  CRM, import.
