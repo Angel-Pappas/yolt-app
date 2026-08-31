@@ -669,3 +669,17 @@ Two codebases will coexist for the whole build.
   editing, campaign fields, phone formatting, History/Contacts as tabs. **Remaining
   Finance polish:** multi VAT lines + Net/Total toggle, reconcile/invoice tagging.
   **Then:** the historical **import** tool.
+- **2026-08-31 (Finance — reconcile + invoice tagging)** — the transaction row's
+  bookkeeping cues (columns already existed on `transactions`). A **reconcile**
+  toggle button per row (POST `/transactions/{t}/reconcile`, flips `is_reconciled`,
+  lit green when on) and an **invoice** button opening a one-field dialog: a single
+  1–13 input files the transaction under that month's folder (1–12 → `invoice_month`,
+  13 → `invoice_not_required`, blank → clears both), so the rest of the app never
+  sees the "13" convention. Two **quick-filter toggles** in the transactions toolbar
+  — **unreconciled** (`is_reconciled = false`) and **missing invoice** (`invoice_month`
+  null AND not not-required, i.e. "not yet worked on") — wired into both the DB list
+  path and the balance-view PHP path. **200 tests** (8 new: toggle, the three
+  invoice states, out-of-range rejection, both quick filters, access gating); all CI
+  green; deployed. **Remaining Finance polish:** multi VAT lines + Net/Total toggle.
+  **Then:** the historical **import** tool (or a Postgres→MySQL data migration at
+  cutover — decide with the owner which path).
