@@ -751,3 +751,41 @@ MySQL and can reach Supabase over the internet).
    - Re-runnable: it deletes+reloads, so a second run just refreshes from the old DB.
    - The owner's existing new-app **login keeps working** (users aren't touched); all
      migrated rows are attributed to that user by email.
+
+- **2026-08-31 (parity pass — closing deferred gaps).** After the owner asked for a
+  full audit, the old app's `Summary.md` was checked feature-by-feature against the
+  new code. ~17 simplifications/gaps were found (several I'd deferred without clearly
+  surfacing). The owner directed: close them all, and prefer ready-made libraries
+  over hand-rolling. Done so far (each its own commit, CI green, deployed):
+  1. **Invite-only** — Fortify registration disabled, register page/links removed;
+     a new **admin invite flow** (Settings ▸ Users): create user + access flags →
+     password-broker token → copyable set-password link (no email dependency; 3-day
+     token). Invitee uses the existing reset-password page.
+  2. **Rich tables via TanStack Table v8** (pinned — v9 just released with a reworked
+     `useTable`/`tableFeatures` API, too green to build on). A shared **`DataTable`**
+     (`components/data-table/`, on the shadcn Table primitives) with sortable headers
+     (`ColumnHeader`), global search, and client pagination. Every list renders
+     through it: the lookup lists (via `CrudResource`) gain search+sort+pagination
+     (the 100-entity list is searchable); Leads/Projects/Transactions gain sortable
+     headers + pagination while keeping their server-side filter toolbars. Removes
+     the render-all-900-rows concern.
+  3. **Searchable Combobox** (shadcn Popover + cmdk) for the transaction form's
+     Entity/Category — type-to-filter instead of a 100-item dropdown.
+  4. **Current-month default** on Transactions (redirect to this month's range; an
+     "All time" toggle / `all=1` opts out; explicit ranges too).
+  5. **Taxes month drill-down** — VAT months link to their transactions by a new
+     `invoice_from`/`invoice_to` filter (VAT is by invoice date), withholding months
+     by payment date + `type=expense`.
+  6. **Inline next-step/status editing** in the Leads/Projects lists (reusable
+     `EditableNextStep`/`EditableStatus` + lightweight PATCH endpoints; the lead
+     status editor hides the conversion status).
+  7. **Phone formatting** (`formatPhone`, grouped display) and **invoice-date
+     follows the transaction date** until edited.
+  - **Still open (all lower practical value for this owner — 1 user, 1 withholding
+    txn, Greek-locale browser):** Add+New/Add+Same batch buttons; the reduced-edit
+    reconcile modal (toggle works today); multi-line withholding (backend already
+    supports it; the form is single-line); admin actor-picker on activity logs
+    (matters only with multiple users); a controlled dd/mm/yyyy date picker
+    (react-day-picker — native input already shows dd/mm/yyyy on a Greek locale);
+    History/Contacts as tabs (cosmetic; stacked cards today); the read-only Taxes
+    ledger tables onto the shared table look. Test count ≈ 227; all green.
