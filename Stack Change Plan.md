@@ -781,11 +781,20 @@ MySQL and can reach Supabase over the internet).
      status editor hides the conversion status).
   7. **Phone formatting** (`formatPhone`, grouped display) and **invoice-date
      follows the transaction date** until edited.
-  - **Still open (all lower practical value for this owner — 1 user, 1 withholding
-    txn, Greek-locale browser):** Add+New/Add+Same batch buttons; the reduced-edit
-    reconcile modal (toggle works today); multi-line withholding (backend already
-    supports it; the form is single-line); admin actor-picker on activity logs
-    (matters only with multiple users); a controlled dd/mm/yyyy date picker
-    (react-day-picker — native input already shows dd/mm/yyyy on a Greek locale);
-    History/Contacts as tabs (cosmetic; stacked cards today); the read-only Taxes
-    ledger tables onto the shared table look. Test count ≈ 227; all green.
+  - **The rest, now also done** (the owner directed all of them in — my
+    low-value framing was wrong; notably the owner's browser runs in **English**, so
+    the native date input showed American mm/dd/yyyy, making the custom field a real
+    fix): **Add+New/Add+Same** (batch entry); the reduced-edit **reconcile modal**
+    (date/amount/wallet + reconciled flag; changing an income/expense amount rescales
+    its VAT lines proportionally and re-derives VAT); **multi-line withholding** (the
+    form now produces the array the backend already summed); a locale-independent
+    **dd/mm/yyyy `DateField`** (auto-mask + react-day-picker calendar, emits ISO) on
+    the transaction/reconcile/History date fields and the transaction filters;
+    **History/Contacts tabs** on the lead detail (shadcn Tabs); the **Taxes ledgers
+    on the shared DataTable**; and the **admin actor-picker** on activity logs
+    (`Crm::resolveActor` — non-admins are always themselves). **All 17 audit items
+    closed; 229 tests; CI green; deployed.** New deps: `@tanstack/react-table@^8`,
+    `@radix-ui/react-popover`, `cmdk`, `react-day-picker`, `date-fns`,
+    `@radix-ui/react-tabs`. **The rebuild is feature-complete against the old app;
+    the only remaining step is the cutover data migration** (`legacy:import` — see
+    the runbook above).
